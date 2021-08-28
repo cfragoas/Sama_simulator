@@ -26,7 +26,7 @@ bs = BaseStation(frequency=3.5, tx_power=10, tx_height=30, bw=20, n_sectors=3, a
                  plot=False)
 bs.sector_beam_pointing_configuration(n_beams=10)  # configuring the base stations to use 10 beams each
 cluster = Cluster()
-cluster.k_means(grid=grid.grid, n_clusters=1)
+cluster.k_means(grid=grid.grid, n_clusters=2)
 lines = grid.lines
 columns = grid.columns
 az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=cluster.centroids,samples=cluster.features)
@@ -37,6 +37,6 @@ bs.beam_configuration(az_map=bs.beams_pointing)  # creating a beamforming config
 base_station_list = [bs] # creating a list is this case because theres is only one BS
 # gain_map = generate_bf_gain(elevation_map=elev_map, azimuth_map=az_map, base_station_list=base_station_list, sector_index=0)
 
-macel = Macel(grid=grid, n_centers=1, prop_model='free space', criteria=0, cell_size=30, base_station=bs)
+macel = Macel(grid=grid, n_centers=2, prop_model='free space', criteria=0, cell_size=30, base_station=bs)
 macel.generate_base_station_list()
-x = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+ch_gain_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)

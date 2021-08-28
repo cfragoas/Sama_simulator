@@ -51,9 +51,15 @@ class Macel:
         self.rx_height = rx_height
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
-        ue = np.ndarray(shape=(len(self.base_station_list), elev_map.shape[1], 100)) -60
-        print(ue.shape)
-        ue_sector = np.ndarray(shape=(elev_map.shape[0], self.base_station_list[0].antenna.beams))
+        ue = np.ndarray(shape=(self.n_centers, elev_map.shape[1], 100)) -60  # ARRUMAR DEPOIS ESSA GAMBIARRA
+        ch_gain_map = ue
+        ue_sector = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
+
+        # path loss attunation to sum with the beam gain
+        att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
+                                         frequency=self.base_station_list[0].frequency,
+                                         htx=self.default_base_station.tx_height, hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!!
+
         for bs_index, base_station in enumerate(self.base_station_list):
             lower_bound = 0
             for sector_index, higher_bound in enumerate(base_station.sectors_phi_range):
@@ -62,16 +68,12 @@ class Macel:
                                                    azimuth_map=np.expand_dims(az_map[bs_index][ue_in_range], axis=0),
                                                    base_station_list=[base_station],
                                                    sector_index=sector_index)[0][0]
-                print(sector_index)
                 ue[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = sector_gain_map.T
-                ue_sector[bs_index] = sector_index
+                ue_sector[bs_index][ue_in_range] = sector_index
+                ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
                 lower_bound = higher_bound
 
-        # att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
-        #                                  frequency=self.base_station_list[0].frequency,
-        #                                  htx=self.default_base_station.tx_height, hrx=self.rx_height)
-
-        return ue, ue_sector
+        return ch_gain_map
 
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
