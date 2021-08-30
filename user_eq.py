@@ -1,8 +1,9 @@
 import numpy as np
 
 class User_eq:
-    def __init__(self):
-        self.position = None
+    def __init__(self, positions, height):
+        self.positions = positions
+        self.height = height
         self.bs_candidates = None
         self.gain_matrix = None
 

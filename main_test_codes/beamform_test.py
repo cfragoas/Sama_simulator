@@ -20,6 +20,7 @@ from user_eq import User_eq
 grid = Grid()  # grid object
 grid.make_grid(1000, 1000)  # creating a grid with x, y dimensions
 grid.make_points(dist_type='gaussian', samples=10, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
+ue = User_eq(positions=grid.grid, height=1.5)  #creating the user equipament object
 element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
 beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
                                   vertical_spacing=0.5)
@@ -40,6 +41,6 @@ base_station_list = [bs] # creating a list is this case because theres is only o
 
 macel = Macel(grid=grid, n_centers=2, prop_model='free space', criteria=0, cell_size=30, base_station=bs)
 macel.generate_base_station_list()
+macel.set_ue(ue=ue)
 ch_gain_map, sector_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
-ue = User_eq()
-ue.acquire_bs_and_beam(ch_gain_map=ch_gain_map, sector_map=sector_map)
+macel.ue.acquire_bs_and_beam(ch_gain_map=ch_gain_map, sector_map=sector_map)  # calculating the best ch gain for each UE

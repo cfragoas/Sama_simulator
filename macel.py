@@ -27,7 +27,7 @@ class Macel:
         self.log = log  # if true, prints information about the ongoing process
         self.default_base_station = base_station  # BaseStation class variable
 
-        self.rx_height = None
+        self.ue = None  # the user equipment object - position and technical characteristics
 
         self.base_station_list = []
 
@@ -48,8 +48,9 @@ class Macel:
         for i in range(self.n_centers):
             self.base_station_list.append(self.default_base_station)
 
-    def set_ue(self, ue, rx_height):
-        self.rx_height = rx_height
+    def set_ue(self, ue):
+        self.ue = ue
+        # self.rx_height = rx_height
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
@@ -78,12 +79,15 @@ class Macel:
 
         return ch_gain_map, sector_map
 
-    def simulate_ue_bs_com(self, simulation_time, slot_time):
+    def simulate_ue_bs_comm(self, simulation_time, slot_time):
         #set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
             for sector_index in range(base_station.n_sectors):
                 ue_for_bs = np.where(self.ue.ue_bs[0] == bs_index)
-                pass
+                ue_for_bs_beam = self.ue.ue_bs[1][ue_for_bs]
+                [beams, users_per_beams] = np.unique(ue_for_bs_beam, return_counts=True)
+
+                base_station.add_active_beam(beams=beams, sector=sector_index, n_users=users_per_beams)
         for _ in np.arange(0, simulation_time, slot_time):
             pass
 

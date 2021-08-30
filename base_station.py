@@ -30,6 +30,7 @@ class BaseStation:
             self.generate_sector_pattern(plot)
         else:
             self.beam_sector_pattern = []
+            self.active_beams = None
             if hasattr(self.antenna, 'beams'):
                 self.beams = self.antenna.beams
             else:
@@ -53,6 +54,22 @@ class BaseStation:
             # self.antenna.change_beam_configuration(point_phi=az_map[range_sector], point_theta=elev_map[range_sector])
             # self.beams = self.antenna.beams  # NOT USING - FOR FUTURE CALCULATIONS
             lower_bound = higher_bound
+
+    def add_active_beam(self, sector, beams, n_users):
+        if hasattr(self, 'active_beams'):
+            if self.active_beams is None:
+                self.active_beams = np.ndarray(shape=(self.beams, self.n_sectors))
+        else:
+            print('Active beam list not found! Is the antenna object a beamforming one?')
+            return
+        for beam_index, beam in enumerate(beams):
+            self.active_beams[beam][sector] = n_users[beam_index]
+
+    def clean_active_beams(self):
+        pass
+
+    def calculate_beam_timing(self):
+        pass
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)
