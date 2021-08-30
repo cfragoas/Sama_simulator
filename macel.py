@@ -5,6 +5,7 @@ import tqdm
 import numpy as np
 from prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance, generate_bf_gain
+from user_eq import User_eq
 from random import gauss
 from make_voronoi import Voronoi
 from clustering import Cluster
@@ -47,15 +48,17 @@ class Macel:
         for i in range(self.n_centers):
             self.base_station_list.append(self.default_base_station)
 
-    def set_rx(self, rx_height):
+    def set_ue(self, ue, rx_height):
         self.rx_height = rx_height
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
-        ue = np.ndarray(shape=(self.n_centers, elev_map.shape[1], 100)) -60  # ARRUMAR DEPOIS ESSA GAMBIARRA
+        # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
+        # ue[:] = np.nan
+        ue = np.empty(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams))
         ch_gain_map = ue
-        ue_sector = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
+        sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
-        # path loss attunation to sum with the beam gain
+        # path loss attenuation to sum with the beam gain
         att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
                                          frequency=self.base_station_list[0].frequency,
                                          htx=self.default_base_station.tx_height, hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!!
@@ -69,12 +72,18 @@ class Macel:
                                                    base_station_list=[base_station],
                                                    sector_index=sector_index)[0][0]
                 ue[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = sector_gain_map.T
-                ue_sector[bs_index][ue_in_range] = sector_index
+                sector_map[bs_index][ue_in_range] = sector_index
                 ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
                 lower_bound = higher_bound
 
-        return ch_gain_map
+        return ch_gain_map, sector_map
 
+    def simulate_ue_bs_com(self, simulation_time, slot_time):
+        #set random activation indexes for all the BSs
+        for base_station in self.base_station_list:
+            for sector_index in base_station...
+        for _ in np.arange(0, simulation_time, slot_time):
+            pass
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False

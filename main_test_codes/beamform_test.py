@@ -5,6 +5,7 @@ from base_station import BaseStation
 from prop_models import generate_azimuth_map, generate_elevation_map, generate_euclidian_distance, generate_bf_gain
 from clustering import Cluster
 from macel import Macel
+from user_eq import User_eq
 
 # beamforming array diagram plot
 # element = Element_ITU1336(max_gain=5, phi_3db=65,theta_3db=65, freq=10, plot=True)  # not using 1336 for now
@@ -39,4 +40,6 @@ base_station_list = [bs] # creating a list is this case because theres is only o
 
 macel = Macel(grid=grid, n_centers=2, prop_model='free space', criteria=0, cell_size=30, base_station=bs)
 macel.generate_base_station_list()
-ch_gain_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+ch_gain_map, sector_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+ue = User_eq()
+ue.acquire_bs_and_beam(ch_gain_map=ch_gain_map, sector_map=sector_map)
