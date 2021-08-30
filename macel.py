@@ -80,8 +80,10 @@ class Macel:
 
     def simulate_ue_bs_com(self, simulation_time, slot_time):
         #set random activation indexes for all the BSs
-        for base_station in self.base_station_list:
-            for sector_index in base_station...
+        for bs_index, base_station in enumerate(self.base_station_list):
+            for sector_index in range(base_station.n_sectors):
+                ue_for_bs = np.where(self.ue.ue_bs[0] == bs_index)
+                pass
         for _ in np.arange(0, simulation_time, slot_time):
             pass
 
