@@ -58,7 +58,7 @@ class BaseStation:
     def add_active_beam(self, sector, beams, n_users):
         if hasattr(self, 'active_beams'):
             if self.active_beams is None:
-                self.active_beams = np.ndarray(shape=(self.beams, self.n_sectors))
+                self.active_beams = np.zeros(shape=(self.antenna.beams, self.n_sectors))
         else:
             print('Active beam list not found! Is the antenna object a beamforming one?')
             return
@@ -68,7 +68,8 @@ class BaseStation:
     def clean_active_beams(self):
         pass
 
-    def calculate_beam_timing(self):
+    def generate_beam_timing(self):
+
         pass
 
     def sector_beam_pointing_configuration(self, n_beams):

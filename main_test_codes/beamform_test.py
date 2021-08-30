@@ -36,7 +36,7 @@ dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=clu
 elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=30, samples=None)
 bs.beam_configuration(az_map=bs.beams_pointing)  # creating a beamforming configuration pointing to the the az_map points
 # bs.beam_configuration(az_map=az_map[0], elev_map=elev_map[0])  # rever essa parada aqui!!!
-base_station_list = [bs] # creating a list is this case because theres is only one BS
+# base_station_list = [bs] # creating a list is this case because theres is only one BS
 # gain_map = generate_bf_gain(elevation_map=elev_map, azimuth_map=az_map, base_station_list=base_station_list, sector_index=0)
 
 macel = Macel(grid=grid, n_centers=2, prop_model='free space', criteria=0, cell_size=30, base_station=bs)
@@ -44,3 +44,5 @@ macel.generate_base_station_list()
 macel.set_ue(ue=ue)
 ch_gain_map, sector_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
 macel.ue.acquire_bs_and_beam(ch_gain_map=ch_gain_map, sector_map=sector_map)  # calculating the best ch gain for each UE
+macel.simulate_ue_bs_comm(simulation_time=1, time_slot=1)
+print('ui')

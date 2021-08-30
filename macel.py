@@ -3,6 +3,7 @@ import multiprocessing.pool
 import os
 import tqdm
 import numpy as np
+import copy
 from prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance, generate_bf_gain
 from user_eq import User_eq
@@ -46,7 +47,7 @@ class Macel:
         # generating copies for different base station configurations
         self.base_station_list = []
         for i in range(self.n_centers):
-            self.base_station_list.append(self.default_base_station)
+            self.base_station_list.append(copy.deepcopy(self.default_base_station))
 
     def set_ue(self, ue):
         self.ue = ue
@@ -79,16 +80,20 @@ class Macel:
 
         return ch_gain_map, sector_map
 
-    def simulate_ue_bs_comm(self, simulation_time, slot_time):
+    def simulate_ue_bs_comm(self, simulation_time, time_slot):
         #set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
-            for sector_index in range(base_station.n_sectors):
-                ue_for_bs = np.where(self.ue.ue_bs[0] == bs_index)
-                ue_for_bs_beam = self.ue.ue_bs[1][ue_for_bs]
-                [beams, users_per_beams] = np.unique(ue_for_bs_beam, return_counts=True)
+            ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
-                base_station.add_active_beam(beams=beams, sector=sector_index, n_users=users_per_beams)
-        for _ in np.arange(0, simulation_time, slot_time):
+            for sector_index in range(base_station.n_sectors):
+                ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
+                ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
+                ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
+                [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
+
+                base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
+                # base_station.generate_beam_timing()
+        for _ in np.arange(0, simulation_time, time_slot):
             pass
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
