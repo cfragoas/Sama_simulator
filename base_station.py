@@ -68,13 +68,24 @@ class BaseStation:
     def clean_active_beams(self):
         self.active_beams = None
 
-    def generate_beam_timing(self):
+    def generate_beam_timing(self, simulation_time, time_slot):
         # self.beam_timing = np.ndarray(shape=self.n_sectors)
         self.beam_timing = [None] * self.n_sectors
         for sector_index, sector in enumerate(self.beam_timing):
             sector = np.where(self.active_beams[:, sector_index] != 0)[0]
             np.random.shuffle(sector)  # randomizing the beam timing sequence
             self.beam_timing[sector_index] = sector  # I really dont know why this line is need to this code to work!!!
+
+        self.beam_timing_sequence = None
+        for time in np.arange(0, simulation_time, time_slot):
+            pass
+
+    def next_active_beam(self):
+        if self.beam_sector_timing is None:
+            self.beam_sector_timing = np.zeros(shape=self.n_sectors)
+        else:
+            for beam in self.beam_sector_timing:
+                pass
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)

@@ -96,8 +96,12 @@ class Macel:
         return
 
     def simulate_ue_bs_comm(self, simulation_time, time_slot):
+        i = 0
         for _ in np.arange(0, simulation_time, time_slot):
-            pass
+            for ue_index, ue in enumerate(self.ue.ue_bs):
+                ue_bs_index = ue[0]
+                snr = self.ch_gain_map[ue_bs_index][ue_index]
+            i += 1
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False
