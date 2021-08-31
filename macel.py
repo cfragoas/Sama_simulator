@@ -80,8 +80,8 @@ class Macel:
 
         return ch_gain_map, sector_map
 
-    def simulate_ue_bs_comm(self, simulation_time, time_slot):
-        #set random activation indexes for all the BSs
+    def send_ue_to_bs(self):
+        # set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
             ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
@@ -92,7 +92,10 @@ class Macel:
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
-                # base_station.generate_beam_timing()
+                base_station.generate_beam_timing()
+        return
+
+    def simulate_ue_bs_comm(self, simulation_time, time_slot):
         for _ in np.arange(0, simulation_time, time_slot):
             pass
 
