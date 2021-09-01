@@ -45,5 +45,7 @@ macel.set_ue(ue=ue)
 ch_gain_map, sector_map = macel.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
 macel.ue.acquire_bs_and_beam(ch_gain_map=ch_gain_map, sector_map=sector_map)  # calculating the best ch gain for each UE
 # macel.simulate_ue_bs_comm(simulation_time=1, time_slot=1)
-macel.send_ue_to_bs()
+macel.send_ue_to_bs(simulation_time=1000, time_slot=1)
+# for base_station in macel.base_station_list:
+#     base_station.generate_beam_timing()
 print('ui')
