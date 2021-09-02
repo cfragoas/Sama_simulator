@@ -31,7 +31,7 @@ class BaseStation:
         else:
             self.beam_sector_pattern = []
             self.active_beams = None
-            self.beam_sector_timing = None
+            self.active_beams_index = None
             if hasattr(self.antenna, 'beams'):
                 self.beams = self.antenna.beams
             else:
@@ -80,19 +80,19 @@ class BaseStation:
         self.beam_timing_sequence = np.ndarray(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int)))
         for time in np.arange(0, simulation_time, time_slot):
             self.next_active_beam()
+            for sector_index, sector in enumerate(self.beam_timing):
+                self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
             # todo
-            # ADICIONAR AQUI O VALOR DO BEAM ATIVO AO INVÉS DO ÍNDICE
-            # SELF.BEAM_TIMING AO INVES DE SELF.BEAM_SECTOR_TIMING
-            self.beam_timing_sequence[:, time] = self.beam_sector_timing
+            # ARRUMAR OS NOMES DOS VETORES BEAM_TIMING, BEAM_SECTOR_TIMING, ETC...
 
     def next_active_beam(self):
-        if self.beam_sector_timing is None:
-            self.beam_sector_timing = np.zeros(shape=self.n_sectors)
+        if self.active_beams_index is None:
+            self.active_beams_index = np.zeros(shape=self.n_sectors)
         else:
-            self.beam_sector_timing += 1
-            for sector_index, beam in enumerate(self.beam_sector_timing):
-                if beam > len(self.beam_timing[sector_index]):
-                    self.beam_sector_timing[sector_index] = 0
+            self.active_beams_index += 1
+            for sector_index, beam in enumerate(self.active_beams_index):
+                if beam > len(self.beam_timing[sector_index])-1:
+                    self.active_beams_index[sector_index] = 0
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)
