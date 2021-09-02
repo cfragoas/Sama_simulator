@@ -32,6 +32,8 @@ class BaseStation:
             self.beam_sector_pattern = []
             self.active_beams = None
             self.active_beams_index = None
+            self.beam_timing = None
+            self.beam_timing_sequence = None
             if hasattr(self.antenna, 'beams'):
                 self.beams = self.antenna.beams
             else:
@@ -82,6 +84,8 @@ class BaseStation:
             self.next_active_beam()
             for sector_index, sector in enumerate(self.beam_timing):
                 self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
+
+        self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
 
     def next_active_beam(self):
         if self.active_beams_index is None:

@@ -95,13 +95,15 @@ class Macel:
             base_station.generate_beam_timing(simulation_time, time_slot)
         return
 
-    def simulate_ue_bs_comm(self, simulation_time, time_slot):
-        i = 0
-        for _ in np.arange(0, simulation_time, time_slot):
-            for ue_index, ue in enumerate(self.ue.ue_bs):
-                ue_bs_index = ue[0]
-                snr = self.ch_gain_map[ue_bs_index][ue_index]
-            i += 1
+    def simulate_ue_bs_comm(self, ch_gain_map):
+        for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
+            #check the active Bs's in time_index
+            for bs_index, base_station in enumerate(self.base_station_list):
+                ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index) & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[bs_index, time_index]))[0]
+                pw_in_active_ue = ch_gain_map[bs_index][ue_in_active_beam, base_station.beam_timing_sequence[bs_index, time_index]]
+                print(pw_in_active_ue)
+                # todo - calculate power in time here!!!
+                pass
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False
