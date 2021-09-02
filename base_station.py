@@ -26,7 +26,7 @@ class BaseStation:
             self.sectors_hor_pattern = []  # rotated antenna patterns for each of the base station sectors
             self.sectors_ver_pattern = []  # tilted elevation pattern
 
-            self.generate_ant_pattern(gain)
+            self.generate_ant_pattern()
             self.generate_sector_pattern(plot)
         else:
             self.beam_sector_pattern = []
@@ -82,8 +82,6 @@ class BaseStation:
             self.next_active_beam()
             for sector_index, sector in enumerate(self.beam_timing):
                 self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
-            # todo
-            # ARRUMAR OS NOMES DOS VETORES BEAM_TIMING, BEAM_SECTOR_TIMING, ETC...
 
     def next_active_beam(self):
         if self.active_beams_index is None:
