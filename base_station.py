@@ -34,6 +34,7 @@ class BaseStation:
             self.active_beams_index = None
             self.beam_timing = None
             self.beam_timing_sequence = None
+            self.beam_bw = None
             if hasattr(self.antenna, 'beams'):
                 self.beams = self.antenna.beams
             else:
@@ -95,6 +96,9 @@ class BaseStation:
             for sector_index, beam in enumerate(self.active_beams_index):
                 if beam > len(self.beam_timing[sector_index])-1:
                     self.active_beams_index[sector_index] = 0
+
+    def generate_beam_bw(self):
+        self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)

@@ -92,16 +92,27 @@ class Macel:
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
-            base_station.generate_beam_timing(simulation_time, time_slot)
+            base_station.generate_beam_timing(simulation_time, time_slot)  # precalculating the beam activation timings
+            base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
     def simulate_ue_bs_comm(self, ch_gain_map):
         for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
             #check the active Bs's in time_index
             for bs_index, base_station in enumerate(self.base_station_list):
-                ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index) & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[bs_index, time_index]))[0]
+                ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
+                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[bs_index, time_index]))[0]
                 pw_in_active_ue = ch_gain_map[bs_index][ue_in_active_beam, base_station.beam_timing_sequence[bs_index, time_index]]
-                print(pw_in_active_ue)
+                # print("main power ",pw_in_active_ue)
+                interf_in_active_ue = 0
+                # interference calculation
+                for bs_index2, base_station2 in enumerate(self.base_station_list):
+                    if bs_index2 != bs_index:
+                        interf = ch_gain_map[bs_index2][ue_in_active_beam, base_station.beam_timing_sequence[bs_index2, time_index]]
+                        interf_in_active_ue += interf
+                        # print("interf ",interf)
+                        # print("interf total ",interf_in_active_ue)
+                print("snr ", pw_in_active_ue - interf_in_active_ue)
                 # todo - calculate power in time here!!!
                 pass
 
