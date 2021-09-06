@@ -97,13 +97,16 @@ class Macel:
         return
 
     def simulate_ue_bs_comm(self, ch_gain_map):
-        # cap = np.zeros(shape=(np.ue))
+        cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        snr = cap
+        snr[:] = np.nan
+
         for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
             #check the active Bs's in time_index
             for bs_index, base_station in enumerate(self.base_station_list):
                 ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                             & (np.isin(self.ue.ue_bs[:, 1], base_station.beam_timing_sequence[:, time_index])))[0]
-                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, base_station.beam_timing_sequence[bs_index, time_index]]
+                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], time_index]))[0]
+                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
                 # print("main power ",pw_in_active_ue)
                 interf_in_active_ue = 0
                 # interference calculation
@@ -118,11 +121,13 @@ class Macel:
                 bw = base_station.beam_bw[base_station.beam_timing_sequence[
                                               self.ue.sector_map[bs_index, ue_in_active_beam].astype(int), time_index],
                                           self.ue.sector_map[bs_index, ue_in_active_beam].astype(int)]
+                snr[ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
+                cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6
                 print('bw ', bw)
                 # sector_ue = self.ue.sector_map[bs_index, ue_in_active_beam]  # need to adjust this!!!
                 print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
                 # todo - calculate power in time here!!!
-                pass
+        print('ui')
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False
