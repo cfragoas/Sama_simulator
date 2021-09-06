@@ -112,20 +112,21 @@ class Macel:
                 # interference calculation
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
-                        interf = base_station.tx_power + ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[bs_index2, time_index]]
+                        interf = base_station.tx_power + \
+                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.ue.sector_map[bs_index2, ue_in_active_beam], time_index]]
+                                # todo - add noise power !!!
                         interf_in_active_ue += 10**(interf/10)
                         # print("interf ",interf)
                         # print("interf total ",interf_in_active_ue)
-                print("time slot:", time_index)
-                print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
+                # print("time slot:", time_index)
+                # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
                 bw = base_station.beam_bw[base_station.beam_timing_sequence[
-                                              self.ue.sector_map[bs_index, ue_in_active_beam].astype(int), time_index],
-                                          self.ue.sector_map[bs_index, ue_in_active_beam].astype(int)]
+                                              self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
+                                          self.ue.sector_map[bs_index, ue_in_active_beam]]
                 snr[ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
                 cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6
-                print('bw ', bw)
-                # sector_ue = self.ue.sector_map[bs_index, ue_in_active_beam]  # need to adjust this!!!
-                print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
+                # print('bw ', bw)
+                # print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
                 # todo - calculate power in time here!!!
         print('ui')
 
