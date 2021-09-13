@@ -101,6 +101,8 @@ class Macel:
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr[:] = np.nan
         cap[:] = np.nan
+        k = 1.380649E-23  # Boltzmann's constant (J/K)
+        t = 290  # absolute temperature
 
         for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
             #check the active Bs's in time_index
@@ -124,14 +126,19 @@ class Macel:
                 bw = base_station.beam_bw[base_station.beam_timing_sequence[
                                               self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
                                           self.ue.sector_map[bs_index, ue_in_active_beam]]
+                noise_power = k * t * bw * 10E6
+                interf_in_active_ue += noise_power
                 snr[ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
                 cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6
                 # print('bw ', bw)
                 # print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
                 # todo - calculate power in time here!!!
-                mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
-                cap_sum = np.nansum(cap,axis=1)/1000
 
+        mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
+        cap_sum = np.nansum(cap,axis=1)/1000
+
+        print('snr: ', np.mean(mean_snr))
+        print('cap: ', np.mean(cap_sum))
         print('ui')
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
