@@ -137,9 +137,18 @@ class Macel:
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
         cap_sum = np.nansum(cap,axis=1)/1000
 
-        print('snr: ', np.mean(mean_snr))
-        print('cap: ', np.mean(cap_sum))
-        print('ui')
+
+        mean_mean_snr = np.mean(mean_snr)
+        std_snr = np.std(mean_snr)
+        mean_cap = np.mean(cap_sum)
+        std_cap = np.std(cap_sum)
+
+        # print('mean snr: ', mean_mean_snr)
+        # print('std dv: ', std_snr)
+        # print('mean cap: ', mean_cap)
+        # print('std dv: ', std_cap)
+
+        return (mean_mean_snr, std_snr, mean_cap, std_cap)
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False

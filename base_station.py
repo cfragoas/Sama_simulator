@@ -84,7 +84,8 @@ class BaseStation:
         for time in np.arange(0, simulation_time, time_slot):
             self.next_active_beam()
             for sector_index, sector in enumerate(self.beam_timing):
-                self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
+                if self.beam_timing[sector_index].size != 0:
+                    self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
 
         self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
 
@@ -98,7 +99,10 @@ class BaseStation:
                     self.active_beams_index[sector_index] = 0
 
     def generate_beam_bw(self):
+        import warnings
+        warnings.filterwarnings("ignore")
         self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
+        warnings.simplefilter('always')
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)
