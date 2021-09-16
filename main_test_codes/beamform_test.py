@@ -79,6 +79,8 @@ def macel_test(n_centers):
 
 if __name__ == '__main__':
     threads = os.cpu_count()
+    if threads > 61:  # to run in processors with 30+ cores
+        threads = 61
     p = multiprocessing.Pool(processes=threads-1)
     mean_snr = []
     std_snr = []
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     std_user_bw = []
 
 
-    max_iter = 50
+    max_iter = 10
     for n_cells in range(1,8):
         print('running with ', n_cells,' BSs')
         data = list(
@@ -99,31 +101,35 @@ if __name__ == '__main__':
         print(np.mean(data[0]))
         print(os.linesep)
 
-        mean_snr.append(np.mean(data[0]))
-        std_snr.append(np.mean(data[1]))
-        mean_cap.append(np.mean(data[2]))
-        std_cap.append(np.mean(data[3]))
-        mean_user_time.append(np.mean(data[4]))
-        std_user_time.append(np.mean(data[5]))
-        mean_user_bw.append(np.mean(data[6]))
-        std_user_bw.append(np.mean(data[7]))
+        data = np.array(data)
 
+        mean_snr.append(np.mean(data[:, 0]))
+        std_snr.append(np.mean(data[:, 1]))
+        mean_cap.append(np.mean(data[:, 2]))
+        std_cap.append(np.mean(data[:, 3]))
+        mean_user_time.append(np.mean(data[:, 4]))
+        std_user_time.append(np.mean(data[:, 5]))
+        mean_user_bw.append(np.mean(data[:, 6]))
+        std_user_bw.append(np.mean(data[:, 7]))
 
-    plt.plot(mean_snr)
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
+    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
+    ax1.plot(mean_snr)
+    ax1.set_title('Mean SNIR')
+    ax2.plot(std_snr)
+    ax2.set_title('std SNIR')
+    ax3.plot(mean_cap)
+    ax3.set_title('Mean Capacity (Mbps)')
+    ax4.plot(std_cap)
+    ax4.set_title('std Capacity (Mbps)')
+    ax5.plot(mean_user_time)
+    ax5.set_title('Mean user time (s)')
+    ax6.plot(std_user_time)
+    ax6.set_title('std user time (s)')
+    ax7.plot(mean_user_bw)
+    ax7.set_title('Mean user bw (MHz)')
+    ax8.plot(std_user_bw)
+    ax8.set_title('std user bw (MHz)')
+    fig.tight_layout()
     plt.show()
-    plt.plot(std_snr)
-    plt.show()
-    plt.plot(mean_cap)
-    plt.show()
-    plt.plot(std_cap)
-    plt.show()
-    plt.plot(mean_user_time)
-    plt.show()
-    plt.plot(std_user_time)
-    plt.show()
-    plt.plot(mean_user_bw)
-    plt.show()
-    plt.plot(std_user_bw)
-    plt.show()
-
 
