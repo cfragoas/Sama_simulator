@@ -26,7 +26,7 @@ from user_eq import User_eq
 def macel_test(n_centers):
     grid = Grid()  # grid object
     grid.make_grid(1000, 1000)  # creating a grid with x, y dimensions
-    grid.make_points(dist_type='gaussian', samples=200, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
+    grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
     ue = User_eq(positions=grid.grid, height=1.5)  #creating the user equipament object
     element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
     beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
@@ -84,8 +84,14 @@ if __name__ == '__main__':
     std_snr = []
     mean_cap = []
     std_cap = []
-    max_iter = 1000
-    for n_cells in range(1,20):
+    mean_user_time = []
+    std_user_time = []
+    mean_user_bw = []
+    std_user_bw = []
+
+
+    max_iter = 50
+    for n_cells in range(1,8):
         print('running with ', n_cells,' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(macel_test, [(n_cells) for i in range(max_iter)]), total=max_iter
@@ -93,6 +99,31 @@ if __name__ == '__main__':
         print(np.mean(data[0]))
         print(os.linesep)
 
-        mean_snr.append((np.mean(data[0])))
+        mean_snr.append(np.mean(data[0]))
+        std_snr.append(np.mean(data[1]))
+        mean_cap.append(np.mean(data[2]))
+        std_cap.append(np.mean(data[3]))
+        mean_user_time.append(np.mean(data[4]))
+        std_user_time.append(np.mean(data[5]))
+        mean_user_bw.append(np.mean(data[6]))
+        std_user_bw.append(np.mean(data[7]))
+
+
     plt.plot(mean_snr)
     plt.show()
+    plt.plot(std_snr)
+    plt.show()
+    plt.plot(mean_cap)
+    plt.show()
+    plt.plot(std_cap)
+    plt.show()
+    plt.plot(mean_user_time)
+    plt.show()
+    plt.plot(std_user_time)
+    plt.show()
+    plt.plot(mean_user_bw)
+    plt.show()
+    plt.plot(std_user_bw)
+    plt.show()
+
+

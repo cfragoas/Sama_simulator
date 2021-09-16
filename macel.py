@@ -99,8 +99,15 @@ class Macel:
     def simulate_ue_bs_comm(self, ch_gain_map):
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+
         snr[:] = np.nan
         cap[:] = np.nan
+        user_time[:] = np.nan
+        user_bw[:] = np.nan
+
+        # to calculate noise power
         k = 1.380649E-23  # Boltzmann's constant (J/K)
         t = 290  # absolute temperature
 
@@ -110,6 +117,7 @@ class Macel:
                 ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
                                              & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], time_index]))[0]
                 pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
+
                 # print("main power ",pw_in_active_ue)
                 interf_in_active_ue = 0
                 # interference calculation
@@ -125,30 +133,37 @@ class Macel:
                 # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
                 bw = base_station.beam_bw[base_station.beam_timing_sequence[
                                               self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
-                                          self.ue.sector_map[bs_index, ue_in_active_beam]]
+                                          self.ue.sector_map[bs_index, ue_in_active_beam]]  # user BW
                 noise_power = k * t * bw * 10E6
                 interf_in_active_ue += noise_power
+
+                # metrics
                 snr[ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
-                cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6
+                cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/(10E6)
+                user_time[ue_in_active_beam, time_index] = 1
+                user_bw[ue_in_active_beam, time_index] = bw
                 # print('bw ', bw)
                 # print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
                 # todo - calculate power in time here!!!
 
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
-        cap_sum = np.nansum(cap,axis=1)/1000
-
+        cap_sum = np.nansum(cap,axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
 
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
         mean_cap = np.mean(cap_sum)
         std_cap = np.std(cap_sum)
+        mean_user_time = np.mean(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        std_user_time = np.std(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        mean_user_bw = np.nanmean(user_bw)
+        std_user_bw = np.nanstd(user_bw)
 
         # print('mean snr: ', mean_mean_snr)
         # print('std dv: ', std_snr)
         # print('mean cap: ', mean_cap)
         # print('std dv: ', std_cap)
 
-        return (mean_mean_snr, std_snr, mean_cap, std_cap)
+        return (mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw)
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False
