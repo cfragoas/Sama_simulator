@@ -40,7 +40,7 @@ def macel_test(n_centers):
     columns = grid.columns
     az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=cluster.centroids,samples=cluster.features)
     dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=cluster.centroids, samples=cluster.features, plot=False)
-    elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=30, samples=None)
+    elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=100, samples=None)
     bs.beam_configuration(az_map=bs.beams_pointing)  # creating a beamforming configuration pointing to the the az_map points
     # bs.beam_configuration(az_map=az_map[0], elev_map=elev_map[0])  # rever essa parada aqui!!!
     # base_station_list = [bs] # creating a list is this case because theres is only one BS
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     std_snr = []
     mean_cap = []
     std_cap = []
-    max_iter = 100
+    max_iter = 1000
     for n_cells in range(1,20):
         print('running with ', n_cells,' BSs')
         data = list(
