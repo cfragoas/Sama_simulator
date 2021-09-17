@@ -57,7 +57,7 @@ class Macel:
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
         # ue[:] = np.nan
         ue = np.empty(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams))
-        ch_gain_map = ue
+        ch_gain_map = np.zeros(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams + 1)) - 10000
         sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
         # path loss attenuation to sum with the beam gain
@@ -125,7 +125,6 @@ class Macel:
                     if bs_index2 != bs_index:
                         interf = base_station.tx_power + \
                                  ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.ue.sector_map[bs_index2, ue_in_active_beam], time_index]]
-                                # todo - add noise power !!!
                         interf_in_active_ue += 10**(interf/10)
                         # print("interf ",interf)
                         # print("interf total ",interf_in_active_ue)

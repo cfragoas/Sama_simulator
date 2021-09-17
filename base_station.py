@@ -80,7 +80,7 @@ class BaseStation:
             np.random.shuffle(sector)  # randomizing the beam timing sequence
             self.beam_timing[sector_index] = sector  # I really dont know why this line is need to this code to work!!!
 
-        self.beam_timing_sequence = np.ndarray(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int)))
+        self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int))) + self.antenna.beams
         for time in np.arange(0, simulation_time, time_slot):
             self.next_active_beam()
             for sector_index, sector in enumerate(self.beam_timing):
