@@ -26,7 +26,7 @@ from user_eq import User_eq
 def macel_test(n_centers):
     grid = Grid()  # grid object
     grid.make_grid(1000, 1000)  # creating a grid with x, y dimensions
-    grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
+    grid.make_points(dist_type='gaussian', samples=200, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
     ue = User_eq(positions=grid.grid, height=1.5)  #creating the user equipament object
     element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
     beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
@@ -91,9 +91,8 @@ if __name__ == '__main__':
     mean_user_bw = []
     std_user_bw = []
 
-
-    max_iter = 10
-    for n_cells in range(1,8):
+    max_iter = 1000
+    for n_cells in range(1,25):
         print('running with ', n_cells,' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(macel_test, [(n_cells) for i in range(max_iter)]), total=max_iter
