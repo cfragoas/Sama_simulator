@@ -101,11 +101,15 @@ class Macel:
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
+        user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
 
         snr[:] = np.nan
         cap[:] = np.nan
         user_time[:] = np.nan
         user_bw[:] = np.nan
+        act_beams_nmb[:] = np.nan
+        user_per_bs[:] = np.nan
 
         # to calculate noise power
         k = 1.380649E-23  # Boltzmann's constant (J/K)
@@ -141,21 +145,33 @@ class Macel:
                 cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/(10E6)
                 user_time[ue_in_active_beam, time_index] = 1
                 user_bw[ue_in_active_beam, time_index] = bw
-                # print('bw ', bw)
-                # print("capacity: ", bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/10E6)
-                # todo - calculate power in time here!!!
+                act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
+                user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
+
+        # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
         cap_sum = np.nansum(cap,axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
+        mean_act_beams = np.mean(act_beams_nmb, axis=1)
+        mean_user_bs = np.mean(user_per_bs, axis =1)
 
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
+        min_mean_snr = np.min(mean_mean_snr)
+        max_mean_snr = np.max(mean_mean_snr)
         mean_cap = np.mean(cap_sum)
         std_cap = np.std(cap_sum)
+        min_mean_cap = np.min(cap_sum)
+        max_mean_cap = np.max(cap_sum)
         mean_user_time = np.mean(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
         std_user_time = np.std(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        min_user_time = np.min(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        max_user_time = np.max(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
         mean_user_bw = np.nanmean(user_bw)
         std_user_bw = np.nanstd(user_bw)
+        min_user_bw = np.min(user_bw)
+        max_user_bw = np.max(user_bw)
+        #FAZER AS OUTRAS MÉTRICAS !!!!
 
         # print('mean snr: ', mean_mean_snr)
         # print('std dv: ', std_snr)
