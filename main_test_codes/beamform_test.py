@@ -1,5 +1,8 @@
+import datetime
+
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+import pickle
 import numpy as np
 import tqdm
 import multiprocessing, os
@@ -91,8 +94,18 @@ if __name__ == '__main__':
     mean_user_bw = []
     std_user_bw = []
 
+
+    # preparing folder name to export data
+    folder = os.path.dirname(__file__)
+    folder = '\\'.join(folder.split('\\')[:-1])
+    folder += '\\output\\'
+    date = datetime.datetime.now()
+    name_file = date.strftime('%x') + '-' + date.strftime('%X') + '.pkl'
+    name_file = name_file.replace('/', '_').replace(':', '_')
+    folder += name_file
+
     max_iter = 100
-    for n_cells in range(3,25):
+    for n_cells in range(1, 25):
         print('running with ', n_cells,' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(macel_test, [(n_cells) for i in range(max_iter)]), total=max_iter
@@ -110,6 +123,11 @@ if __name__ == '__main__':
         std_user_time.append(np.mean(data[:, 5]))
         mean_user_bw.append(np.mean(data[:, 6]))
         std_user_bw.append(np.mean(data[:, 7]))
+
+        # exporting data
+        with open(folder, 'wb') as f:
+            pickle.dump([n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw], f)
+            f.close()
 
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
