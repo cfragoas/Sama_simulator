@@ -80,6 +80,33 @@ def macel_test(n_centers):
     # plt.plot(stats.norm.pdf(np.sort(std_cap), np.mean(std_cap), np.std(std_cap)))
     # plt.show()
 
+def load_data(name_file):
+    folder = os.path.dirname(__file__)
+    folder = '\\'.join(folder.split('\\')[:-1])
+    folder += '\\output\\'
+    folder += name_file
+
+    with open(folder, 'rb') as f:
+        n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw = pickle.load(f)
+        f.close()
+
+    return(n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw)
+
+def save_data(path = None, name_file = None, *args):
+    if not path:
+        folder = os.path.dirname(__file__)
+        folder = '\\'.join(folder.split('\\')[:-1])
+        folder += '\\output\\'
+        path += name_file
+
+        return path
+
+    else:
+        with open(path, 'wb') as f:
+            pickle.dump([n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw], f)
+            f.close()
+
+
 if __name__ == '__main__':
     threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
@@ -124,11 +151,12 @@ if __name__ == '__main__':
         mean_user_bw.append(np.mean(data[:, 6]))
         std_user_bw.append(np.mean(data[:, 7]))
 
-        # exporting data
+        # exporting data for each BS number
         with open(folder, 'wb') as f:
             pickle.dump([n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw], f)
             f.close()
 
+    # plotting
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
     ax1.plot(mean_snr)
