@@ -1,5 +1,5 @@
 import datetime
-
+import logging
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import pickle
@@ -87,24 +87,31 @@ def load_data(name_file):
     folder += name_file
 
     with open(folder, 'rb') as f:
-        n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw = pickle.load(f)
+        data_dict = pickle.load(f)
         f.close()
 
-    return(n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw)
+    return(data_dict)
 
-def save_data(path = None, name_file = None, *args):
+def save_data(path = None, data_dict = None):
     if not path:
         folder = os.path.dirname(__file__)
         folder = '\\'.join(folder.split('\\')[:-1])
         folder += '\\output\\'
-        path += name_file
+        date = datetime.datetime.now()
+        name_file = date.strftime('%x') + '-' + date.strftime('%X') + '.pkl'
+        name_file = name_file.replace('/', '_').replace(':', '_')
+        path = folder + name_file
 
         return path
 
     else:
-        with open(path, 'wb') as f:
-            pickle.dump([n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw], f)
-            f.close()
+        if data_dict and type(data_dict) is dict:
+            with open(path, 'wb') as f:
+                pickle.dump([data_dict], f)
+                f.close()
+                logging.info('Saved/updated file ' + path)
+        else:
+            logging.error('data_dictionary not provided!!!!')
 
 
 if __name__ == '__main__':
@@ -112,28 +119,19 @@ if __name__ == '__main__':
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     p = multiprocessing.Pool(processes=threads-1)
-    mean_snr = []
-    std_snr = []
-    mean_cap = []
-    std_cap = []
-    mean_user_time = []
-    std_user_time = []
-    mean_user_bw = []
-    std_user_bw = []
 
-    test_dict = {}
-    test_dict['mean_snr'] = []
-    test_dict['mean_cap'] = []
+    data_dict = {}
+    data_dict['BSs'] = 0
+    data_dict['mean_snr'] = []
+    data_dict['std_snr'] = []
+    data_dict['mean_cap'] = []
+    data_dict['std_cap'] = []
+    data_dict['mean_user_time'] = []
+    data_dict['std_user_time'] = []
+    data_dict['mean_user_bw'] = []
+    data_dict['std_user_bw'] = []
 
-
-    # preparing folder name to export data
-    folder = os.path.dirname(__file__)
-    folder = '\\'.join(folder.split('\\')[:-1])
-    folder += '\\output\\'
-    date = datetime.datetime.now()
-    name_file = date.strftime('%x') + '-' + date.strftime('%X') + '.pkl'
-    name_file = name_file.replace('/', '_').replace(':', '_')
-    folder += name_file
+    path = save_data()  # storing the path used to save in all iterations
 
     max_iter = 100
     for n_cells in range(1, 25):
@@ -146,33 +144,23 @@ if __name__ == '__main__':
 
         data = np.array(data)
 
-        mean_snr.append(np.mean(data[:, 0]))
-        std_snr.append(np.mean(data[:, 1]))
-        mean_cap.append(np.mean(data[:, 2]))
-        std_cap.append(np.mean(data[:, 3]))
-        mean_user_time.append(np.mean(data[:, 4]))
-        std_user_time.append(np.mean(data[:, 5]))
-        mean_user_bw.append(np.mean(data[:, 6]))
-        std_user_bw.append(np.mean(data[:, 7]))
+        data_dict['BSs'] = n_cells
+        data_dict['mean_snr'].append(np.mean(data[:, 0]))
+        data_dict['mean_cap'].append(np.mean(data[:, 1]))
+        data_dict['mean_cap'].append(np.mean(data[:, 2]))
+        data_dict['std_cap'].append(np.mean(data[:, 3]))
+        data_dict['mean_user_time'].append(np.mean(data[:, 4]))
+        data_dict['std_user_time'].append(np.mean(data[:, 5]))
+        data_dict['mean_user_bw'].append(np.mean(data[:, 6]))
+        data_dict['std_user_bw'].append(np.mean(data[:, 7]))
 
-        test_dict['mean_snr'].append(np.mean(data[:, 0]))
-        test_dict['mean_cap'].append(np.mean(data[:, 2]))
-
-        # exporting data for each BS number
-        # with open(folder, 'wb') as f:
-        #     pickle.dump([n_cells, mean_snr, std_snr, mean_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw], f)
-        #     f.close()
-
-        with open(folder, 'wb') as f:
-            pickle.dump(
-                test_dict, f)
-            f.close()
+        save_data(path=path, data_dict=data_dict) # saving/updating data
 
         # testing histogram plot
-        plt.hist(data[:, 0], bins=20)  # snr
-        plt.show()
-        plt.hist(data[:, 2], bins=20)  # cap
-        plt.show()
+        # plt.hist(data[:, 0], bins=20)  # snr
+        # plt.show()
+        # plt.hist(data[:, 2], bins=20)  # cap
+        # plt.show()
 
     # plotting
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
