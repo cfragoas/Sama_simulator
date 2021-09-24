@@ -25,7 +25,8 @@ class Grid:
         self.grid = np.zeros(shape=(lines, columns))
 
     def clear_grid(self):
-        self.grid = np.zeros(shape=(self.lines, self.columns))
+        # self.grid = np.zeros(shape=(self.lines, self.columns))
+        self.grid[:] = 0
 
     def make_points(self, dist_type, samples, n_centers, random_centers=True, plot=False):  # generating centers for the distributions
         centers_set = set()  # workaround to generate unique values

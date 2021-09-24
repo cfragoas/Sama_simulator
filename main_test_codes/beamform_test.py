@@ -26,17 +26,21 @@ from user_eq import User_eq
 
 # testing a base station with beamforming
 
-def macel_test(n_centers):
+def macel_test(args):
+    # extracting variables from pool call
+    n_centers = args[0]
+    bs = args[1]
+
     grid = Grid()  # grid object
     grid.make_grid(1000, 1000)  # creating a grid with x, y dimensions
     grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False, plot=False)  # distributing points aring centers in the grid
     ue = User_eq(positions=grid.grid, height=1.5)  #creating the user equipament object
-    element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
-    beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
-                                      vertical_spacing=0.5)
-    bs = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10, downtilts=0,
-                     plot=False)
-    bs.sector_beam_pointing_configuration(n_beams=10)  # configuring the base stations to use 10 beams each
+    # element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
+    # beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
+    #                                   vertical_spacing=0.5)
+    # bs = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10, downtilts=0,
+    #                  plot=False)
+    # bs.sector_beam_pointing_configuration(n_beams=10)  # configuring the base stations to use 10 beams each
     cluster = Cluster()
     cluster.k_means(grid=grid.grid, n_clusters=n_centers)
     lines = grid.lines
@@ -57,28 +61,8 @@ def macel_test(n_centers):
     # macel.simulate_ue_bs_comm(simulation_time=1, time_slot=1)
     macel.send_ue_to_bs(simulation_time=1000, time_slot=1)
     snr_cap_stats = macel.simulate_ue_bs_comm(ch_gain_map=ch_gain_map)
-    # mean_snr.append(snr_cap_stats[0])
-    # std_snr.append(snr_cap_stats[1])
-    # mean_cap.append(snr_cap_stats[2])
-    # std_cap.append(snr_cap_stats[3])
 
     return(snr_cap_stats)
-    # plt.plot(mean_snr)
-    # plt.show()
-    # plt.plot(std_snr)
-    # plt.show()
-    # plt.plot(stats.norm.pdf(np.sort(mean_snr), np.mean(mean_snr), np.std(mean_snr)))
-    # plt.show()
-    # plt.plot(stats.norm.pdf(np.sort(std_snr), np.mean(std_snr), np.std(std_snr)))
-    # plt.show()
-    # plt.plot(mean_cap)
-    # plt.show()
-    # plt.plot(std_cap)
-    # plt.show()
-    # plt.plot(stats.norm.pdf(np.sort(mean_cap), np.mean(mean_cap), np.std(mean_cap)))
-    # plt.show()
-    # plt.plot(stats.norm.pdf(np.sort(std_cap), np.mean(std_cap), np.std(std_cap)))
-    # plt.show()
 
 def load_data(name_file):
     folder = os.path.dirname(__file__)
@@ -113,8 +97,38 @@ def save_data(path = None, data_dict = None):
         else:
             logging.error('data_dictionary not provided!!!!')
 
+def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw):
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
+    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
+    ax1.plot(mean_snr)
+    ax1.set_title('Mean SNIR')
+    ax2.plot(std_snr)
+    ax2.set_title('std SNIR')
+    ax3.plot(mean_cap)
+    ax3.set_title('Mean Capacity (Mbps)')
+    ax4.plot(std_cap)
+    ax4.set_title('std Capacity (Mbps)')
+    ax5.plot(mean_user_time)
+    ax5.set_title('Mean user time (s)')
+    ax6.plot(std_user_time)
+    ax6.set_title('std user time (s)')
+    ax7.plot(mean_user_bw)
+    ax7.set_title('Mean user bw (MHz)')
+    ax8.plot(std_user_bw)
+    ax8.set_title('std user bw (MHz)')
+    fig.tight_layout()
+    plt.show()
+
 
 if __name__ == '__main__':
+    # classes that don't change in the loop
+    element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
+    beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
+                                   vertical_spacing=0.5)
+    base_station = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
+                     downtilts=0, plot=False)
+    base_station.sector_beam_pointing_configuration(n_beams=10)
+
     threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
@@ -137,7 +151,7 @@ if __name__ == '__main__':
     for n_cells in range(1, 25):
         print('running with ', n_cells,' BSs')
         data = list(
-                    tqdm.tqdm(p.imap_unordered(macel_test, [(n_cells) for i in range(max_iter)]), total=max_iter
+                    tqdm.tqdm(p.imap_unordered(macel_test, [(n_cells, base_station) for i in range(max_iter)]), total=max_iter
                 ))
         print(np.mean(data[0]))
         print(os.linesep)
@@ -146,7 +160,7 @@ if __name__ == '__main__':
 
         data_dict['BSs'] = n_cells
         data_dict['mean_snr'].append(np.mean(data[:, 0]))
-        data_dict['mean_cap'].append(np.mean(data[:, 1]))
+        data_dict['std_snr'].append(np.mean(data[:, 1]))
         data_dict['mean_cap'].append(np.mean(data[:, 2]))
         data_dict['std_cap'].append(np.mean(data[:, 3]))
         data_dict['mean_user_time'].append(np.mean(data[:, 4]))
@@ -156,34 +170,8 @@ if __name__ == '__main__':
 
         save_data(path=path, data_dict=data_dict) # saving/updating data
 
-        # testing histogram plot
-        # plt.hist(data[:, 0], bins=20)  # snr
-        # plt.show()
-        # plt.hist(data[:, 2], bins=20)  # cap
-        # plt.show()
-
-    # plotting
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
-    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
-    ax1.plot(mean_snr)
-    ax1.set_title('Mean SNIR')
-    ax2.plot(std_snr)
-    ax2.set_title('std SNIR')
-    ax3.plot(mean_cap)
-    ax3.set_title('Mean Capacity (Mbps)')
-    ax4.plot(std_cap)
-    ax4.set_title('std Capacity (Mbps)')
-    ax5.plot(mean_user_time)
-    ax5.set_title('Mean user time (s)')
-    ax6.plot(std_user_time)
-    ax6.set_title('std user time (s)')
-    ax7.plot(mean_user_bw)
-    ax7.set_title('Mean user bw (MHz)')
-    ax8.plot(std_user_bw)
-    ax8.set_title('std user bw (MHz)')
-    fig.tight_layout()
-    plt.show()
-
-    # plotting histogram
+    plot(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'], std_cap=data_dict['std_cap'],
+         mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'], mean_user_bw=data_dict['mean_user_bw'],
+         std_user_bw=data_dict['std_user_bw'])
 
 
