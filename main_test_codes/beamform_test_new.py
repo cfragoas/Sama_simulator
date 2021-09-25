@@ -25,13 +25,15 @@ def save_data(path = None, data_dict = None):
     if not path:
         folder = os.path.dirname(__file__)
         folder = '\\'.join(folder.split('\\')[:-1])
-        folder += '\\output\\'
         date = datetime.datetime.now()
-        name_file = date.strftime('%x') + '-' + date.strftime('%X') + '.pkl'
+        name_file = date.strftime('%x') + '-' + date.strftime('%X')
         name_file = name_file.replace('/', '_').replace(':', '_')
-        path = folder + name_file
+        folder += '\\output\\' + name_file + '\\'
+        path = folder + name_file + '.pkl'
 
-        return path
+        os.mkdir(folder)
+
+        return path, folder
 
     else:
         if data_dict and type(data_dict) is dict:
@@ -42,8 +44,15 @@ def save_data(path = None, data_dict = None):
         else:
             logging.error('data_dictionary not provided!!!!')
 
+def create_data_dict():
+    data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
+                  'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': []}
+
+    return data_dict_
+
+
 def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         max_iter, individual = False, save = False):
+         max_iter, individual=False, save=False, path=''):
     if individual:
         if save:
             plt.savefig()
@@ -70,7 +79,8 @@ def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, me
         fig.tight_layout()
         # plt.show()
         if save:
-            plt.savefig()
+            print('ui')
+            plt.savefig(path + 'perf.png')
 
 
 def simulate_ue_macel (args):
@@ -92,15 +102,18 @@ if __name__ == '__main__':
     samples = 50
     max_iter = 100
     min_bs = 1
-    max_bs = 25
+    max_bs = 7
 
     threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     p = multiprocessing.Pool(processes=threads - 1)
 
+    path, folder = save_data()  # storing the path used to save in all iterations
 
+    data_dict = create_data_dict()
 
+    # ==========================================
     grid = Grid()  # grid object
     grid.make_grid(1000, 1000)
 
@@ -120,3 +133,23 @@ if __name__ == '__main__':
         print('Mean SNR:', np.mean(data[0]), ' dB')
         print('Mean cap:', np.mean(data[2]), ' Mbps')
         print(os.linesep)
+
+        data = np.array(data)
+
+        data_dict['BSs'] = n_cells
+        data_dict['mean_snr'].append(np.mean(data[:, 0]))
+        data_dict['std_snr'].append(np.mean(data[:, 1]))
+        data_dict['mean_cap'].append(np.mean(data[:, 2]))
+        data_dict['std_cap'].append(np.mean(data[:, 3]))
+        data_dict['mean_user_time'].append(np.mean(data[:, 4]))
+        data_dict['std_user_time'].append(np.mean(data[:, 5]))
+        data_dict['mean_user_bw'].append(np.mean(data[:, 6]))
+        data_dict['std_user_bw'].append(np.mean(data[:, 7]))
+
+        save_data(path=path, data_dict=data_dict)  # saving/updating data
+
+        plot(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
+             std_cap=data_dict['std_cap'],
+             mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
+             mean_user_bw=data_dict['mean_user_bw'],
+             std_user_bw=data_dict['std_user_bw'],max_iter=max_iter ,individual=False, save=True, path=folder)
