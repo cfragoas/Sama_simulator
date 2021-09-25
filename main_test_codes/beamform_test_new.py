@@ -1,5 +1,6 @@
-import datetime, pickle, os, logging
-import  matplotlib.pyplot as plt
+import datetime, pickle, os, logging, multiprocessing, tqdm
+import matplotlib.pyplot as plt
+import numpy as np
 
 from antennas.beamforming import Beamforming_Antenna
 from antennas.ITU2101_Element import Element_ITU2101
@@ -42,10 +43,10 @@ def save_data(path = None, data_dict = None):
             logging.error('data_dictionary not provided!!!!')
 
 def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         individual = False, save = False):
+         max_iter, individual = False, save = False):
     if individual:
         if save:
-            pass
+            plt.savefig()
 
     else:
         fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
@@ -67,26 +68,36 @@ def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, me
         ax8.plot(std_user_bw)
         ax8.set_title('std user bw (MHz)')
         fig.tight_layout()
-        plt.show()
+        # plt.show()
         if save:
-            pass
+            plt.savefig()
 
 
-def teste (n_bs, grid, macel):
-    grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
+def simulate_ue_macel (args):
+    n_bs = args[0]
+    macel = args[1]
+
+    macel.grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
-    ue = User_eq(positions=grid.grid, height=1.5)  # creating the user equipament object
+    ue = User_eq(positions=macel.grid.grid, height=1.5)  # creating the user equipament object
     macel.set_ue(ue=ue)
     snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs)
 
     return(snr_cap_stats)
 
 
-
-
 if __name__ == '__main__':
+    # parameters
     n_bs = 5
     samples = 50
+    max_iter = 100
+    min_bs = 1
+    max_bs = 25
+
+    threads = os.cpu_count()
+    if threads > 61:  # to run in processors with 30+ cores
+        threads = 61
+    p = multiprocessing.Pool(processes=threads - 1)
 
 
 
@@ -101,5 +112,11 @@ if __name__ == '__main__':
     base_station.sector_beam_pointing_configuration(n_beams=10)
     macel = Macel(grid=grid, prop_model='free space', criteria=0, cell_size=30, base_station=base_station)
 
-    x = teste(n_bs, grid, macel)
-    print(x)
+    for n_cells in range(min_bs, max_bs):
+        print('running with ', n_cells,' BSs')
+        data = list(
+                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_bs, macel) for i in range(max_iter)]), total=max_iter
+                ))
+        print('Mean SNR:', np.mean(data[0]), ' dB')
+        print('Mean cap:', np.mean(data[2]), ' Mbps')
+        print(os.linesep)
