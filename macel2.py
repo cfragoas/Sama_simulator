@@ -101,11 +101,11 @@ class Macel:
         return
 
     def place_and_configure_bs(self, n_centers):
-        self.grid.clear_grid()
-        self.grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
-                         plot=False)  # distributing points aring centers in the grid
-        ue = User_eq(positions=self.grid.grid, height=1.5)  # creating the user equipament object  #todo - REMADE USER OUTSIDE
-        self.set_ue(ue=ue)
+        # self.grid.clear_grid()
+        # self.grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
+        #                  plot=False)  # distributing points aring centers in the grid
+        # ue = User_eq(positions=self.grid.grid, height=1.5)  # creating the user equipament object  #todo - REMADE USER OUTSIDE
+        # self.set_ue(ue=ue)
 
         cluster = Cluster()
         cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
