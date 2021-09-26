@@ -53,7 +53,8 @@ class Macel:
         for i in range(self.n_centers):
             self.base_station_list.append(copy.deepcopy(self.default_base_station))
 
-    def set_ue(self, ue):
+    def set_ue(self, hrx):
+        ue = User_eq(positions=self.grid.grid, height=hrx)  # creating the user equipament object
         self.ue = ue
         # self.rx_height = rx_height
 
@@ -120,11 +121,12 @@ class Macel:
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
                                      sector_map=self.sector_map)  # calculating the best ch gain for each UE
         self.send_ue_to_bs(simulation_time=1000, time_slot=1)
+
         snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map)
 
         return (snr_cap_stats)
 
-    def simulate_ue_bs_comm(self, ch_gain_map):
+    def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
@@ -177,11 +179,14 @@ class Macel:
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
 
+
+
         # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
         cap_sum = np.nansum(cap,axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
         mean_user_bs = np.mean(user_per_bs, axis =1)
+        user_time = np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])
 
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
@@ -191,22 +196,35 @@ class Macel:
         std_cap = np.std(cap_sum)
         min_mean_cap = np.min(cap_sum)
         max_mean_cap = np.max(cap_sum)
-        mean_user_time = np.mean(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        std_user_time = np.std(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        min_user_time = np.min(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        max_user_time = np.max(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        mean_user_time = np.mean(user_time)
+        std_user_time = np.std(user_time)
+        min_user_time = np.min(user_time)
+        max_user_time = np.max(user_time)
         mean_user_bw = np.nanmean(user_bw)
         std_user_bw = np.nanstd(user_bw)
         min_user_bw = np.min(user_bw)
         max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
 
-        # print('mean snr: ', mean_mean_snr)
-        # print('std dv: ', std_snr)
-        # print('mean cap: ', mean_cap)
-        # print('std dv: ', std_cap)
+        snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw]
 
-        return (mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw)
+        # preparing 'raw' data to export
+        raw_data_dict = {'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
+                         'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
+
+        # values_snr, bins_snr, patches_snr = plt.hist(mean_snr, bins=100)
+        # values_cap, bins_cap, patches_cap = plt.hist(cap_sum, bins=100)
+        # values_user_bs, bins_user_bs, patches_user_bs = plt.hist(mean_user_bs, bins=enumerate(self.base_station_list))
+        # values_act_beams, bins_act_beams, patches_act_beams = plt.hist(mean_act_beams, bins=11)
+        # values_user_time, bins_user_time, patches_user_time = plt.hist(user_time, bins=100)
+        # values_user_bw, bins_user_bw, patches_user_bw = plt.hist(np.nanmean(user_bw, axis=1), bins=100)
+
+        if output_typ == 'simple':
+            return snr_cap_stats
+        if output_typ == 'complete':
+            return snr_cap_stats, raw_data_dict
+        if output_typ == 'raw':
+            return raw_data_dict
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False

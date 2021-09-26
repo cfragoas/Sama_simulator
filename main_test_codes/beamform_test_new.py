@@ -12,8 +12,8 @@ from macel2 import Macel
 def load_data(name_file):
     folder = os.path.dirname(__file__)
     folder = '\\'.join(folder.split('\\')[:-1])
-    folder += '\\output\\'
-    folder += name_file
+    folder += '\\output\\' + name_file + '\\'
+    folder += name_file + '.pkl'
 
     with open(folder, 'rb') as f:
         data_dict = pickle.load(f)
@@ -51,36 +51,79 @@ def create_data_dict():
     return data_dict_
 
 
-def plot(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
+def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
          max_iter, individual=False, save=False, path=''):
     if individual:
         if save:
+            # Mean SNIR
+            plt.plot(mean_snr)
+            plt.title('Mean SNIR')
             plt.savefig()
 
-    else:
-        fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
-        fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
-        ax1.plot(mean_snr)
-        ax1.set_title('Mean SNIR')
-        ax2.plot(std_snr)
-        ax2.set_title('std SNIR')
-        ax3.plot(mean_cap)
-        ax3.set_title('Mean Capacity (Mbps)')
-        ax4.plot(std_cap)
-        ax4.set_title('std Capacity (Mbps)')
-        ax5.plot(mean_user_time)
-        ax5.set_title('Mean user time (s)')
-        ax6.plot(std_user_time)
-        ax6.set_title('std user time (s)')
-        ax7.plot(mean_user_bw)
-        ax7.set_title('Mean user bw (MHz)')
-        ax8.plot(std_user_bw)
-        ax8.set_title('std user bw (MHz)')
-        fig.tight_layout()
-        # plt.show()
-        if save:
-            print('ui')
-            plt.savefig(path + 'perf.png')
+            # std SNIR
+            plt.plot(std_snr)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # mean CAP
+            plt.plot(mean_cap)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # std CAP
+            plt.plot(std_cap)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # mean user time
+            plt.plot(mean_user_time)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # std user time
+            plt.plot(std_user_time)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # mean user bw
+            plt.plot(mean_user_bw)
+            plt.title('std SNIR')
+            plt.savefig()
+
+            # std user bw
+            plt.plot(std_user_bw)
+            plt.title('std SNIR')
+            plt.savefig()
+
+
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
+    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
+    ax1.plot(mean_snr)
+    ax1.set_title('Mean SNIR')
+    ax2.plot(std_snr)
+    ax2.set_title('std SNIR')
+    ax3.plot(mean_cap)
+    ax3.set_title('Mean Capacity (Mbps)')
+    ax4.plot(std_cap)
+    ax4.set_title('std Capacity (Mbps)')
+    ax5.plot(mean_user_time)
+    ax5.set_title('Mean user time (s)')
+    ax6.plot(std_user_time)
+    ax6.set_title('std user time (s)')
+    ax7.plot(mean_user_bw)
+    ax7.set_title('Mean user bw (MHz)')
+    ax8.plot(std_user_bw)
+    ax8.set_title('std user bw (MHz)')
+    fig.tight_layout()
+    # plt.show()
+    if save:
+        print('ui')
+        plt.savefig(path + 'perf.png')
+
+    def plot_hist(raw_data):
+        snr = np.concatenate([x['snr'] for x in raw_data])
+        plt.hist(snr, bins = 100)
+        # d = [k["latitude"] for k in output]
 
 
 def simulate_ue_macel (args):
@@ -89,8 +132,7 @@ def simulate_ue_macel (args):
 
     macel.grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
-    ue = User_eq(positions=macel.grid.grid, height=1.5)  # creating the user equipament object
-    macel.set_ue(ue=ue)
+    macel.set_ue(hrx=1.5)
     snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs)
 
     return(snr_cap_stats)
@@ -99,17 +141,17 @@ def simulate_ue_macel (args):
 if __name__ == '__main__':
     # parameters
     n_bs = 5
-    samples = 50
-    max_iter = 100
-    min_bs = 1
-    max_bs = 7
+    samples = 300  # REDO - NAO FUNCIONAAAAAA
+    max_iter = 50
+    min_bs = 10
+    max_bs = 20
 
     threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     p = multiprocessing.Pool(processes=threads - 1)
 
-    path, folder = save_data()  # storing the path used to save in all iterations
+    # path, folder = save_data()  # storing the path used to save in all iterations
 
     data_dict = create_data_dict()
 
@@ -130,9 +172,9 @@ if __name__ == '__main__':
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_bs, macel) for i in range(max_iter)]), total=max_iter
                 ))
-        print('Mean SNR:', np.mean(data[0]), ' dB')
-        print('Mean cap:', np.mean(data[2]), ' Mbps')
-        print(os.linesep)
+        # print('Mean SNR:', np.mean(data[0]), ' dB')
+        # print('Mean cap:', np.mean(data[2]), ' Mbps')
+        # print(os.linesep)
 
         data = np.array(data)
 
