@@ -117,56 +117,74 @@ def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_ti
     fig.tight_layout()
     # plt.show()
     if save:
-        print('ui')
         plt.savefig(path + 'perf.png')
 
-def plot_hist(path, raw_data):
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(4, 2)
-    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
+def plot_hist(raw_data, path, n_bs):
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3)
+    fig.suptitle('Metrics using ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
 
     # SNR
     snr = np.concatenate([x['snr'] for x in raw_data])
     ax1.hist(snr, bins=100)
-    ax1.title('SNR')
+    ax1.set_title('SNR')
+    f = plt.figure(7)
+    plt.hist(snr, bins=100)
+    plt.title('SNR')
     # plt.show()
-    ax1.savefig(path + 'snr.png')
+    plt.savefig(path + 'snr_' + str(n_bs) + 'BS.png')
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
     ax2.hist(cap, bins=100)
-    ax2.title('Throughput (Mbps)')
+    ax2.set_title('Throughput (Mbps)')
+    f = plt.figure(2)
+    plt.hist(cap, bins=100)
+    plt.title('Throughput (Mbps)')
     # plt.show()
-    ax2.savefig(path + 'cap.png')
+    plt.savefig(path + 'cap_' + str(n_bs) + 'BS.png')
 
     # Users p/ BS
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
-    ax3.hist(user_bs, bins=50)
-    ax3.title('Number of UEs per BS')
+    ax3.hist(user_bs, bins=100)
+    ax3.set_title('Number of UEs per BS')
+    f = plt.figure(3)
+    plt.hist(user_bs, bins=100)
+    plt.title('Number of UEs per BS')
     # plt.show()
-    ax3.savefig(path + 'user_bs.png')
+    plt.savefig(path + 'user_bs_' + str(n_bs) + 'BS.png')
 
     # Number of active beams
     act_beams = np.concatenate([x['act_beams'] for x in raw_data])
     ax4.hist(act_beams, bins=11)
-    ax4.title('Number of Active beams per BS')
+    ax4.set_title('Number of Active beams per BS')
+    f = plt.figure(4)
+    plt.hist(act_beams, bins=11)
+    plt.title('Number of Active beams per BS')
     # plt.show()
-    ax4.savefig(path + 'act_beams' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'act_beams_' + str(n_bs) + 'BS.png')
 
     # time per user in 1s
     user_time = np.concatenate([x['user_time'] for x in raw_data])
-    ax5.hist(user_time, bins=10)
-    ax5.title('Active UE time in 1s')
+    ax5.hist(user_time, bins=50)
+    ax5.set_title('Active UE time in 1s')
+    f = plt.figure(5)
+    plt.hist(user_time, bins=50)
+    plt.title('Active UE time in 1s')
     # plt.show()
-    ax5.savefig(path + 'user_time.png')
+    plt.savefig(path + 'user_time_' + str(n_bs) + 'BS.png')
 
     # bandwidth per user
     user_bw = np.concatenate([x['user_bw'] for x in raw_data])
     ax6.hist(user_bw, bins=20)
-    ax6.title('Bandwidth per UE')
+    ax6.set_title('Bandwidth per UE')
+    f = plt.figure(6)
+    plt.hist(user_bw, bins=20)
+    plt.title('Bandwidth per UE')
     # plt.show()
-    ax6.savefig(path + 'bw_user.png')
+    plt.savefig(path + 'bw_user_' + str(n_bs) + 'BS.png')
 
     fig.tight_layout()
+    fig.savefig(path + 'Metrics_' + str(n_bs) + 'BS.png')
 
 
 def simulate_ue_macel (args):
@@ -184,8 +202,8 @@ def simulate_ue_macel (args):
 if __name__ == '__main__':
     # parameters
     n_bs = 5
-    samples = 300  # REDO - NAO FUNCIONAAAAAA
-    max_iter = 500
+    samples = 100  # REDO - NAO FUNCIONAAAAAA
+    max_iter = 200
     min_bs = 10
     max_bs = 20
 
@@ -194,7 +212,7 @@ if __name__ == '__main__':
         threads = 61
     p = multiprocessing.Pool(processes=threads - 1)
 
-    # path, folder = save_data()  # storing the path used to save in all iterations
+    path, folder = save_data()  # storing the path used to save in all iterations
 
     data_dict = create_data_dict()
 
@@ -219,7 +237,8 @@ if __name__ == '__main__':
         # print('Mean cap:', np.mean(data[2]), ' Mbps')
         # print(os.linesep)
 
-        plot_hist(data)
+        plot_hist(raw_data=data, path=folder, n_bs=n_cells)
+        print('foi!!!')
 
         data = np.array(data)
 
