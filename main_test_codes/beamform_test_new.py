@@ -120,17 +120,52 @@ def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_ti
         print('ui')
         plt.savefig(path + 'perf.png')
 
-    def plot_hist(raw_data):
-        snr = np.concatenate([x['snr'] for x in raw_data])
-        plt.hist(snr, bins = 100)
-        # d = [k["latitude"] for k in output]
+def plot_hist(raw_data):
+    fig, ((ax1, ax2, ax3), (ax4, ax4, ax6)) = plt.subplots(4, 2)
+    fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
+
+    # SNR
+    snr = np.concatenate([x['snr'] for x in raw_data])
+    ax1.hist(snr, bins=100)
+    ax1.title('SNR')
+    # plt.show()
+
+    # CAP
+    cap = np.concatenate([x['cap'] for x in raw_data])
+    ax2.hist(cap, bins=100)
+    ax2.title('Throughput (Mbps)')
+    # plt.show()
+
+    # Users p/ BS
+    user_bs = np.concatenate([x['user_bs'] for x in raw_data])
+    plt.hist(user_bs, bins=50)
+    plt.title('Number of UEs per BS')
+    plt.show()
+
+    # Number of active beams
+    act_beams = np.concatenate([x['act_beams'] for x in raw_data])
+    plt.hist(act_beams, bins=11)
+    plt.title('Number of Active beams per BS')
+    plt.show()
+
+    # time per user in 1s
+    user_time = np.concatenate([x['user_time'] for x in raw_data])
+    plt.hist(user_time, bins=10)
+    plt.title('Active UE time in 1s')
+    plt.show()
+
+    # bandwidth per user
+    user_bw = np.concatenate([x['user_bw'] for x in raw_data])
+    plt.hist(user_bw, bins=20)
+    plt.title('Bandwidth per UE')
+    plt.show()
 
 
 def simulate_ue_macel (args):
     n_bs = args[0]
     macel = args[1]
 
-    macel.grid.make_points(dist_type='gaussian', samples=50, n_centers=4, random_centers=False,
+    macel.grid.make_points(dist_type='gaussian', samples=100, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
     macel.set_ue(hrx=1.5)
     snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs)
@@ -142,7 +177,7 @@ if __name__ == '__main__':
     # parameters
     n_bs = 5
     samples = 300  # REDO - NAO FUNCIONAAAAAA
-    max_iter = 50
+    max_iter = 500
     min_bs = 10
     max_bs = 20
 
@@ -175,6 +210,8 @@ if __name__ == '__main__':
         # print('Mean SNR:', np.mean(data[0]), ' dB')
         # print('Mean cap:', np.mean(data[2]), ' Mbps')
         # print(os.linesep)
+
+        plot_hist(data)
 
         data = np.array(data)
 
