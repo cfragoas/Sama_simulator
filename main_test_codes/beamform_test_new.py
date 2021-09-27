@@ -120,8 +120,8 @@ def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_ti
         print('ui')
         plt.savefig(path + 'perf.png')
 
-def plot_hist(raw_data):
-    fig, ((ax1, ax2, ax3), (ax4, ax4, ax6)) = plt.subplots(4, 2)
+def plot_hist(path, raw_data):
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(4, 2)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
 
     # SNR
@@ -129,36 +129,44 @@ def plot_hist(raw_data):
     ax1.hist(snr, bins=100)
     ax1.title('SNR')
     # plt.show()
+    ax1.savefig(path + 'snr.png')
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
     ax2.hist(cap, bins=100)
     ax2.title('Throughput (Mbps)')
     # plt.show()
+    ax2.savefig(path + 'cap.png')
 
     # Users p/ BS
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
-    plt.hist(user_bs, bins=50)
-    plt.title('Number of UEs per BS')
-    plt.show()
+    ax3.hist(user_bs, bins=50)
+    ax3.title('Number of UEs per BS')
+    # plt.show()
+    ax3.savefig(path + 'user_bs.png')
 
     # Number of active beams
     act_beams = np.concatenate([x['act_beams'] for x in raw_data])
-    plt.hist(act_beams, bins=11)
-    plt.title('Number of Active beams per BS')
-    plt.show()
+    ax4.hist(act_beams, bins=11)
+    ax4.title('Number of Active beams per BS')
+    # plt.show()
+    ax4.savefig(path + 'act_beams' + str(n_bs) + 'BS.png')
 
     # time per user in 1s
     user_time = np.concatenate([x['user_time'] for x in raw_data])
-    plt.hist(user_time, bins=10)
-    plt.title('Active UE time in 1s')
-    plt.show()
+    ax5.hist(user_time, bins=10)
+    ax5.title('Active UE time in 1s')
+    # plt.show()
+    ax5.savefig(path + 'user_time.png')
 
     # bandwidth per user
     user_bw = np.concatenate([x['user_bw'] for x in raw_data])
-    plt.hist(user_bw, bins=20)
-    plt.title('Bandwidth per UE')
-    plt.show()
+    ax6.hist(user_bw, bins=20)
+    ax6.title('Bandwidth per UE')
+    # plt.show()
+    ax6.savefig(path + 'bw_user.png')
+
+    fig.tight_layout()
 
 
 def simulate_ue_macel (args):
