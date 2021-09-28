@@ -24,6 +24,7 @@ def load_data(name_file):
 def save_data(path = None, data_dict = None):
     if not path:
         folder = os.path.dirname(__file__)
+        folder = folder.replace('/', '\\')
         folder = '\\'.join(folder.split('\\')[:-1])
         date = datetime.datetime.now()
         name_file = date.strftime('%x') + '-' + date.strftime('%X')
@@ -31,6 +32,7 @@ def save_data(path = None, data_dict = None):
         folder += '\\output\\' + name_file + '\\'
         path = folder + name_file + '.pkl'
 
+        print(folder)
         os.mkdir(folder)
 
         return path, folder
