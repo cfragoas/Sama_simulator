@@ -218,7 +218,6 @@ def simulate_ue_macel (args):
 
 if __name__ == '__main__':
     # parameters
-    n_bs = 5
     samples = 100  # REDO - NAO FUNCIONAAAAAA
     max_iter = 10000
     min_bs = 1
@@ -248,7 +247,7 @@ if __name__ == '__main__':
     for n_cells in range(min_bs, max_bs):
         print('running with ', n_cells,' BSs')
         data = list(
-                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_bs, macel) for i in range(max_iter)]), total=max_iter
+                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel) for i in range(max_iter)]), total=max_iter
                 ))
         snr_cap_stats = [x[0] for x in data]
         raw_data = [x[1] for x in data]
