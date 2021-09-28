@@ -259,17 +259,6 @@ if __name__ == '__main__':
         plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells)
 
         data_dict = macel_data_dict(data_dict_=data_dict, data_=snr_cap_stats)
-        # snr_cap_stats = np.array(snr_cap_stats)
-        #
-        # data_dict['BSs'] = n_cells
-        # data_dict['mean_snr'].append(np.mean(snr_cap_stats[:, 0]))
-        # data_dict['std_snr'].append(np.mean(snr_cap_stats[:, 1]))
-        # data_dict['mean_cap'].append(np.mean(snr_cap_stats[:, 2]))
-        # data_dict['std_cap'].append(np.mean(snr_cap_stats[:, 3]))
-        # data_dict['mean_user_time'].append(np.mean(snr_cap_stats[:, 4]))
-        # data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
-        # data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
-        # data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 
