@@ -44,59 +44,71 @@ def save_data(path = None, data_dict = None):
         else:
             logging.error('data_dictionary not provided!!!!')
 
-def create_data_dict():
-    data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
-                  'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': []}
+def macel_data_dict(data_dict_=None, data_=None):
+    if not data_ or not data_dict_:
+        data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
+                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': []}
+    else:
+        data_ = np.array(data_)
+
+        data_dict['BSs'] = n_cells
+        data_dict['mean_snr'].append(np.mean(data_[:, 0]))
+        data_dict['std_snr'].append(np.mean(data_[:, 1]))
+        data_dict['mean_cap'].append(np.mean(data_[:, 2]))
+        data_dict['std_cap'].append(np.mean(data_[:, 3]))
+        data_dict['mean_user_time'].append(np.mean(data_[:, 4]))
+        data_dict['std_user_time'].append(np.mean(data_[:, 5]))
+        data_dict['mean_user_bw'].append(np.mean(data_[:, 6]))
+        data_dict['std_user_bw'].append(np.mean(data_[:, 7]))
 
     return data_dict_
 
 
 def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         max_iter, individual=False, save=False, path=''):
+         max_iter, individual=False, path=''):
     if individual:
-        if save:
-            # Mean SNIR
-            plt.plot(mean_snr)
-            plt.title('Mean SNIR')
-            plt.savefig()
+        # Mean SNIR
+        plt.plot(mean_snr)
+        plt.title('Mean SNIR')
+        plt.savefig()
 
-            # std SNIR
-            plt.plot(std_snr)
-            plt.title('std SNIR')
-            plt.savefig()
+        # std SNIR
+        plt.plot(std_snr)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # mean CAP
-            plt.plot(mean_cap)
-            plt.title('std SNIR')
-            plt.savefig()
+        # mean CAP
+        plt.plot(mean_cap)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # std CAP
-            plt.plot(std_cap)
-            plt.title('std SNIR')
-            plt.savefig()
+        # std CAP
+        plt.plot(std_cap)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # mean user time
-            plt.plot(mean_user_time)
-            plt.title('std SNIR')
-            plt.savefig()
+        # mean user time
+        plt.plot(mean_user_time)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # std user time
-            plt.plot(std_user_time)
-            plt.title('std SNIR')
-            plt.savefig()
+        # std user time
+        plt.plot(std_user_time)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # mean user bw
-            plt.plot(mean_user_bw)
-            plt.title('std SNIR')
-            plt.savefig()
+        # mean user bw
+        plt.plot(mean_user_bw)
+        plt.title('std SNIR')
+        plt.savefig()
 
-            # std user bw
-            plt.plot(std_user_bw)
-            plt.title('std SNIR')
-            plt.savefig()
+        # std user bw
+        plt.plot(std_user_bw)
+        plt.title('std SNIR')
+        plt.savefig()
 
 
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2)
+    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, dpi=500)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
     ax1.plot(mean_snr)
     ax1.set_title('Mean SNIR')
@@ -116,96 +128,99 @@ def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_ti
     ax8.set_title('std user bw (MHz)')
     fig.tight_layout()
     # plt.show()
-    if save:
-        plt.savefig(path + 'perf.png')
+    plt.savefig(path + 'perf_curves.png')
 
 def plot_hist(raw_data, path, n_bs):
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3)
+    #creating subfolder
+    path = path + '\\' + str(n_bs) + 'BSs\\'
+    os.mkdir(path)
+
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=300)
     fig.suptitle('Metrics using ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
 
     # SNR
     snr = np.concatenate([x['snr'] for x in raw_data])
     ax1.hist(snr, bins=100)
-    ax1.set_title('SNR')
-    f = plt.figure(7)
+    ax1.set_title('SNIR (dB)')
+    f = plt.figure(2, dpi=100)
     plt.hist(snr, bins=100)
-    plt.title('SNR')
+    plt.title('SNIR (dB)')
     # plt.show()
-    plt.savefig(path + 'snr_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'snr_' + str(n_bs) + ' BS.png')
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
     ax2.hist(cap, bins=100)
     ax2.set_title('Throughput (Mbps)')
-    f = plt.figure(2)
+    f = plt.figure(3, dpi=150)
     plt.hist(cap, bins=100)
     plt.title('Throughput (Mbps)')
     # plt.show()
-    plt.savefig(path + 'cap_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'cap_' + str(n_bs) + ' BS.png')
 
     # Users p/ BS
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
     ax3.hist(user_bs, bins=100)
-    ax3.set_title('Number of UEs per BS')
-    f = plt.figure(3)
+    ax3.set_title('UEs per BS')
+    f = plt.figure(4, dpi=150)
     plt.hist(user_bs, bins=100)
     plt.title('Number of UEs per BS')
     # plt.show()
-    plt.savefig(path + 'user_bs_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'user_bs_' + str(n_bs) + ' BS.png')
 
     # Number of active beams
     act_beams = np.concatenate([x['act_beams'] for x in raw_data])
     ax4.hist(act_beams, bins=11)
-    ax4.set_title('Number of Active beams per BS')
-    f = plt.figure(4)
+    ax4.set_title('Act beam p/BS')
+    f = plt.figure(5, dpi=150)
     plt.hist(act_beams, bins=11)
     plt.title('Number of Active beams per BS')
     # plt.show()
-    plt.savefig(path + 'act_beams_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'act_beams_' + str(n_bs) + ' BS.png')
 
     # time per user in 1s
     user_time = np.concatenate([x['user_time'] for x in raw_data])
     ax5.hist(user_time, bins=50)
-    ax5.set_title('Active UE time in 1s')
-    f = plt.figure(5)
+    ax5.set_title('UE time in 1s')
+    f = plt.figure(6, dpi=150)
     plt.hist(user_time, bins=50)
-    plt.title('Active UE time in 1s')
+    plt.title('UE active time in 1s')
     # plt.show()
-    plt.savefig(path + 'user_time_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'user_time_' + str(n_bs) + ' BS.png')
 
     # bandwidth per user
     user_bw = np.concatenate([x['user_bw'] for x in raw_data])
     ax6.hist(user_bw, bins=20)
-    ax6.set_title('Bandwidth per UE')
-    f = plt.figure(6)
+    ax6.set_title('BW p/ UE(MHz)')
+    f = plt.figure(7, dpi=150)
     plt.hist(user_bw, bins=20)
-    plt.title('Bandwidth per UE')
+    plt.title('Bandwidth per UE (MHz)')
     # plt.show()
-    plt.savefig(path + 'bw_user_' + str(n_bs) + 'BS.png')
+    plt.savefig(path + 'bw_user_' + str(n_bs) + ' BS.png')
 
-    fig.tight_layout()
-    fig.savefig(path + 'Metrics_' + str(n_bs) + 'BS.png')
+    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    fig.savefig(path + 'Metrics_' + str(n_bs) + ' BS.png')
 
 
 def simulate_ue_macel (args):
     n_bs = args[0]
     macel = args[1]
 
-    macel.grid.make_points(dist_type='gaussian', samples=100, n_centers=4, random_centers=False,
+    macel.grid.make_points(dist_type='gaussian', samples=200, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
     macel.set_ue(hrx=1.5)
-    snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs)
+    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete')
 
-    return(snr_cap_stats)
+    return(snr_cap_stats, raw_data)
 
 
 if __name__ == '__main__':
     # parameters
     n_bs = 5
     samples = 100  # REDO - NAO FUNCIONAAAAAA
-    max_iter = 200
-    min_bs = 10
-    max_bs = 20
+    max_iter = 10000
+    min_bs = 1
+    max_bs = 30
 
     threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
@@ -214,7 +229,7 @@ if __name__ == '__main__':
 
     path, folder = save_data()  # storing the path used to save in all iterations
 
-    data_dict = create_data_dict()
+    data_dict = macel_data_dict()
 
     # ==========================================
     grid = Grid()  # grid object
@@ -233,29 +248,32 @@ if __name__ == '__main__':
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_bs, macel) for i in range(max_iter)]), total=max_iter
                 ))
-        # print('Mean SNR:', np.mean(data[0]), ' dB')
-        # print('Mean cap:', np.mean(data[2]), ' Mbps')
-        # print(os.linesep)
+        snr_cap_stats = [x[0] for x in data]
+        raw_data = [x[1] for x in data]
 
-        plot_hist(raw_data=data, path=folder, n_bs=n_cells)
-        print('foi!!!')
+        print('Mean SNR:', np.mean(snr_cap_stats[0]), ' dB')
+        print('Mean cap:', np.mean(snr_cap_stats[2]), ' Mbps')
+        print(os.linesep)
 
-        data = np.array(data)
+        plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells)
 
-        data_dict['BSs'] = n_cells
-        data_dict['mean_snr'].append(np.mean(data[:, 0]))
-        data_dict['std_snr'].append(np.mean(data[:, 1]))
-        data_dict['mean_cap'].append(np.mean(data[:, 2]))
-        data_dict['std_cap'].append(np.mean(data[:, 3]))
-        data_dict['mean_user_time'].append(np.mean(data[:, 4]))
-        data_dict['std_user_time'].append(np.mean(data[:, 5]))
-        data_dict['mean_user_bw'].append(np.mean(data[:, 6]))
-        data_dict['std_user_bw'].append(np.mean(data[:, 7]))
+        data_dict = macel_data_dict(data_dict_=data_dict, data_=snr_cap_stats)
+        # snr_cap_stats = np.array(snr_cap_stats)
+        #
+        # data_dict['BSs'] = n_cells
+        # data_dict['mean_snr'].append(np.mean(snr_cap_stats[:, 0]))
+        # data_dict['std_snr'].append(np.mean(snr_cap_stats[:, 1]))
+        # data_dict['mean_cap'].append(np.mean(snr_cap_stats[:, 2]))
+        # data_dict['std_cap'].append(np.mean(snr_cap_stats[:, 3]))
+        # data_dict['mean_user_time'].append(np.mean(snr_cap_stats[:, 4]))
+        # data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
+        # data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
+        # data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 
-        plot(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
+        plot_curve(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
              std_cap=data_dict['std_cap'],
              mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
              mean_user_bw=data_dict['mean_user_bw'],
-             std_user_bw=data_dict['std_user_bw'],max_iter=max_iter ,individual=False, save=True, path=folder)
+             std_user_bw=data_dict['std_user_bw'],max_iter=max_iter ,individual=False, path=folder)

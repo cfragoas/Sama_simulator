@@ -101,7 +101,7 @@ class Macel:
             base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
-    def place_and_configure_bs(self, n_centers):
+    def place_and_configure_bs(self, n_centers, output_typ='raw'):
         cluster = Cluster()
         cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
         lines = self.grid.lines
@@ -122,7 +122,7 @@ class Macel:
                                      sector_map=self.sector_map)  # calculating the best ch gain for each UE
         self.send_ue_to_bs(simulation_time=1000, time_slot=1)
 
-        snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map)
+        snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)
 
         return (snr_cap_stats)
 
