@@ -42,6 +42,7 @@ class Macel:
         self.rx_pw_map = None
         self.snr_map = None
         self.cap_map = None
+        self.cluster = None
 
     def set_base_station(self, base_station):  # simple function, but will include sectors and MIMO in the future
         self.default_base_station = base_station
@@ -102,14 +103,14 @@ class Macel:
         return
 
     def place_and_configure_bs(self, n_centers, output_typ='raw'):
-        cluster = Cluster()
-        cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
+        self.cluster = Cluster()
+        self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
         lines = self.grid.lines
         columns = self.grid.columns
-        az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=cluster.centroids,
-                                      samples=cluster.features)
-        dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=cluster.centroids,
-                                               samples=cluster.features, plot=False)
+        az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
+                                      samples=self.cluster.features)
+        dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
+                                               samples=self.cluster.features, plot=False)
         elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=self.cell_size, samples=None)
         self.default_base_station.beam_configuration(
             az_map=self.default_base_station.beams_pointing)  # creating a beamforming configuration pointing to the the az_map points
@@ -185,9 +186,11 @@ class Macel:
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
         cap_sum = np.nansum(cap,axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
-        mean_user_bs = np.mean(user_per_bs, axis =1)
+        mean_user_bs = np.mean(user_per_bs, axis=1)
         user_time = np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])
+        positions = np.round(self.cluster.centroids).astype(int)
 
+        # simple stats data
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
         min_mean_snr = np.min(mean_mean_snr)
@@ -209,15 +212,8 @@ class Macel:
         snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw]
 
         # preparing 'raw' data to export
-        raw_data_dict = {'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
+        raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                          'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
-
-        # values_snr, bins_snr, patches_snr = plt.hist(mean_snr, bins=100)
-        # values_cap, bins_cap, patches_cap = plt.hist(cap_sum, bins=100)
-        # values_user_bs, bins_user_bs, patches_user_bs = plt.hist(mean_user_bs, bins=enumerate(self.base_station_list))
-        # values_act_beams, bins_act_beams, patches_act_beams = plt.hist(mean_act_beams, bins=11)
-        # values_user_time, bins_user_time, patches_user_time = plt.hist(user_time, bins=100)
-        # values_user_bw, bins_user_bw, patches_user_bw = plt.hist(np.nanmean(user_bw, axis=1), bins=100)
 
         if output_typ == 'simple':
             return snr_cap_stats
