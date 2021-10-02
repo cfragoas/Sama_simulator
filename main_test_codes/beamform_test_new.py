@@ -74,7 +74,7 @@ def macel_data_dict(data_dict_=None, data_=None):
     return data_dict_
 
 
-def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
+def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
          max_iter, individual=False, path=''):
     if individual:
         # Mean SNIR
@@ -143,9 +143,10 @@ def plot_curve(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_ti
 def plot_hist(raw_data, path, n_bs):
     #creating subfolder
     path = path + '\\' + str(n_bs) + 'BSs\\'
-    os.mkdir(path)
+    if not os.path.exists(path):
+        os.mkdir(path)
 
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=100, figsize=(200, 100))
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=100, figsize=(50, 30))
     fig.suptitle('Metrics using ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
 
     # SNR
@@ -214,6 +215,30 @@ def plot_hist(raw_data, path, n_bs):
 
     plt.close('all')
 
+def plot_surface(grid, position, parameter, path, n_bs):
+    # creating subfolder
+    path = path + '\\' + str(n_bs) + 'BSs\\'
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    # plot surface
+    X = position[:, 0]
+    Y = position[:, 1]
+    #X, Y = np.meshgrid(X, Y)
+
+    for i, [x, y] in enumerate(zip(X, Y)):
+        grid[x, y] += parameter[i]
+
+    plt.matshow(grid)
+
+    plt.savefig(path + 'sum_cap_surf_' + str(n_bs) + ' BS.png')
+
+    plt.matshow(grid/parameter.shape[0])
+    print(parameter.shape[0])
+    plt.savefig(path + 'mean_cap_surf_' + str(n_bs) + ' BS.png')
+
+    plt.close('all')
+
 
 def simulate_ue_macel (args):
     n_bs = args[0]
@@ -269,11 +294,14 @@ if __name__ == '__main__':
 
         plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells)
 
+        plot_surface(grid=grid.grid, position=np.concatenate([x['position'] for x in raw_data]),
+                     parameter=np.array(snr_cap_stats)[:, 2], path=folder, n_bs=n_cells)
+
         data_dict = macel_data_dict(data_dict_=data_dict, data_=data)
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 
-        plot_curve(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
+        plot_curves(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
              std_cap=data_dict['std_cap'],
              mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
              mean_user_bw=data_dict['mean_user_bw'],
