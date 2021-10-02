@@ -49,19 +49,27 @@ def save_data(path = None, data_dict = None):
 def macel_data_dict(data_dict_=None, data_=None):
     if not data_ or not data_dict_:
         data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
-                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': []}
+                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': []}
     else:
-        data_ = np.array(data_)
+        snr_cap_stats = [x[0] for x in data]
+        raw_data = [x[1] for x in data]
+
+
+        # saving cumulative simple metrics
+        snr_cap_stats = np.array(snr_cap_stats)
 
         data_dict['BSs'] = n_cells
-        data_dict['mean_snr'].append(np.mean(data_[:, 0]))
-        data_dict['std_snr'].append(np.mean(data_[:, 1]))
-        data_dict['mean_cap'].append(np.mean(data_[:, 2]))
-        data_dict['std_cap'].append(np.mean(data_[:, 3]))
-        data_dict['mean_user_time'].append(np.mean(data_[:, 4]))
-        data_dict['std_user_time'].append(np.mean(data_[:, 5]))
-        data_dict['mean_user_bw'].append(np.mean(data_[:, 6]))
-        data_dict['std_user_bw'].append(np.mean(data_[:, 7]))
+        data_dict['mean_snr'].append(np.mean(snr_cap_stats[:, 0]))
+        data_dict['std_snr'].append(np.mean(snr_cap_stats[:, 1]))
+        data_dict['mean_cap'].append(np.mean(snr_cap_stats[:, 2]))
+        data_dict['std_cap'].append(np.mean(snr_cap_stats[:, 3]))
+        data_dict['mean_user_time'].append(np.mean(snr_cap_stats[:, 4]))
+        data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
+        data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
+        data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
+
+        # saving the raw data
+        data_dict['raw_data'].append(raw_data)
 
     return data_dict_
 
@@ -137,14 +145,14 @@ def plot_hist(raw_data, path, n_bs):
     path = path + '\\' + str(n_bs) + 'BSs\\'
     os.mkdir(path)
 
-    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=300)
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=100, figsize=(200, 100))
     fig.suptitle('Metrics using ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
 
     # SNR
     snr = np.concatenate([x['snr'] for x in raw_data])
     ax1.hist(snr, bins=100)
     ax1.set_title('SNIR (dB)')
-    f = plt.figure(2, dpi=100)
+    f1 = plt.figure(8, dpi=100)
     plt.hist(snr, bins=100)
     plt.title('SNIR (dB)')
     # plt.show()
@@ -152,10 +160,10 @@ def plot_hist(raw_data, path, n_bs):
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
-    ax2.hist(cap, bins=100)
+    ax2.hist(cap, bins=1000, range=(0, 120))
     ax2.set_title('Throughput (Mbps)')
-    f = plt.figure(3, dpi=150)
-    plt.hist(cap, bins=100)
+    f2 = plt.figure(3, dpi=150)
+    plt.hist(cap, bins=1000,  range=(0, 120))
     plt.title('Throughput (Mbps)')
     # plt.show()
     plt.savefig(path + 'cap_' + str(n_bs) + ' BS.png')
@@ -164,7 +172,7 @@ def plot_hist(raw_data, path, n_bs):
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
     ax3.hist(user_bs, bins=100)
     ax3.set_title('UEs per BS')
-    f = plt.figure(4, dpi=150)
+    f3 = plt.figure(4, dpi=150)
     plt.hist(user_bs, bins=100)
     plt.title('Number of UEs per BS')
     # plt.show()
@@ -174,7 +182,7 @@ def plot_hist(raw_data, path, n_bs):
     act_beams = np.concatenate([x['act_beams'] for x in raw_data])
     ax4.hist(act_beams, bins=11)
     ax4.set_title('Act beam p/BS')
-    f = plt.figure(5, dpi=150)
+    f4 = plt.figure(5, dpi=150)
     plt.hist(act_beams, bins=11)
     plt.title('Number of Active beams per BS')
     # plt.show()
@@ -184,7 +192,7 @@ def plot_hist(raw_data, path, n_bs):
     user_time = np.concatenate([x['user_time'] for x in raw_data])
     ax5.hist(user_time, bins=50)
     ax5.set_title('UE time in 1s')
-    f = plt.figure(6, dpi=150)
+    f5 = plt.figure(6, dpi=150)
     plt.hist(user_time, bins=50)
     plt.title('UE active time in 1s')
     # plt.show()
@@ -194,14 +202,17 @@ def plot_hist(raw_data, path, n_bs):
     user_bw = np.concatenate([x['user_bw'] for x in raw_data])
     ax6.hist(user_bw, bins=20)
     ax6.set_title('BW p/ UE(MHz)')
-    f = plt.figure(7, dpi=150)
+    f6 = plt.figure(7, dpi=150)
     plt.hist(user_bw, bins=20)
     plt.title('Bandwidth per UE (MHz)')
     # plt.show()
     plt.savefig(path + 'bw_user_' + str(n_bs) + ' BS.png')
 
+    plt.rcParams['font.size'] = '4'
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.savefig(path + 'Metrics_' + str(n_bs) + ' BS.png')
+
+    plt.close('all')
 
 
 def simulate_ue_macel (args):
@@ -219,7 +230,7 @@ def simulate_ue_macel (args):
 if __name__ == '__main__':
     # parameters
     samples = 100  # REDO - NAO FUNCIONAAAAAA
-    max_iter = 10000
+    max_iter = 100
     min_bs = 1
     max_bs = 30
 
@@ -258,7 +269,7 @@ if __name__ == '__main__':
 
         plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells)
 
-        data_dict = macel_data_dict(data_dict_=data_dict, data_=snr_cap_stats)
+        data_dict = macel_data_dict(data_dict_=data_dict, data_=data)
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 
