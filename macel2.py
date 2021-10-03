@@ -188,7 +188,10 @@ class Macel:
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
         mean_user_bs = np.mean(user_per_bs, axis=1)
         user_time = np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])
-        positions = np.round(self.cluster.centroids).astype(int)
+        positions = [np.round(self.cluster.centroids).astype(int)]
+
+        # if len(self.base_station_list) == 2:
+        #     print('ui')
 
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)

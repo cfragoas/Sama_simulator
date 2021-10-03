@@ -1,3 +1,4 @@
+import copy
 import datetime, pickle, os, logging, multiprocessing, tqdm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -221,22 +222,43 @@ def plot_surface(grid, position, parameter, path, n_bs):
     if not os.path.exists(path):
         os.mkdir(path)
 
+    snr_sum = grid
+    counter = copy.deepcopy(grid)
     # plot surface
-    X = position[:, 0]
-    Y = position[:, 1]
+    X = position[:, :, 0]
+    Y = position[:, :, 1]
     #X, Y = np.meshgrid(X, Y)
 
     for i, [x, y] in enumerate(zip(X, Y)):
-        grid[x, y] += parameter[i]
+        for j, [k, l] in enumerate(zip(x,y)):
+            snr_sum[k, l] += parameter[i]
+            counter[k, l] += 1
 
-    plt.matshow(grid)
+    mean_snr = snr_sum/np.where(counter == 0, 1, counter)
 
-    plt.savefig(path + 'sum_cap_surf_' + str(n_bs) + ' BS.png')
+    fig1, ax1 = plt.subplots(1, dpi=300)
+    fig1.suptitle('Accumulated SNIR ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
+    z = ax1.matshow(snr_sum, origin='lower')
+    fig1.colorbar(z, ax=ax1)
 
-    plt.matshow(grid/parameter.shape[0])
+    plt.savefig(path + 'accum_cap_surf_' + str(n_bs) + ' BS.png')
+    plt.close('all')
+
+    fig2, ax1 = plt.subplots(1, dpi=300)
+    fig2.suptitle('Average SNIR ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
+    z = ax1.matshow(mean_snr, origin='lower')
+    fig1.colorbar(z, ax=ax1)
     print(parameter.shape[0])
     plt.savefig(path + 'mean_cap_surf_' + str(n_bs) + ' BS.png')
 
+    plt.close('all')
+
+    fig3, ax1 = plt.subplots(1, dpi=300)
+    fig3.suptitle('BS distribution ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
+    z = ax1.matshow(counter, origin='lower')
+    fig3.colorbar(z, ax=ax1)
+
+    plt.savefig(path + 'bs_dist_surf_' + str(n_bs) + ' BS.png')
     plt.close('all')
 
 
@@ -255,7 +277,7 @@ def simulate_ue_macel (args):
 if __name__ == '__main__':
     # parameters
     samples = 100  # REDO - NAO FUNCIONAAAAAA
-    max_iter = 100
+    max_iter = 40
     min_bs = 1
     max_bs = 30
 
