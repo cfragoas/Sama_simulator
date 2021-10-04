@@ -18,9 +18,9 @@ from demos_and_examples.kmeans_from_scratch import K_Means
 
 
 class Macel:
-    def __init__(self, grid, n_centers, prop_model, criteria, cell_size, base_station, log=False):
+    def __init__(self, grid, prop_model, criteria, cell_size, base_station, log=False):
         self.grid = grid  # grid object - size, points, etc
-        self.n_centers = n_centers
+        self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
         self.prop_model = prop_model  # string - name of prop model to be used in prop_models
         self.criteria = criteria  # for now, received power
@@ -32,24 +32,30 @@ class Macel:
 
         self.base_station_list = []
 
+        # calculated variables
         self.azi_map = None
         self.elev_map = None
         self.gain_map = None
+        self.ch_gain_map = None
+        self.sector_map = None
         self.path_loss_map = None
         self.rx_pw_map = None
         self.snr_map = None
         self.cap_map = None
+        self.cluster = None
 
     def set_base_station(self, base_station):  # simple function, but will include sectors and MIMO in the future
         self.default_base_station = base_station
 
-    def generate_base_station_list(self):
+    def generate_base_station_list(self, n_centers):
         # generating copies for different base station configurations
         self.base_station_list = []
+        self.n_centers = n_centers
         for i in range(self.n_centers):
             self.base_station_list.append(copy.deepcopy(self.default_base_station))
 
-    def set_ue(self, ue):
+    def set_ue(self, hrx):
+        ue = User_eq(positions=self.grid.grid, height=hrx)  # creating the user equipament object
         self.ue = ue
         # self.rx_height = rx_height
 
@@ -57,12 +63,12 @@ class Macel:
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
         # ue[:] = np.nan
         ue = np.empty(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams))
-        ch_gain_map = np.zeros(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams + 1)) - 10000
-        sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
+        self.ch_gain_map = np.zeros(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams + 1)) - 10000
+        self.sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
         # path loss attenuation to sum with the beam gain
         att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
-                                         frequency=self.base_station_list[0].frequency,
+                                         frequency=self.base_station_list[0].frequency,  # todo
                                          htx=self.default_base_station.tx_height, hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!!
 
         for bs_index, base_station in enumerate(self.base_station_list):
@@ -74,11 +80,11 @@ class Macel:
                                                    base_station_list=[base_station],
                                                    sector_index=sector_index)[0][0]
                 ue[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = sector_gain_map.T
-                sector_map[bs_index][ue_in_range] = sector_index
-                ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
+                self.sector_map[bs_index][ue_in_range] = sector_index
+                self.ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
                 lower_bound = higher_bound
 
-        return ch_gain_map, sector_map
+        return self.ch_gain_map, self.sector_map
 
     def send_ue_to_bs(self, simulation_time, time_slot):
         # set random activation indexes for all the BSs
@@ -96,7 +102,32 @@ class Macel:
             base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
-    def simulate_ue_bs_comm(self, ch_gain_map):
+    def place_and_configure_bs(self, n_centers, output_typ='raw'):
+        self.cluster = Cluster()
+        self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
+        lines = self.grid.lines
+        columns = self.grid.columns
+        az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
+                                      samples=self.cluster.features)
+        dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
+                                               samples=self.cluster.features, plot=False)
+        elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=self.cell_size, samples=None)
+        self.default_base_station.beam_configuration(
+            az_map=self.default_base_station.beams_pointing)  # creating a beamforming configuration pointing to the the az_map points
+
+        # =============================================================================================
+
+        self.generate_base_station_list(n_centers)
+        self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+        self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
+                                     sector_map=self.sector_map)  # calculating the best ch gain for each UE
+        self.send_ue_to_bs(simulation_time=1000, time_slot=1)
+
+        snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)
+
+        return (snr_cap_stats)
+
+    def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
@@ -149,12 +180,18 @@ class Macel:
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
 
+
+
         # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
-        cap_sum = np.nansum(cap,axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
+        cap_sum = np.nansum(cap, axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
-        mean_user_bs = np.mean(user_per_bs, axis =1)
+        mean_user_bs = np.mean(user_per_bs, axis=1)
+        user_time = np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])
+        positions = [np.round(self.cluster.centroids).astype(int)]
 
+
+        # simple stats data
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
         min_mean_snr = np.min(mean_mean_snr)
@@ -163,22 +200,28 @@ class Macel:
         std_cap = np.std(cap_sum)
         min_mean_cap = np.min(cap_sum)
         max_mean_cap = np.max(cap_sum)
-        mean_user_time = np.mean(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        std_user_time = np.std(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        min_user_time = np.min(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
-        max_user_time = np.max(np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1]))
+        mean_user_time = np.mean(user_time)
+        std_user_time = np.std(user_time)
+        min_user_time = np.min(user_time)
+        max_user_time = np.max(user_time)
         mean_user_bw = np.nanmean(user_bw)
         std_user_bw = np.nanstd(user_bw)
         min_user_bw = np.min(user_bw)
         max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
 
-        # print('mean snr: ', mean_mean_snr)
-        # print('std dv: ', std_snr)
-        # print('mean cap: ', mean_cap)
-        # print('std dv: ', std_cap)
+        snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw]
 
-        return (mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw)
+        # preparing 'raw' data to export
+        raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
+                         'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
+
+        if output_typ == 'simple':
+            return snr_cap_stats
+        if output_typ == 'complete':
+            return snr_cap_stats, raw_data_dict
+        if output_typ == 'raw':
+            return raw_data_dict
 
     def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
         fulfillment = False

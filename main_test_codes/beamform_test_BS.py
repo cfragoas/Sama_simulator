@@ -6,9 +6,8 @@ import numpy as np
 from antennas.beamforming import Beamforming_Antenna
 from antennas.ITU2101_Element import Element_ITU2101
 from base_station import BaseStation
-from user_eq import User_eq
 from make_grid import Grid
-from macel2 import Macel
+from macel import Macel
 
 def load_data(name_file):
     folder = os.path.dirname(__file__)
@@ -265,8 +264,9 @@ def plot_surface(grid, position, parameter, path, n_bs):
 def simulate_ue_macel (args):
     n_bs = args[0]
     macel = args[1]
+    samples = args[2]
 
-    macel.grid.make_points(dist_type='gaussian', samples=200, n_centers=4, random_centers=False,
+    macel.grid.make_points(dist_type='gaussian', samples=samples, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
     macel.set_ue(hrx=1.5)
     snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete')
@@ -276,7 +276,7 @@ def simulate_ue_macel (args):
 
 if __name__ == '__main__':
     # parameters
-    samples = 100  # REDO - NAO FUNCIONAAAAAA
+    samples = 100
     max_iter = 40
     min_bs = 1
     max_bs = 30
@@ -305,7 +305,7 @@ if __name__ == '__main__':
     for n_cells in range(min_bs, max_bs):
         print('running with ', n_cells,' BSs')
         data = list(
-                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel) for i in range(max_iter)]), total=max_iter
+                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, samples) for i in range(max_iter)]), total=max_iter
                 ))
         snr_cap_stats = [x[0] for x in data]
         raw_data = [x[1] for x in data]
