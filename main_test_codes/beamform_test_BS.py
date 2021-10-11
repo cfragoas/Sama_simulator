@@ -277,7 +277,7 @@ def simulate_ue_macel (args):
 if __name__ == '__main__':
     # parameters
     samples = 100
-    max_iter = 40
+    max_iter = 100
     min_bs = 1
     max_bs = 30
 
@@ -303,6 +303,7 @@ if __name__ == '__main__':
     macel = Macel(grid=grid, prop_model='free space', criteria=0, cell_size=30, base_station=base_station)
 
     for n_cells in range(min_bs, max_bs):
+        macel.grid.clear_grid()  # adicionei o clear grid para ver se arruma o efeito zoado
         print('running with ', n_cells,' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, samples) for i in range(max_iter)]), total=max_iter

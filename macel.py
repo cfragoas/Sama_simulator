@@ -194,20 +194,20 @@ class Macel:
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
-        min_mean_snr = np.min(mean_mean_snr)
-        max_mean_snr = np.max(mean_mean_snr)
+        # min_mean_snr = np.min(mean_mean_snr)
+        # max_mean_snr = np.max(mean_mean_snr)
         mean_cap = np.mean(cap_sum)
         std_cap = np.std(cap_sum)
-        min_mean_cap = np.min(cap_sum)
-        max_mean_cap = np.max(cap_sum)
+        # min_mean_cap = np.min(cap_sum)
+        # max_mean_cap = np.max(cap_sum)
         mean_user_time = np.mean(user_time)
         std_user_time = np.std(user_time)
-        min_user_time = np.min(user_time)
-        max_user_time = np.max(user_time)
+        # min_user_time = np.min(user_time)
+        # max_user_time = np.max(user_time)
         mean_user_bw = np.nanmean(user_bw)
         std_user_bw = np.nanstd(user_bw)
-        min_user_bw = np.min(user_bw)
-        max_user_bw = np.max(user_bw)
+        # min_user_bw = np.min(user_bw)
+        # max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
 
         snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw]
