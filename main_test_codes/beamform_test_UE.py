@@ -67,6 +67,7 @@ def macel_data_dict(data_dict_=None, data_=None):
         data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
         data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
         data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
+        data_dict['meet_criteria'].append(snr_cap_stats[:, 8])
 
         # saving the raw data
         data_dict['raw_data'].append(raw_data)
@@ -75,7 +76,7 @@ def macel_data_dict(data_dict_=None, data_=None):
 
 
 def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         max_iter, n_bs, n_ue_vec, individual=False, path=''):
+         meet_criteria, max_iter, n_bs, n_ue_vec, individual=False, path=''):
     if individual:
         # Mean SNIR
         plt.plot(mean_snr)
@@ -140,6 +141,13 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     # plt.show()
     plt.savefig(path + 'perf_curves.png')
+
+    plt.close('all')
+
+    plt.plot(n_ue_vec, meet_criteria)
+    plt.title('% of UE that meets the ' + str(criteria) + ' Mbps criteria')
+    plt.savefig(path + 'meet_criteria.png')
+    plt.close('all')
 
 def plot_hist(raw_data, path, n_bs, n_ue):
     #creating subfolder
@@ -277,16 +285,19 @@ def simulate_ue_macel (args):
 
 if __name__ == '__main__':
     # parameters
+    criteria = 50
     n_centers = 4 # ARRUMAR ISSO AQUI!!!!!
     n_cells = 4
     max_iter = 100
     min_samples = 10
     max_samples = 300
     step = 20
+    threads = None
 
     sample_vec = []
 
-    threads = os.cpu_count()
+    if threads == None:
+        threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     p = multiprocessing.Pool(processes=threads - 1)
@@ -305,11 +316,12 @@ if __name__ == '__main__':
     base_station = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
                      downtilts=0, plot=False)
     base_station.sector_beam_pointing_configuration(n_beams=10)
-    macel = Macel(grid=grid, prop_model='free space', criteria=0, cell_size=30, base_station=base_station)
+    macel = Macel(grid=grid, prop_model='free space', criteria=criteria, cell_size=30, base_station=base_station)
 
     for samples in range(min_samples, max_samples, step):
+        macel.grid.clear_grid()  # added to avoid increasing UE number without intention
         sample_vec.append(samples * n_centers)
-        print('running with ', samples,' UEs')
+        print('running with ', samples * n_centers,' UEs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, samples) for i in range(max_iter)]), total=max_iter
                 ))
@@ -333,4 +345,4 @@ if __name__ == '__main__':
              std_cap=data_dict['std_cap'],
              mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
              mean_user_bw=data_dict['mean_user_bw'],
-             std_user_bw=data_dict['std_user_bw'],max_iter=max_iter , n_bs=n_cells, n_ue_vec=sample_vec,individual=False, path=folder)
+             std_user_bw=data_dict['std_user_bw'], meet_criteria=data_dict['meet_criteria'] ,max_iter=max_iter , n_bs=n_cells, n_ue_vec=sample_vec,individual=False, path=folder)

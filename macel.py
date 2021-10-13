@@ -18,7 +18,7 @@ from demos_and_examples.kmeans_from_scratch import K_Means
 
 
 class Macel:
-    def __init__(self, grid, prop_model, criteria, cell_size, base_station, log=False):
+    def __init__(self, grid, prop_model, cell_size, base_station, criteria=None, log=False):
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
@@ -181,7 +181,6 @@ class Macel:
 
 
 
-
         # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
         cap_sum = np.nansum(cap, axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
@@ -210,7 +209,15 @@ class Macel:
         # max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
 
-        snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw]
+        meet_criteria = None
+        if self.criteria != None:
+             meet_criteria = np.sum(cap_sum >= self.criteria)
+
+        if meet_criteria:
+            snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw, meet_criteria]
+        else:
+            snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw,
+                             std_user_bw]
 
         # preparing 'raw' data to export
         raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,

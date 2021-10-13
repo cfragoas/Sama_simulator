@@ -67,6 +67,7 @@ def macel_data_dict(data_dict_=None, data_=None):
         data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
         data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
         data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
+        data_dict['meet_criteria'].append(snr_cap_stats[:, 8])
 
         # saving the raw data
         data_dict['raw_data'].append(raw_data)
@@ -75,7 +76,7 @@ def macel_data_dict(data_dict_=None, data_=None):
 
 
 def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         max_iter, individual=False, path=''):
+         meet_criteria, max_iter, n_bs_vec,individual=False, path=''):
     if individual:
         # Mean SNIR
         plt.plot(mean_snr)
@@ -120,25 +121,32 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
 
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, dpi=500)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
-    ax1.plot(mean_snr)
+    ax1.plot(n_bs_vec, mean_snr)
     ax1.set_title('Mean SNIR')
-    ax2.plot(std_snr)
+    ax2.plot(n_bs_vec, std_snr)
     ax2.set_title('std SNIR')
-    ax3.plot(mean_cap)
+    ax3.plot(n_bs_vec, mean_cap)
     ax3.set_title('Mean Capacity (Mbps)')
-    ax4.plot(std_cap)
+    ax4.plot(n_bs_vec, std_cap)
     ax4.set_title('std Capacity (Mbps)')
-    ax5.plot(mean_user_time)
+    ax5.plot(n_bs_vec, mean_user_time)
     ax5.set_title('Mean user time (s)')
-    ax6.plot(std_user_time)
+    ax6.plot(n_bs_vec, std_user_time)
     ax6.set_title('std user time (s)')
-    ax7.plot(mean_user_bw)
+    ax7.plot(n_bs_vec, mean_user_bw)
     ax7.set_title('Mean user bw (MHz)')
-    ax8.plot(std_user_bw)
+    ax8.plot(n_bs_vec, std_user_bw)
     ax8.set_title('std user bw (MHz)')
     fig.tight_layout()
     # plt.show()
     plt.savefig(path + 'perf_curves.png')
+
+    plt.close('all')
+
+    plt.plot(n_bs_vec, meet_criteria)
+    plt.title('% of UE that meets the ' + str(criteria) + ' Mbps criteria')
+    plt.savefig(path + 'meet_criteria.png')
+    plt.close('all')
 
 def plot_hist(raw_data, path, n_bs):
     #creating subfolder
@@ -276,12 +284,17 @@ def simulate_ue_macel (args):
 
 if __name__ == '__main__':
     # parameters
+    criteria = 50
     samples = 100
     max_iter = 100
     min_bs = 1
     max_bs = 30
+    threads = None
 
-    threads = os.cpu_count()
+    bs_vec = []
+
+    if threads == None:
+        threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     p = multiprocessing.Pool(processes=threads - 1)
@@ -300,10 +313,11 @@ if __name__ == '__main__':
     base_station = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
                      downtilts=0, plot=False)
     base_station.sector_beam_pointing_configuration(n_beams=10)
-    macel = Macel(grid=grid, prop_model='free space', criteria=0, cell_size=30, base_station=base_station)
+    macel = Macel(grid=grid, prop_model='free space', criteria=criteria, cell_size=30, base_station=base_station)
 
-    for n_cells in range(min_bs, max_bs):
-        macel.grid.clear_grid()  # adicionei o clear grid para ver se arruma o efeito zoado
+    for n_cells in range(min_bs, max_bs + 1):
+        macel.grid.clear_grid()  # added to avoid increasing UE number without intention
+        bs_vec.append(n_cells)
         print('running with ', n_cells,' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, samples) for i in range(max_iter)]), total=max_iter
@@ -328,4 +342,5 @@ if __name__ == '__main__':
              std_cap=data_dict['std_cap'],
              mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
              mean_user_bw=data_dict['mean_user_bw'],
-             std_user_bw=data_dict['std_user_bw'],max_iter=max_iter ,individual=False, path=folder)
+             std_user_bw=data_dict['std_user_bw'], meet_criteria=data_dict['meet_criteria'], max_iter=max_iter,
+             n_bs_vec=bs_vec, individual=False, path=folder)
