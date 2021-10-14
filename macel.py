@@ -211,7 +211,7 @@ class Macel:
 
         meet_criteria = None
         if self.criteria != None:
-             meet_criteria = np.sum(cap_sum >= self.criteria)
+             meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
 
         if meet_criteria:
             snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw, meet_criteria]

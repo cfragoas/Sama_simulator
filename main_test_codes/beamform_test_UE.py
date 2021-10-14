@@ -49,7 +49,7 @@ def save_data(path = None, data_dict = None):
 def macel_data_dict(data_dict_=None, data_=None):
     if not data_ or not data_dict_:
         data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
-                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': []}
+                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'meet_criteria': []}
     else:
         snr_cap_stats = [x[0] for x in data]
         raw_data = [x[1] for x in data]
@@ -67,7 +67,7 @@ def macel_data_dict(data_dict_=None, data_=None):
         data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
         data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
         data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
-        data_dict['meet_criteria'].append(snr_cap_stats[:, 8])
+        data_dict['meet_criteria'].append(np.mean(snr_cap_stats[:, 8]))
 
         # saving the raw data
         data_dict['raw_data'].append(raw_data)
