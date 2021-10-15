@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 
-class K_Means:
+class K_Means_XP:
     def __init__(self, k=3, tol=0.0000000001, max_iter=10000):
         self.k = k
         self.tol = tol

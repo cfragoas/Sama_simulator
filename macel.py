@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from itertools import product
 from matplotlib import cm
 import base_station
-from demos_and_examples.kmeans_from_scratch import K_Means
+from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
@@ -102,9 +102,13 @@ class Macel:
             base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
-    def place_and_configure_bs(self, n_centers, output_typ='raw'):
-        self.cluster = Cluster()
-        self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
+    def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None):
+        if predetermined_centroids is not None:
+            self.cluster = K_Means_XP(k=n_centers)
+            self.cluster.fit(data=self.grid.grid, predetermined_centroids=predetermined_centroids)
+        else:
+            self.cluster = Cluster()
+            self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
