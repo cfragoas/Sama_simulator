@@ -143,6 +143,7 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
 
     plt.close('all')
 
+    fig_perc = plt.figure(1, dpi=150)
     plt.plot(n_bs_vec, meet_criteria)
     plt.title('% of UE that meets the ' + str(criteria) + ' Mbps criteria')
     plt.savefig(path + 'meet_criteria.png')
@@ -159,60 +160,60 @@ def plot_hist(raw_data, path, n_bs):
 
     # SNR
     snr = np.concatenate([x['snr'] for x in raw_data])
-    ax1.hist(snr, bins=100)
+    ax1.hist(snr, bins=100, density=True, range=(0,100))
     ax1.set_title('SNIR (dB)')
-    f1 = plt.figure(8, dpi=100)
-    plt.hist(snr, bins=100)
+    f1 = plt.figure(8, dpi=150)
+    plt.hist(snr, bins=100, density=True,range=(0,100))
     plt.title('SNIR (dB)')
     # plt.show()
     plt.savefig(path + 'snr_' + str(n_bs) + ' BS.png')
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
-    ax2.hist(cap, bins=1000, range=(0, 120))
+    ax2.hist(cap, bins=1000, density=True, range=(0, 200))
     ax2.set_title('Throughput (Mbps)')
     f2 = plt.figure(3, dpi=150)
-    plt.hist(cap, bins=1000,  range=(0, 120))
+    plt.hist(cap, bins=1000,  density=True, range=(0, 200))
     plt.title('Throughput (Mbps)')
     # plt.show()
     plt.savefig(path + 'cap_' + str(n_bs) + ' BS.png')
 
     # Users p/ BS
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
-    ax3.hist(user_bs, bins=100)
+    ax3.hist(user_bs, bins=100, density=True, range=(0, 40))
     ax3.set_title('UEs per BS')
     f3 = plt.figure(4, dpi=150)
-    plt.hist(user_bs, bins=100)
+    plt.hist(user_bs, bins=100, density=True, range=(0, 40))
     plt.title('Number of UEs per BS')
     # plt.show()
     plt.savefig(path + 'user_bs_' + str(n_bs) + ' BS.png')
 
     # Number of active beams
     act_beams = np.concatenate([x['act_beams'] for x in raw_data])
-    ax4.hist(act_beams, bins=11)
+    ax4.hist(act_beams, bins=11, density=True, range=(0, 10))
     ax4.set_title('Act beam p/BS')
     f4 = plt.figure(5, dpi=150)
-    plt.hist(act_beams, bins=11)
+    plt.hist(act_beams, bins=11, density=True, range=(0, 10))
     plt.title('Number of Active beams per BS')
     # plt.show()
     plt.savefig(path + 'act_beams_' + str(n_bs) + ' BS.png')
 
     # time per user in 1s
     user_time = np.concatenate([x['user_time'] for x in raw_data])
-    ax5.hist(user_time, bins=50)
+    ax5.hist(user_time, bins=50, density=True, range=(0, 1))
     ax5.set_title('UE time in 1s')
     f5 = plt.figure(6, dpi=150)
-    plt.hist(user_time, bins=50)
+    plt.hist(user_time, bins=50, density=True, range=(0, 1))
     plt.title('UE active time in 1s')
     # plt.show()
     plt.savefig(path + 'user_time_' + str(n_bs) + ' BS.png')
 
     # bandwidth per user
     user_bw = np.concatenate([x['user_bw'] for x in raw_data])
-    ax6.hist(user_bw, bins=20)
+    ax6.hist(user_bw, bins=20, density=True, range=(0, 100))
     ax6.set_title('BW p/ UE(MHz)')
     f6 = plt.figure(7, dpi=150)
-    plt.hist(user_bw, bins=20)
+    plt.hist(user_bw, bins=20, density=True, range=(0, 100))
     plt.title('Bandwidth per UE (MHz)')
     # plt.show()
     plt.savefig(path + 'bw_user_' + str(n_bs) + ' BS.png')

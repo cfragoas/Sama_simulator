@@ -19,7 +19,6 @@ class K_Means_XP:
         self.centroids = {}
         self.features = data
 
-
         for i in range(self.k):
             if predetermined_centroids is not None and i <= len(predetermined_centroids)-1:
                 self.centroids[i] = predetermined_centroids[i]
@@ -30,12 +29,22 @@ class K_Means_XP:
         for i in range(self.max_iter):
             self.classifications = {}
 
+            # a = []
+            # b = []
+
             for i in range(self.k):
                 self.classifications[i] = []
 
             for featureset in data:
                 distances = [np.linalg.norm(featureset-self.centroids[centroid]) for centroid in self.centroids]
                 classification = distances.index(min(distances))
+                # a.append(distances)
+                # b.append(classification)
+                # if np.sum(np.isnan(distances)) != 0:
+                #     print('ui')
+                # if not featureset.size:
+                #     print('ui')
+
                 self.classifications[classification].append(featureset)
 
             prev_centroids = dict(self.centroids)
