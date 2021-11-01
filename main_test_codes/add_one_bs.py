@@ -30,10 +30,10 @@ if __name__ == '__main__':
     criteria = 50  # capacity metric evaluation parameter (Mbps)
     samples = 100  # number of samples per gaussian center
     max_iter = 100  # number of iterations per BS/UE set
-    min_bs = 4  # minimum number of BSs (if using predetermined centroids, needs to be more than that)
+    min_bs = 6  # minimum number of BSs (if using predetermined centroids, needs to be more than that)
     max_bs = 30  # maximum number of BSs
     predetermined_centroids = np.array(([250, 250], [400, 800], [500, 100]))
-    threads = None
+    threads = 2
 
     bs_vec = []
 

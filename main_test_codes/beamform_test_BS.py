@@ -1,6 +1,7 @@
 import copy
 import datetime, pickle, os, logging, multiprocessing, tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 
 from antennas.beamforming import Beamforming_Antenna
@@ -122,20 +123,28 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
     fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8)) = plt.subplots(4, 2, dpi=500)
     fig.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
     ax1.plot(n_bs_vec, mean_snr)
+    ax1.set_xlabel('Number of BS')
     ax1.set_title('Mean SNIR')
     ax2.plot(n_bs_vec, std_snr)
+    ax2.set_xlabel('Number of BS')
     ax2.set_title('std SNIR')
     ax3.plot(n_bs_vec, mean_cap)
+    ax3.set_xlabel('Number of BS')
     ax3.set_title('Mean Capacity (Mbps)')
     ax4.plot(n_bs_vec, std_cap)
+    ax4.set_xlabel('Number of BS')
     ax4.set_title('std Capacity (Mbps)')
     ax5.plot(n_bs_vec, mean_user_time)
+    ax5.set_xlabel('Number of BS')
     ax5.set_title('Mean user time (s)')
     ax6.plot(n_bs_vec, std_user_time)
+    ax6.set_xlabel('Number of BS')
     ax6.set_title('std user time (s)')
     ax7.plot(n_bs_vec, mean_user_bw)
+    ax7.set_xlabel('Number of BS')
     ax7.set_title('Mean user bw (MHz)')
     ax8.plot(n_bs_vec, std_user_bw)
+    ax8.set_xlabel('Number of BS')
     ax8.set_title('std user bw (MHz)')
     fig.tight_layout()
     # plt.show()
@@ -163,27 +172,34 @@ def plot_hist(raw_data, path, n_bs):
     ax1.hist(snr, bins=100, density=True, range=(0,100))
     ax1.set_title('SNIR (dB)')
     f1 = plt.figure(8, dpi=150)
-    plt.hist(snr, bins=100, density=True,range=(0,100))
+    sns.histplot(data=snr, bins=100, binrange=(0,140), stat='density', kde=True)
     plt.title('SNIR (dB)')
     # plt.show()
     plt.savefig(path + 'snr_' + str(n_bs) + ' BS.png')
+
 
     # CAP
     cap = np.concatenate([x['cap'] for x in raw_data])
     ax2.hist(cap, bins=1000, density=True, range=(0, 200))
     ax2.set_title('Throughput (Mbps)')
     f2 = plt.figure(3, dpi=150)
-    plt.hist(cap, bins=1000,  density=True, range=(0, 200))
+    # plt.hist(cap, bins=1000,  density=True, range=(0, 200))
+    sns.histplot(data=cap, bins=1000, binrange=(0,250), stat='density', kde=True)
     plt.title('Throughput (Mbps)')
     # plt.show()
     plt.savefig(path + 'cap_' + str(n_bs) + ' BS.png')
+
+    # # testing seaborn
+    # sns.displot(data=cap, bins=1000, kde=True)
+    # plt.show()
 
     # Users p/ BS
     user_bs = np.concatenate([x['user_bs'] for x in raw_data])
     ax3.hist(user_bs, bins=100, density=True, range=(0, 40))
     ax3.set_title('UEs per BS')
     f3 = plt.figure(4, dpi=150)
-    plt.hist(user_bs, bins=100, density=True, range=(0, 40))
+    # plt.hist(user_bs, bins=100, density=True, range=(0, 40))
+    sns.histplot(data=user_bs, bins=100, binrange=(0,800), stat='density')
     plt.title('Number of UEs per BS')
     # plt.show()
     plt.savefig(path + 'user_bs_' + str(n_bs) + ' BS.png')
@@ -193,7 +209,8 @@ def plot_hist(raw_data, path, n_bs):
     ax4.hist(act_beams, bins=11, density=True, range=(0, 10))
     ax4.set_title('Act beam p/BS')
     f4 = plt.figure(5, dpi=150)
-    plt.hist(act_beams, bins=11, density=True, range=(0, 10))
+    # plt.hist(act_beams, bins=11, density=True, range=(0, 10))
+    sns.histplot(data=act_beams, bins=11, binrange=(0, 10), stat='density')
     plt.title('Number of Active beams per BS')
     # plt.show()
     plt.savefig(path + 'act_beams_' + str(n_bs) + ' BS.png')
@@ -203,7 +220,8 @@ def plot_hist(raw_data, path, n_bs):
     ax5.hist(user_time, bins=50, density=True, range=(0, 1))
     ax5.set_title('UE time in 1s')
     f5 = plt.figure(6, dpi=150)
-    plt.hist(user_time, bins=50, density=True, range=(0, 1))
+    # plt.hist(user_time, bins=50, density=True, range=(0, 1))
+    sns.histplot(data=user_time, bins=50, binrange=(0, 1), stat='density')
     plt.title('UE active time in 1s')
     # plt.show()
     plt.savefig(path + 'user_time_' + str(n_bs) + ' BS.png')
@@ -213,7 +231,8 @@ def plot_hist(raw_data, path, n_bs):
     ax6.hist(user_bw, bins=20, density=True, range=(0, 100))
     ax6.set_title('BW p/ UE(MHz)')
     f6 = plt.figure(7, dpi=150)
-    plt.hist(user_bw, bins=20, density=True, range=(0, 100))
+    # plt.hist(user_bw, bins=20, density=True, range=(0, 100))
+    sns.histplot(data=user_bw, bins=20, binrange=(0, 100), stat='density')
     plt.title('Bandwidth per UE (MHz)')
     # plt.show()
     plt.savefig(path + 'bw_user_' + str(n_bs) + ' BS.png')
@@ -261,6 +280,10 @@ def plot_surface(grid, position, parameter, path, n_bs):
 
     plt.close('all')
 
+    #seaborn test
+    # sns.heatmap(mean_snr)
+    # plt.show()
+
     fig3, ax1 = plt.subplots(1, dpi=300)
     fig3.suptitle('BS distribution ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
     z = ax1.matshow(counter, origin='lower')
@@ -285,8 +308,8 @@ def simulate_ue_macel(args):
 
 if __name__ == '__main__':
     # parameters
-    criteria = 50
-    samples = 100
+    criteria = 200
+    samples = 200
     max_iter = 100
     min_bs = 1
     max_bs = 30
