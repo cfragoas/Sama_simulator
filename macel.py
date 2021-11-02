@@ -216,16 +216,32 @@ class Macel:
         meet_criteria = None
         if self.criteria != None:
             meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
+            deficit = self.criteria - cap_sum
+            mean_deficit = np.mean(deficit)
+            std_deficit = np.std(deficit)
+            norm_deficit = 1 - cap_sum/self.criteria
+            mean_norm_deficit = np.mean(norm_deficit)
+            std_norm_deficit = np.mean(norm_deficit)
+
+            # print('mean deficit: ', mean_deficit, ' std deficit: ', std_deficit)
+            # print('mean norm deficit: ', mean_norm_deficit, ' std norm deficit: ', std_norm_deficit)
 
         if meet_criteria or meet_criteria == 0:
-            snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw, meet_criteria]
+            snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw,
+                             std_user_bw, meet_criteria, mean_deficit, std_deficit, mean_norm_deficit, std_norm_deficit]
         else:
             snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw,
                              std_user_bw]
 
         # preparing 'raw' data to export
-        raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
-                         'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
+        if meet_criteria or meet_criteria == 0:
+            raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
+                            'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1), 'deficit': deficit,
+                             'norm_deficit': norm_deficit}
+        else:
+            raw_data_dict = {'position': positions, 'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs,
+                             'act_beams': mean_act_beams,
+                             'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
 
         if output_typ == 'simple':
             return snr_cap_stats
