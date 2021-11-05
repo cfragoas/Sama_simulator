@@ -72,13 +72,43 @@ class BaseStation:
     def clean_active_beams(self):
         self.active_beams = None
 
+    def generate_beam_timing_new(self, simulation_time, time_slot):
+        # trying to better adjust the beam timing to serve the users uniformly
+        self.beam_timing = [None] * self.n_sectors
+        min_ue_sector = np.zeros(self.n_sectors)
+        for sector_index, sector_beams in enumerate(self.active_beams.T):
+            min_ue_sector[sector_index] = np.min(sector_beams[sector_beams != 0])
+        # min_ue_sector = np.min(self.active_beams[self.active_beams != 0], axis=0)
+        wighted_act_beams = np.round(self.active_beams / min_ue_sector)
+
+        self.beam_timing = [None] * self.n_sectors
+        for sector_index, sector in enumerate(self.beam_timing):
+            sector = np.where(wighted_act_beams[:, sector_index] != 0)[0]
+            np.random.shuffle(sector)  # randomizing the beam timing sequence
+            self.beam_timing[
+                sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
+
+        self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int))) + self.antenna.beams
+        wighted_act_beams_bkp = wighted_act_beams
+        for time in np.arange(0, simulation_time, time_slot):  # FAZER UM BACKUP DESSA VARIÁVEL ANTES!!!
+            wighted_act_beams = self.next_active_beam_new(wighted_act_beams)  # passing the beam list with how many times each beam need to be active
+            for sector_index, sector in enumerate(self.beam_timing):
+                if self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)] == -1:
+                    self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)] = 0
+                    wighted_act_beams[:, sector_index] = wighted_act_beams_bkp[:, sector_index]
+                if self.beam_timing[sector_index].size != 0:
+                    self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
+
+        self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
+
+
     def generate_beam_timing(self, simulation_time, time_slot):
         # self.beam_timing = np.ndarray(shape=self.n_sectors)
         self.beam_timing = [None] * self.n_sectors
         for sector_index, sector in enumerate(self.beam_timing):
             sector = np.where(self.active_beams[:, sector_index] != 0)[0]
             np.random.shuffle(sector)  # randomizing the beam timing sequence
-            self.beam_timing[sector_index] = sector  # I really dont know why this line is need to this code to work!!!
+            self.beam_timing[sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
 
         self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int))) + self.antenna.beams
         for time in np.arange(0, simulation_time, time_slot):
@@ -88,6 +118,43 @@ class BaseStation:
                     self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
 
         self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
+
+    def next_active_beam_new(self, beam_list=None):
+        if beam_list is not None:
+            if self.active_beams_index is None:
+                self.active_beams_index = np.zeros(shape=self.n_sectors).astype(int)
+            # else:
+            #     self.active_beams_index += 1
+
+            for sector_index, beam_index in enumerate(self.active_beams_index):
+                if np.sum(beam_list[:,sector_index]) != 0:
+                    while beam_list[beam_index, sector_index] == 0:
+                        beam_index += 1
+                        if beam_index > len(self.beam_timing[sector_index])-1:
+                            beam_index = 0
+                    beam_list[beam_index, sector_index] -= 1
+                    # print(beam_list)
+
+                else:
+                    # print('ui')
+                    self.active_beams_index[sector_index] = -1  # informing that the beam list need to be restarted
+
+                self.active_beams_index[sector_index] = beam_index
+
+            return beam_list
+
+            # for sector_index, act_beam_index in enumerate(self.active_beams_index):
+            #     if act_beam_index > len(self.beam_timing[sector_index])-1:
+            #         self.active_beams_index[sector_index] = 0
+            # pass
+        else:
+            if self.active_beams_index is None:
+                self.active_beams_index = np.zeros(shape=self.n_sectors).astype(int)
+            else:
+                self.active_beams_index += 1
+                for sector_index, beam in enumerate(self.active_beams_index):
+                    if beam > len(self.beam_timing[sector_index])-1:
+                        self.active_beams_index[sector_index] = 0
 
     def next_active_beam(self):
         if self.active_beams_index is None:

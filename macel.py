@@ -98,7 +98,7 @@ class Macel:
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
-            base_station.generate_beam_timing(simulation_time, time_slot)  # precalculating the beam activation timings
+            base_station.generate_beam_timing_new(simulation_time, time_slot)  # precalculating the beam activation timings
             base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
