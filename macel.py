@@ -99,7 +99,8 @@ class Macel:
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
             base_station.generate_beam_timing_new(simulation_time, time_slot)  # precalculating the beam activation timings
-            base_station.generate_beam_bw()  # calculating the bw for each active beam user
+            base_station.generate_beam_bw_new(self.ue.ue_bs, bs_index)
+            # base_station.generate_beam_bw()  # calculating the bw for each active beam user
         return
 
     def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None):
