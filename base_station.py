@@ -184,18 +184,16 @@ class BaseStation:
     def generate_beam_bw_new(self, ue_bs, bs_index):
         # ue_bs -> bs|beam|sector|ch_gain
         # for bs_index in np.unique(ue_bs[:, 0]).astype(int):
-        self.beam_bw = np.zeros(shape=(self.antenna.beams, self.n_sectors))
-        user_bw = [None] * np.array(ue_bs.shape[0])
+        # self.beam_bw = np.zeros(shape=(self.antenna.beams, self.n_sectors))
+        if not hasattr(self, 'user_bw'):  # ARRUMAR A INSTÂNCIA DO SELF.BEAM_BW !!!!!
+            self.user_bw = np.zeros(ue_bs.shape[0])
         for sector_index in np.unique(ue_bs[ue_bs[:,0] == bs_index][:, 2]).astype(int):
             for beam_index in np.unique(ue_bs[(ue_bs[:,0] == bs_index) * (ue_bs[:,2] == sector_index)][:, 1]).astype(int):
                 log2_ch_gain = np.log2(1 + 10 ** (ue_bs[(ue_bs[:,0] == bs_index) * (ue_bs[:,1] == beam_index) * (ue_bs[:, 2] == sector_index)][:,3]/10))
                 weighted_ch_gain_map = log2_ch_gain / np.min(log2_ch_gain)
                 sum_weights = np.sum(weighted_ch_gain_map)
                 min_bw = self.bw/sum_weights
-                self.beam_bw[beam_index, sector_index] = weighted_ch_gain_map * min_bw
-
-        # log2_ch_gain = np.log2(1 + ch_gain_map)
-
+                self.user_bw[np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))] = weighted_ch_gain_map * min_bw
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)

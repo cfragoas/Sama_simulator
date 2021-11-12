@@ -29,4 +29,7 @@ class User_eq:
                      ch_gain_map[:, ue_index].shape)[0], ue_index]),
                        np.array(np.max(ch_gain_map[:, ue_index]))), axis=None)
 
+            if self.ue_bs[ue_index] < LIMITE:  # todo
+                self.ue_bs[ue_index] = -1
+
         self.ue_bs = self.ue_bs.astype(int)

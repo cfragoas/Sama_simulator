@@ -170,9 +170,13 @@ class Macel:
                         # print("interf total ",interf_in_active_ue)
                 # print("time slot:", time_index)
                 # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
-                bw = base_station.beam_bw[base_station.beam_timing_sequence[
-                                              self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
-                                          self.ue.sector_map[bs_index, ue_in_active_beam]]  # user BW
+                if base_station.beam_bw is not None:  # uniform beam bw
+                    bw = base_station.beam_bw[base_station.beam_timing_sequence[
+                                                  self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
+                                              self.ue.sector_map[bs_index, ue_in_active_beam]]  # user BW
+                else:  # different bw for each user
+                    bw = base_station.user_bw[ue_in_active_beam]
+
                 noise_power = k * t * bw * 10E6
                 interf_in_active_ue += noise_power
 

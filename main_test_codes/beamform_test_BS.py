@@ -188,7 +188,7 @@ def plot_hist(raw_data, path, n_bs):
     f1 = plt.figure(8, dpi=150)
     sns.histplot(data=snr, bins=100, binrange=(0,140), stat='probability', kde=True)
     plt.title('SNIR (dB)')
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.4)
     # plt.show()
     plt.savefig(path + 'snr_' + str(n_bs) + ' BS.png')
 
@@ -202,7 +202,7 @@ def plot_hist(raw_data, path, n_bs):
     # plt.hist(cap, bins=1000,  density=True, range=(0, 200))
     sns.histplot(data=cap, bins=1000, binrange=(0,250), stat='probability', kde=True)
     plt.title('Throughput (Mbps)')
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.4)
     # plt.show()
     plt.savefig(path + 'cap_' + str(n_bs) + ' BS.png')
 
@@ -270,7 +270,7 @@ def plot_hist(raw_data, path, n_bs):
     fdeftgd = plt.figure(11, dpi=150)
     sns.histplot(data=deficit, bins=100, binrange=(-50, 50), stat='probability')
     plt.title('Capacity deficit (Mbps)')
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.4)
     # plt.show()
     plt.savefig(path + 'deficit_' + str(n_bs) + ' BS.png')
 
@@ -282,7 +282,7 @@ def plot_hist(raw_data, path, n_bs):
     f8 = plt.figure(10, dpi=150)
     sns.histplot(data=norm_deficit, bins=100, binrange=(-1, 1), stat='probability')
     plt.title('Normalized capacity deficit')
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.4)
     # plt.show()
     plt.savefig(path + 'norm_deficit_' + str(n_bs) + ' BS.png')
 
@@ -360,7 +360,7 @@ if __name__ == '__main__':
     criteria = 35  # Mbps
     samples = 200
     max_iter = 100
-    min_bs = 4
+    min_bs = 1
     max_bs = 30
     threads = None
 
