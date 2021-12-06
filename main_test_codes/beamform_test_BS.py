@@ -357,7 +357,7 @@ def simulate_ue_macel(args):
 
 if __name__ == '__main__':
     # parameters
-    criteria = 35  # Mbps
+    criteria = 50  # Mbps
     samples = 200
     max_iter = 100
     min_bs = 1

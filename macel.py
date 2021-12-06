@@ -98,9 +98,11 @@ class Macel:
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
-            base_station.generate_beam_timing_new(simulation_time, time_slot)  # precalculating the beam activation timings
-            base_station.generate_beam_bw_new(self.ue.ue_bs, bs_index)
-            # base_station.generate_beam_bw()  # calculating the bw for each active beam user
+            base_station.generate_beam_timing_new(simulation_time, time_slot, uniform_time_dist=False)  # precalculating the beam activation timings
+            base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index)  # LISANDRO
+            base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # LISANDRO
+            # base_station.generate_beam_bw_new(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # NOVO
+            # base_station.generate_beam_bw()  # calculating the bw for each active beam user  # ORIGINAL
         return
 
     def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None):
@@ -125,7 +127,8 @@ class Macel:
         self.generate_base_station_list(n_centers)
         self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
-                                     sector_map=self.sector_map)  # calculating the best ch gain for each UE
+                                     sector_map=self.sector_map,
+                                    pw_5mhz=self.default_base_station.tx_power + 10*np.log10(5/self.default_base_station.bw))  # calculating the best ch gain for each UE
         self.send_ue_to_bs(simulation_time=1000, time_slot=1)
 
         snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)
@@ -154,6 +157,7 @@ class Macel:
         for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
             #check the active Bs's in time_index
             for bs_index, base_station in enumerate(self.base_station_list):
+                # todo - concertar para usuário sem BS!!!
                 ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
                                              & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], time_index]))[0]
                 pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
