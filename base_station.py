@@ -228,10 +228,10 @@ class BaseStation:
                     ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
                     self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
-        self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)
+        self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # NÃO ESTOU USANDO !!!
         #print(self.beam_util)
 
-        self.sector_util = np.sum(self.beam_util_log, axis=0)  # VERIFICAR AQUI DEPOIS !!!
+        self.sector_util = np.sum(self.beam_util, axis=0)  # VERIFICAR AQUI DEPOIS !!!
 
     def generate_weighted_beam_time(self, t_total, ue_bs, bs_index):
         t_min = 10  # milliseconds
@@ -240,13 +240,13 @@ class BaseStation:
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
             non_zero = np.where(self.beam_util_log[:, sector_index] != 0)  # to prevent a divide by zero occurence
-            t_beam[non_zero, sector_index] = t_min + (self.sector_util[sector_index]/self.beam_util_log[non_zero, sector_index]) \
+            t_beam[non_zero, sector_index] = t_min + (self.beam_util[non_zero, sector_index]/self.sector_util[sector_index]) \
                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index])*t_min)  # beam timing according to paper eq.
 
     def generate_weighted_bw(self, ue_bs, bs_index):
         self.beam_utility(ue_bs=ue_bs, bs_index=bs_index)  # calculating the sector, beam and slice utilities
         warnings.filterwarnings("ignore")
-        bw_min = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)  # minimum per beam bw
+        bw_min = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw [TESTANDO]
         warnings.simplefilter('always')
 
         self.user_bw = np.zeros(shape=ue_bs.shape[0])
@@ -256,7 +256,7 @@ class BaseStation:
                 ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
                 self.user_bw[ue_in_beam_bs] = bw_min[beam_index, sector_index] + \
                           (self.slice_util[ue_in_beam_bs] /
-                           self.beam_util_log[beam_index, sector_index]) * (self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[beam_index, sector_index])
+                           self.beam_util[beam_index, sector_index]) * (self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[beam_index, sector_index])
 
     def generate_beam_bw_new(self, ue_bs=None, bs_index=None):
         # ue_bs -> bs|beam|sector|ch_gain
