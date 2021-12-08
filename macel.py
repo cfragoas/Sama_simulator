@@ -89,12 +89,14 @@ class Macel:
     def send_ue_to_bs(self, simulation_time, time_slot):
         # set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
-            ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
+            # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
             for sector_index in range(base_station.n_sectors):
-                ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
-                ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
-                ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
+                # ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
+                # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
+                # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
+                ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
+                                                    * (self.ue.ue_bs[:, 2] == sector_index)), 1]
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
@@ -136,6 +138,9 @@ class Macel:
         return (snr_cap_stats)
 
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
+        ch_gain_map_total = ch_gain_map
+        ch_gain_map = ch_gain_map[self.ue.active_ue]
+
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))

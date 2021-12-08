@@ -195,15 +195,15 @@ class BaseStation:
         self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
         warnings.simplefilter('always')
 
-    def slice_utility(self, ue_bs=None, bs_index=None):  # utility per user bw/snr
+    def slice_utility(self, ue_bs, bs_index):  # utility per user bw/snr
         # ue_bs -> bs|beam|sector|ch_gain
-        ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
+        # ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
         warnings.filterwarnings("ignore")
         beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)  # minimum per beam bw
         warnings.simplefilter('always')
         bw_min = np.zeros(shape=ue_bs.shape[0])
-        for bs_index, ue in enumerate(ue_bs):
-            bw_min[bs_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
+        for ue_index, ue in enumerate(ue_bs):
+            bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
 
         bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
         k = 1.380649E-23  # Boltzmann's constant (J/K)
@@ -214,6 +214,7 @@ class BaseStation:
         c_target = 50 * 10E6  # todo - MUDAR ESTAR PUERRRA
         bw_need = 2**(c_target/snr) - 1  # needed bw to achieve the capacity target
 
+        self.slice_util = np.zeros(shape=ue_bs.shape[0])
         self.slice_util = (bw_min/bw_need) * np.log2(snr)
 
 
@@ -221,9 +222,6 @@ class BaseStation:
         # ue_bs -> bs|beam|sector|ch_gain
         self.slice_utility(ue_bs=ue_bs, bs_index=bs_index)
         self.beam_util = np.zeros(shape=self.active_beams.shape)
-
-        if bs_index == 1:
-            print('ui')
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
             for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) * (ue_bs[:, 2] == sector_index)][:, 1]).astype(int):
