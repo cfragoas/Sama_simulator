@@ -139,7 +139,11 @@ class Macel:
 
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
         ch_gain_map_total = ch_gain_map
-        ch_gain_map = ch_gain_map[self.ue.active_ue]
+        if len(self.base_station_list) > 1:
+            print('ui')
+        sector_map_total = self.sector_map
+        self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
+        ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
 
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
@@ -173,7 +177,7 @@ class Macel:
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
                         interf = base_station.tx_power + \
-                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.ue.sector_map[bs_index2, ue_in_active_beam], time_index]]
+                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], time_index]]
                         interf_in_active_ue += 10**(interf/10)
                         # print("interf ",interf)
                         # print("interf total ",interf_in_active_ue)
@@ -181,8 +185,8 @@ class Macel:
                 # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
                 if base_station.beam_bw is not None:  # uniform beam bw
                     bw = base_station.beam_bw[base_station.beam_timing_sequence[
-                                                  self.ue.sector_map[bs_index, ue_in_active_beam], time_index],
-                                              self.ue.sector_map[bs_index, ue_in_active_beam]]  # user BW
+                                                  self.sector_map[bs_index, ue_in_active_beam], time_index],
+                                              self.sector_map[bs_index, ue_in_active_beam]]  # user BW
                 else:  # different bw for each user
                     bw = base_station.user_bw[ue_in_active_beam]
 

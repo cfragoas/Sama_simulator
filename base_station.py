@@ -228,7 +228,7 @@ class BaseStation:
                     ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
                     self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
-        self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # NÃO ESTOU USANDO !!!
+        # self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # NÃO ESTOU USANDO !!!
         #print(self.beam_util)
 
         self.sector_util = np.sum(self.beam_util, axis=0)  # VERIFICAR AQUI DEPOIS !!!
@@ -239,7 +239,7 @@ class BaseStation:
         t_beam = np.zeros(shape=self.active_beams.shape)
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
-            non_zero = np.where(self.beam_util_log[:, sector_index] != 0)  # to prevent a divide by zero occurence
+            non_zero = np.where(self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
             t_beam[non_zero, sector_index] = t_min + (self.beam_util[non_zero, sector_index]/self.sector_util[sector_index]) \
                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index])*t_min)  # beam timing according to paper eq.
 
