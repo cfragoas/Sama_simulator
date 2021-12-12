@@ -72,34 +72,32 @@ class BaseStation:
     def clean_active_beams(self):
         self.active_beams = None
 
-    def generate_beam_timing_new(self, simulation_time, time_slot, uniform_time_dist=True):
-        if uniform_time_dist:
+    def generate_beam_timing_new(self, simulation_time, time_slot, weighted_act_beams=None, uniform_time_dist=True):
+        if not uniform_time_dist and weighted_act_beams is not None:
             # trying to better adjust the beam timing to serve the users uniformly
             # beams with more users will get more time slots
-            self.beam_timing = [None] * self.n_sectors
-            min_ue_sector = np.zeros(self.n_sectors)
-            for sector_index, sector_beams in enumerate(self.active_beams.T):
-                if len(sector_beams[sector_beams != 0]) != 0:
-                    min_ue_sector[sector_index] = np.min(sector_beams[sector_beams != 0])
-                else:
-                    print('ui')  # TESTANDO!!! APAGAR!!!
-            # min_ue_sector = np.min(self.active_beams[self.active_beams != 0], axis=0)
-            wighted_act_beams = np.round(self.active_beams / min_ue_sector)
+
+            # self.beam_timing = [None] * self.n_sectors
+            # min_ue_sector = np.zeros(self.n_sectors)
+            # for sector_index, sector_beams in enumerate(self.active_beams.T):
+            #     if len(sector_beams[sector_beams != 0]) != 0:
+            #         min_ue_sector[sector_index] = np.min(sector_beams[sector_beams != 0])
+            # wighted_act_beams = np.round(self.active_beams / min_ue_sector)
 
             self.beam_timing = [None] * self.n_sectors
             for sector_index, sector in enumerate(self.beam_timing):
-                sector = np.where(wighted_act_beams[:, sector_index] != 0)[0]
+                sector = np.where(weighted_act_beams[:, sector_index] != 0)[0]
                 np.random.shuffle(sector)  # randomizing the beam timing sequence
-                ordened_weighted_beams = copy.deepcopy(wighted_act_beams[:, sector_index])
-                wighted_act_beams[:, sector_index] = 0
-                wighted_act_beams[np.arange(len(sector)), sector_index] = ordened_weighted_beams[sector]  # putting the weights in the same shuffle order of the beams
+                ordened_weighted_beams = copy.deepcopy(weighted_act_beams[:, sector_index])
+                weighted_act_beams[:, sector_index] = 0
+                weighted_act_beams[np.arange(len(sector)), sector_index] = ordened_weighted_beams[sector]  # putting the weights in the same shuffle order of the beams
                 self.beam_timing[
                     sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
 
             self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int))) + self.antenna.beams
-            wighted_act_beams_bkp = copy.deepcopy(wighted_act_beams)
+            wighted_act_beams_bkp = copy.deepcopy(weighted_act_beams)
             for time in np.arange(0, simulation_time, time_slot):
-                wighted_act_beams = self.next_active_beam_new(wighted_act_beams)  # passing the beam list with how many times each beam need to be active
+                wighted_act_beams = self.next_active_beam_new(weighted_act_beams)  # passing the beam list with how many times each beam need to be active
                 for sector_index, sector in enumerate(self.beam_timing):
                     if self.active_beams_index[sector_index].astype(int) == -1:
                         self.active_beams_index[sector_index] = 0
@@ -195,11 +193,12 @@ class BaseStation:
         self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
         warnings.simplefilter('always')
 
-    def slice_utility(self, ue_bs, bs_index):  # utility per user bw/snr
+    def slice_utility(self, ue_bs, c_target):  # utility per user bw/snr
         # ue_bs -> bs|beam|sector|ch_gain
+        c_target = c_target * 10E6
         # ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
         warnings.filterwarnings("ignore")
-        beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)  # minimum per beam bw
+        beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
         warnings.simplefilter('always')
         bw_min = np.zeros(shape=ue_bs.shape[0])
         for ue_index, ue in enumerate(ue_bs):
@@ -208,19 +207,19 @@ class BaseStation:
         bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
         k = 1.380649E-23  # Boltzmann's constant (J/K)
         t = 290  # absolute temperature
-        pw_noise_bw = k*t*bw
-        tx_pw = 10**(self.tx_power/10)  # converting from dBw to watt
+        pw_noise_bw = k*t*bw  # noise power
+        # it is important here that tx_pw been in dBW (not dBm!!!)
+        tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
         snr = (tx_pw * 10**(ue_bs[:, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
-        c_target = 50 * 10E6  # todo - MUDAR ESTAR PUERRRA
         bw_need = 2**(c_target/snr) - 1  # needed bw to achieve the capacity target
 
-        self.slice_util = np.zeros(shape=ue_bs.shape[0])
+        # self.slice_util = np.zeros(shape=ue_bs.shape[0])
         self.slice_util = (bw_min/bw_need) * np.log2(snr)
 
 
-    def beam_utility(self, ue_bs=None, bs_index=None):
+    def beam_utility(self, ue_bs, bs_index, c_target):
         # ue_bs -> bs|beam|sector|ch_gain
-        self.slice_utility(ue_bs=ue_bs, bs_index=bs_index)
+        self.slice_utility(ue_bs=ue_bs, c_target=c_target)
         self.beam_util = np.zeros(shape=self.active_beams.shape)
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
@@ -228,23 +227,27 @@ class BaseStation:
                     ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
                     self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
-        # self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # NÃO ESTOU USANDO !!!
-        #print(self.beam_util)
+        warnings.filterwarnings("ignore")
+        self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # making the log2 fo beam util.
+        warnings.simplefilter('always')
 
-        self.sector_util = np.sum(self.beam_util, axis=0)  # VERIFICAR AQUI DEPOIS !!!
+        self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
 
-    def generate_weighted_beam_time(self, t_total, ue_bs, bs_index):
+    def generate_weighted_beam_time(self, t_total, ue_bs, bs_index, c_target):
         t_min = 10  # milliseconds
-        self.beam_utility(ue_bs=ue_bs, bs_index=bs_index)
+        self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)
         t_beam = np.zeros(shape=self.active_beams.shape)
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
             non_zero = np.where(self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
-            t_beam[non_zero, sector_index] = t_min + (self.beam_util[non_zero, sector_index]/self.sector_util[sector_index]) \
+            t_beam[non_zero, sector_index] = t_min + (self.beam_util_log[non_zero, sector_index]/self.sector_util[sector_index]) \
                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index])*t_min)  # beam timing according to paper eq.
 
-    def generate_weighted_bw(self, ue_bs, bs_index):
-        self.beam_utility(ue_bs=ue_bs, bs_index=bs_index)  # calculating the sector, beam and slice utilities
+        return np.round(t_beam).astype(int)
+
+
+    def generate_weighted_bw(self, ue_bs, bs_index, c_target):
+        self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)  # calculating the sector, beam and slice utilities
         warnings.filterwarnings("ignore")
         bw_min = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw [TESTANDO]
         warnings.simplefilter('always')

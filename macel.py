@@ -100,9 +100,12 @@ class Macel:
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
-            base_station.generate_beam_timing_new(simulation_time, time_slot, uniform_time_dist=False)  # precalculating the beam activation timings
-            base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index)  # LISANDRO
-            base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # LISANDRO
+
+            t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+
+            base_station.generate_beam_timing_new(simulation_time, time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+            base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+
             # base_station.generate_beam_bw_new(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # NOVO
             # base_station.generate_beam_bw()  # calculating the bw for each active beam user  # ORIGINAL
         return
@@ -139,8 +142,6 @@ class Macel:
 
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
         ch_gain_map_total = ch_gain_map
-        if len(self.base_station_list) > 1:
-            print('ui')
         sector_map_total = self.sector_map
         self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
         ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
