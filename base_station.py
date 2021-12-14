@@ -261,6 +261,10 @@ class BaseStation:
                           (self.slice_util[ue_in_beam_bs] /
                            self.beam_util[beam_index, sector_index]) * (self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[beam_index, sector_index])
 
+    def remove_beam(self, beam_index):  # to turn off beams that all ue achieve the target capacity
+        self.active_beams[beam_index] = 0
+        # VER AQUI O QUE PRECISA FAZER DEPOIS!! OU, SE PRECISAR FAZER ISSO AQUI!
+
     def generate_beam_bw_new(self, ue_bs=None, bs_index=None):
         # ue_bs -> bs|beam|sector|ch_gain
         if ue_bs is not None:

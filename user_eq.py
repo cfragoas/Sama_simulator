@@ -35,15 +35,17 @@ class User_eq:
             # if self.ue_bs[ue_index] < -100:  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
             #     self.ue_bs[ue_index] = np.nan
 
-        # self.ue_bs[:, 3] = np.where(self.ue_bs[:, 3] + pw_5mhz < -90, np.nan, self.ue_bs[:, 3].astype(int))  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
-        self.active_ue = np.where(self.ue_bs[:, 3] + pw_5mhz > -95) # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
+        inactive_ue = np.where(self.ue_bs[:, 3] + pw_5mhz < -90)  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
+        self.ue_bs[inactive_ue, 0:3] = -1
 
-        self.sector_map = self.sector_map[:, self.active_ue][0]  # adjusting the sector map to be the same size as the
+        self.active_ue = np.where(self.ue_bs[:, 3] + pw_5mhz > -90) # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
+
+        # self.sector_map = self.sector_map[:, self.active_ue][0]  # adjusting the sector map to be the same size as the
         # as the update ue_bs with the active UEs
 
-        # self.ue_bs[self.active_ue] = 9999
-        self.ue_bs_total = self.ue_bs
-        self.ue_bs = self.ue_bs[self.active_ue]
+        # self.ue_bs_total = self.ue_bs
+        # self.ue_bs = self.ue_bs[self.active_ue]
+
         self.ue_bs = self.ue_bs.astype(int)
 
 
@@ -51,3 +53,9 @@ class User_eq:
 
 
         # self.ue_bs[~np.isnan(self.ue_bs)] = self.ue_bs[~np.isnan(self.ue_bs)].astype(int)
+
+    def remove_ue(self, ue_index):  # to stop communicating with ue that achieve the target capacity
+        # self.ue_bs = np.delete(self.ue_bs, ue_index)
+        # self.active_ue = np.delete(self.ue_bs, ue_index)
+
+        self.ue_bs[ue_index, 0:3] = -1

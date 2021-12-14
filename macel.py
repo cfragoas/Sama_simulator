@@ -18,7 +18,7 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, criteria=None, log=False):
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, criteria=None, log=False):
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
@@ -27,6 +27,7 @@ class Macel:
         self.cell_size = cell_size  # size of one side of a cell, in meters
         self.log = log  # if true, prints information about the ongoing process
         self.default_base_station = base_station  # BaseStation class variable
+        self.simulation_time = simulation_time
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -89,6 +90,7 @@ class Macel:
     def send_ue_to_bs(self, simulation_time, time_slot):
         # set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
+            base_station.clean_active_beams()
             # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
             for sector_index in range(base_station.n_sectors):
@@ -134,17 +136,17 @@ class Macel:
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
                                      sector_map=self.sector_map,
                                     pw_5mhz=self.default_base_station.tx_power + 10*np.log10(5/self.default_base_station.bw))  # calculating the best ch gain for each UE
-        self.send_ue_to_bs(simulation_time=1000, time_slot=1)
+        self.send_ue_to_bs(simulation_time=self.simulation_time, time_slot=1)
 
         snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)
 
         return (snr_cap_stats)
 
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
-        ch_gain_map_total = ch_gain_map
-        sector_map_total = self.sector_map
+        # ch_gain_map_total = ch_gain_map
+        # sector_map_total = self.sector_map
         self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
-        ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
+        # ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
 
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
@@ -164,21 +166,24 @@ class Macel:
         k = 1.380649E-23  # Boltzmann's constant (J/K)
         t = 290  # absolute temperature
 
+        elapsed_time = 0
+        count_satisfied_ue_old = 0
+
         for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
+            v_time_index = time_index - elapsed_time  # virtual time index used after generating new beam timing sequence when needed
             #check the active Bs's in time_index
             for bs_index, base_station in enumerate(self.base_station_list):
                 # todo - concertar para usuário sem BS!!!
                 ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], time_index]))[0]
+                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
                 pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
 
-                # print("main power ",pw_in_active_ue)
                 interf_in_active_ue = 0
                 # interference calculation
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
                         interf = base_station.tx_power + \
-                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], time_index]]
+                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], v_time_index]]  # AQUI OI
                         interf_in_active_ue += 10**(interf/10)
                         # print("interf ",interf)
                         # print("interf total ",interf_in_active_ue)
@@ -186,7 +191,7 @@ class Macel:
                 # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
                 if base_station.beam_bw is not None:  # uniform beam bw
                     bw = base_station.beam_bw[base_station.beam_timing_sequence[
-                                                  self.sector_map[bs_index, ue_in_active_beam], time_index],
+                                                  self.sector_map[bs_index, ue_in_active_beam], v_time_index],   # AQUI OI
                                               self.sector_map[bs_index, ue_in_active_beam]]  # user BW
                 else:  # different bw for each user
                     bw = base_station.user_bw[ue_in_active_beam]
@@ -202,14 +207,27 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
+            # checking if one or multiple ues have reached the target capacity
+            acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
+            satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
+            count_satisfied_ue = satisfied_ue.size
+            if count_satisfied_ue != 0:
+                if count_satisfied_ue_old != count_satisfied_ue:
+                    count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
+                    elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
+                    self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
+
+                    self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
 
 
         # preparing output data
-        mean_snr = 10*np.log10(np.nansum(10**(snr/10), axis=1))
-        cap_sum = np.nansum(cap, axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])
+        mean_snr = 10*np.log10(np.nansum(10**(snr[self.ue.active_ue]/10), axis=1))
+        cap_sum = np.nansum(cap[self.ue.active_ue], axis=1) / self.simulation_time  # ME ARRUMA !!!
+        # cap_sum = np.nansum(cap[self.ue.active_ue], axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
         mean_user_bs = np.mean(user_per_bs, axis=1)
-        user_time = np.nansum(user_time, axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])
+        user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / self.simulation_time # ME ARRUMA !!!
+        # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(self.cluster.centroids).astype(int)]
 
 
@@ -226,8 +244,8 @@ class Macel:
         std_user_time = np.std(user_time)
         # min_user_time = np.min(user_time)
         # max_user_time = np.max(user_time)
-        mean_user_bw = np.nanmean(user_bw)
-        std_user_bw = np.nanstd(user_bw)
+        mean_user_bw = np.nanmean(user_bw[self.ue.active_ue])
+        std_user_bw = np.nanstd(user_bw[self.ue.active_ue])
         # min_user_bw = np.min(user_bw)
         # max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
@@ -255,7 +273,7 @@ class Macel:
         # preparing 'raw' data to export
         if meet_criteria or meet_criteria == 0:
             raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
-                            'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1), 'deficit': deficit,
+                            'user_time': user_time, 'user_bw': np.nanmean(user_bw[self.ue.active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit}
         else:
             raw_data_dict = {'position': positions, 'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs,
