@@ -105,7 +105,7 @@ class Macel:
 
             t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
-            base_station.generate_beam_timing_new(simulation_time, time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+            base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
             base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
             # base_station.generate_beam_bw_new(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # NOVO
@@ -145,8 +145,9 @@ class Macel:
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
         # ch_gain_map_total = ch_gain_map
         # sector_map_total = self.sector_map
-        self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
+        # self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
         # ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
+        self.sector_map = self.sector_map.astype(int)
 
         cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
@@ -182,6 +183,8 @@ class Macel:
                 # interference calculation
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
+                        # if len(self.base_station_list) > 1:
+                        #     print('ui')
                         interf = base_station.tx_power + \
                                  ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], v_time_index]]  # AQUI OI
                         interf_in_active_ue += 10**(interf/10)
@@ -216,7 +219,6 @@ class Macel:
                     count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
                     elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                     self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-
                     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
 
 

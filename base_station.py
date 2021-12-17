@@ -22,6 +22,14 @@ class BaseStation:
 
         # initializing calculated variables
         self.sectors_pointing = None
+        self.user_bw = None
+
+        # utilities variables
+        self.slice_util = None
+        self.beam_util = None
+        self.beam_util_log = None
+        self.sector_util = None
+
         if not hasattr(self.antenna, 'beamforming_id'):
             self.sectors_hor_pattern = []  # rotated antenna patterns for each of the base station sectors
             self.sectors_ver_pattern = []  # tilted elevation pattern
@@ -195,27 +203,27 @@ class BaseStation:
 
     def slice_utility(self, ue_bs, c_target):  # utility per user bw/snr
         # ue_bs -> bs|beam|sector|ch_gain
-        c_target = c_target * 10E6
-        # ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
-        warnings.filterwarnings("ignore")
-        beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
-        warnings.simplefilter('always')
-        bw_min = np.zeros(shape=ue_bs.shape[0])
-        for ue_index, ue in enumerate(ue_bs):
-            bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
+        if self.slice_util is None:
+            c_target = c_target * 10E6
+            # ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
+            warnings.filterwarnings("ignore")
+            beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
+            warnings.simplefilter('always')
+            bw_min = np.zeros(shape=ue_bs.shape[0])
+            for ue_index, ue in enumerate(ue_bs):
+                bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
 
-        bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
-        k = 1.380649E-23  # Boltzmann's constant (J/K)
-        t = 290  # absolute temperature
-        pw_noise_bw = k*t*bw  # noise power
-        # it is important here that tx_pw been in dBW (not dBm!!!)
-        tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
-        snr = (tx_pw * 10**(ue_bs[:, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
-        bw_need = 2**(c_target/snr) - 1  # needed bw to achieve the capacity target
+            bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
+            k = 1.380649E-23  # Boltzmann's constant (J/K)
+            t = 290  # absolute temperature
+            pw_noise_bw = k*t*bw  # noise power
+            # it is important here that tx_pw been in dBW (not dBm!!!)
+            tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
+            snr = (tx_pw * 10**(ue_bs[:, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
+            bw_need = 2**(c_target/snr) - 1  # needed bw to achieve the capacity target
 
-        # self.slice_util = np.zeros(shape=ue_bs.shape[0])
-        self.slice_util = (bw_min/bw_need) * np.log2(snr)
-
+            # self.slice_util = np.zeros(shape=ue_bs.shape[0])
+            self.slice_util = (bw_min/bw_need) * np.log2(snr)
 
     def beam_utility(self, ue_bs, bs_index, c_target):
         # ue_bs -> bs|beam|sector|ch_gain
@@ -260,10 +268,6 @@ class BaseStation:
                 self.user_bw[ue_in_beam_bs] = bw_min[beam_index, sector_index] + \
                           (self.slice_util[ue_in_beam_bs] /
                            self.beam_util[beam_index, sector_index]) * (self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[beam_index, sector_index])
-
-    def remove_beam(self, beam_index):  # to turn off beams that all ue achieve the target capacity
-        self.active_beams[beam_index] = 0
-        # VER AQUI O QUE PRECISA FAZER DEPOIS!! OU, SE PRECISAR FAZER ISSO AQUI!
 
     def generate_beam_bw_new(self, ue_bs=None, bs_index=None):
         # ue_bs -> bs|beam|sector|ch_gain
