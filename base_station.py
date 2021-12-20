@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import copy, warnings
+from numba import jit  # some functions uses numba to improve performance (some functions are not used anymore)
+
 
 # BaseStation Class represents the relationship between the station resources (antenna and transmission characteristics)
 # and the space and users around it
@@ -196,19 +198,34 @@ class BaseStation:
                     self.active_beams_index[sector_index] = 0
 
     def generate_beam_bw(self):
-        import warnings
-        warnings.filterwarnings("ignore")
-        self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
-        warnings.simplefilter('always')
+        self.beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0])
+        # import warnings
+        # warnings.filterwarnings("ignore")
+        # self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
+        # warnings.simplefilter('always')
 
+    # @jit(nopython=True, parallel=True)
     def slice_utility(self, ue_bs, c_target):  # utility per user bw/snr
+        # import timeit
         # ue_bs -> bs|beam|sector|ch_gain
         if self.slice_util is None:
             c_target = c_target * 10E6
-            # ue_bs = ue_bs[ue_bs[:, 0] == bs_index]
-            warnings.filterwarnings("ignore")
-            beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
-            warnings.simplefilter('always')
+
+            # start = timeit.default_timer()
+            # ======= Alterando do np.where para este código alternativo =======
+            beam_bw = np.zeros(shape=self.active_beams.shape)
+
+            # segundo teste
+            active_beam_index = self.active_beams != 0
+            beam_bw[active_beam_index] = (self.bw / self.active_beams[active_beam_index]) / 10
+
+            # beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0]) / 10
+
+            # warnings.filterwarnings("ignore")
+            # beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
+            # warnings.simplefilter('always')
+            # stop = timeit.default_timer()
+            # print('Time: ', stop - start)
             bw_min = np.zeros(shape=ue_bs.shape[0])
             for ue_index, ue in enumerate(ue_bs):
                 bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
@@ -235,9 +252,14 @@ class BaseStation:
                     ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
                     self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
-        warnings.filterwarnings("ignore")
-        self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # making the log2 fo beam util.
-        warnings.simplefilter('always')
+        # warnings.filterwarnings("ignore")
+        # self.beam_util_log = np.where(self.beam_util != 0, np.log2(self.beam_util), 0)  # making the log2 fo beam util.
+        # warnings.simplefilter('always')
+
+        # ================= CHECAR ALTERAÇÃO !!! ====================
+        self.beam_util_log = np.zeros(shape=self.beam_util.shape)
+        existing_beams = self.beam_util != 0
+        self.beam_util_log[existing_beams] = np.log2(self.beam_util[existing_beams])
 
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
 
@@ -246,19 +268,47 @@ class BaseStation:
         self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)
         t_beam = np.zeros(shape=self.active_beams.shape)
 
-        for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
-            non_zero = np.where(self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
-            t_beam[non_zero, sector_index] = t_min + (self.beam_util_log[non_zero, sector_index]/self.sector_util[sector_index]) \
-                                      * (t_total - np.count_nonzero(self.active_beams[:, sector_index])*t_min)  # beam timing according to paper eq.
+        # for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
+        #     non_zero = self.beam_util[:, sector_index] != 0  # to prevent a divide by zero occurence
+        #     # non_zero = np.where(self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
+        #
+        #     t_beam[non_zero, sector_index] = t_min + (self.beam_util_log[non_zero, sector_index]/self.sector_util[sector_index]) \
+        #                               * (t_total - np.count_nonzero(self.active_beams[:, sector_index])*t_min)  # beam timing according to paper eq.
+
+
+        # ======== TESTANDO A VETORIZAÇÃO !!!! =============
+
+        # shape_t_beam = t_beam.shape  # to make the reashpe after the t_beam calc.
+        # if np.sum(sector_index) < 3:
+        #      print('ui')
+
+        # non_zero = self.beam_util != 0  # to prevent a divide by zero occurence (nan) in t_beam
+        # warnings.filterwarnings("ignore")
+        # t_beam[non_zero] = (t_min + (self.beam_util_log / self.sector_util)[non_zero]
+                            # * (t_total - np.count_nonzero(self.active_beams[non_zero]) * t_min))
+        # warnings.simplefilter('always')
+
+        sector_index = np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int)
+        non_zero = (self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
+        t_beam[self.beam_util != 0] = (t_min + (self.beam_util_log[:, sector_index]/ self.sector_util[sector_index])[non_zero]
+                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index][non_zero]) * t_min))
+
+        # t_beam.reshape(shape_t_beam)  # necessary to return to the active_beam shape
 
         return np.round(t_beam).astype(int)
 
 
     def generate_weighted_bw(self, ue_bs, bs_index, c_target):
         self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)  # calculating the sector, beam and slice utilities
-        warnings.filterwarnings("ignore")
-        bw_min = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw [TESTANDO]
-        warnings.simplefilter('always')
+
+        # alterando o np.where para o indexado
+        bw_min = np.zeros(shape=self.active_beams.shape)
+        active_beams = self.active_beams != 0
+        bw_min[active_beams] = (self.bw / self.active_beams[active_beams]) / 10
+
+        # warnings.filterwarnings("ignore")
+        # bw_min = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw [TESTANDO]
+        # warnings.simplefilter('always')
 
         self.user_bw = np.zeros(shape=ue_bs.shape[0])
 
