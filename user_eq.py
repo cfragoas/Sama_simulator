@@ -35,10 +35,12 @@ class User_eq:
             # if self.ue_bs[ue_index] < -100:  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
             #     self.ue_bs[ue_index] = np.nan
 
-        inactive_ue = np.where(self.ue_bs[:, 3] + pw_5mhz < -100)  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
+        # the '+30' here is because of the convertion from dBW to dBm
+        inactive_ue = np.where(self.ue_bs[:, 3] + pw_5mhz + 30 < -100)  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
         self.ue_bs[inactive_ue, 0:3] = -1
 
-        self.active_ue = np.where(self.ue_bs[:, 3] + pw_5mhz > -100) # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
+        # the '+30' here is because of the convertion from dBW to dBm
+        self.active_ue = np.where(self.ue_bs[:, 3] + pw_5mhz + 30 > -100) # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
 
         # self.sector_map = self.sector_map[:, self.active_ue][0]  # adjusting the sector map to be the same size as the
         # as the update ue_bs with the active UEs

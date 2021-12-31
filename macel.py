@@ -90,7 +90,7 @@ class Macel:
     def send_ue_to_bs(self, simulation_time, time_slot):
         # set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
-            base_station.clean_active_beams()
+            base_station.clear_active_beams()
             # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
             for sector_index in range(base_station.n_sectors):
@@ -98,7 +98,7 @@ class Macel:
                 # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
                 # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
                 ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                                    * (self.ue.ue_bs[:, 2] == sector_index)), 1]
+                                                    & (self.ue.ue_bs[:, 2] == sector_index)), 1]
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
@@ -210,7 +210,7 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            # checking if one or multiple ues have reached the target capacity
+            # checking if one or multiple UEs have reached the target capacity
             acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
             satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
             count_satisfied_ue = satisfied_ue.size

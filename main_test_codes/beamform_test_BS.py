@@ -264,13 +264,13 @@ def plot_hist(raw_data, path, n_bs):
 
     # capacity deficit
     deficit = np.concatenate([x['deficit'] for x in raw_data])
-    sns.histplot(data=deficit, bins=100, binrange=(-50, 50), stat='probability', ax=ax7)
+    sns.histplot(data=deficit, bins=100, binrange=(-criteria, criteria), stat='probability', ax=ax7)
     ax7.set_title('Capacity deficit (Mbps)')
     ax7.set_ylim([0, 1])
     fdeftgd = plt.figure(11, dpi=150)
-    sns.histplot(data=deficit, bins=100, binrange=(-50, 50), stat='probability')
+    sns.histplot(data=deficit, bins=100, binrange=(-criteria, criteria), stat='probability')
     plt.title('Capacity deficit (Mbps)')
-    plt.ylim(0, 0.4)
+    plt.ylim(0, 1)
     # plt.show()
     plt.savefig(path + 'deficit_' + str(n_bs) + ' BS.png')
 
@@ -282,7 +282,7 @@ def plot_hist(raw_data, path, n_bs):
     f8 = plt.figure(10, dpi=150)
     sns.histplot(data=norm_deficit, bins=100, binrange=(-1, 1), stat='probability')
     plt.title('Normalized capacity deficit')
-    plt.ylim(0, 0.4)
+    plt.ylim(0, 1)
     # plt.show()
     plt.savefig(path + 'norm_deficit_' + str(n_bs) + ' BS.png')
 
@@ -357,7 +357,7 @@ def simulate_ue_macel(args):
 
 if __name__ == '__main__':
     # parameters
-    criteria = 50  # Mbps
+    criteria = 30  # Mbps
     samples = 200
     max_iter = 100
     simulation_time = 1000  # number of time slots (1 ms)
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
     beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
                                    vertical_spacing=0.5)
-    base_station = BaseStation(frequency=3.5, tx_power=50, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
+    base_station = BaseStation(frequency=3.5, tx_power=20, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
                      downtilts=0, plot=False)
     base_station.sector_beam_pointing_configuration(n_beams=10)
     macel = Macel(grid=grid, prop_model='free space', criteria=criteria, cell_size=30, base_station=base_station, simulation_time=simulation_time)

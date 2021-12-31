@@ -79,7 +79,7 @@ class BaseStation:
         for beam_index, beam in enumerate(beams):
             self.active_beams[beam][sector] = n_users[beam_index]
 
-    def clean_active_beams(self):
+    def clear_active_beams(self):
         self.active_beams = None
 
     def generate_beam_timing_new(self, simulation_time, time_slot, weighted_act_beams=None, uniform_time_dist=True):
@@ -97,15 +97,17 @@ class BaseStation:
             self.beam_timing = [None] * self.n_sectors
             for sector_index, sector in enumerate(self.beam_timing):
                 sector = np.where(weighted_act_beams[:, sector_index] != 0)[0]
-                np.random.shuffle(sector)  # randomizing the beam timing sequence
-                ordened_weighted_beams = copy.deepcopy(weighted_act_beams[:, sector_index])
+                # np.random.shuffle(sector)  # randomizing the beam timing sequence
+                sector = sector[np.random.permutation(sector.shape[0])]  # randomizing the beam timing sequence
+
+                ordened_weighted_beams = copy.copy(weighted_act_beams[:, sector_index])
                 weighted_act_beams[:, sector_index] = 0
                 weighted_act_beams[np.arange(len(sector)), sector_index] = ordened_weighted_beams[sector]  # putting the weights in the same shuffle order of the beams
                 self.beam_timing[
                     sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
 
             self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(simulation_time/time_slot).astype(int))) + self.antenna.beams
-            wighted_act_beams_bkp = copy.deepcopy(weighted_act_beams)
+            wighted_act_beams_bkp = copy.copy(weighted_act_beams)
             for time in np.arange(0, simulation_time, time_slot):
                 wighted_act_beams = self.next_active_beam_new(weighted_act_beams)  # passing the beam list with how many times each beam need to be active
                 for sector_index, sector in enumerate(self.beam_timing):
@@ -113,8 +115,8 @@ class BaseStation:
                         self.active_beams_index[sector_index] = 0
                         wighted_act_beams[:, sector_index] = wighted_act_beams_bkp[:, sector_index]
                     if self.beam_timing[sector_index].size != 0:
-                        if len(self.beam_timing[sector_index]) - 1 < self.active_beams_index[sector_index].astype(int):
-                            print('ui')
+                        # if len(self.beam_timing[sector_index]) - 1 < self.active_beams_index[sector_index].astype(int):
+                        #     print('ui')
                         self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][self.active_beams_index[sector_index].astype(int)]
 
         else:
@@ -248,8 +250,8 @@ class BaseStation:
         self.beam_util = np.zeros(shape=self.active_beams.shape)
 
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
-            for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) * (ue_bs[:, 2] == sector_index)][:, 1]).astype(int):
-                    ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
+            for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) & (ue_bs[:, 2] == sector_index)][:, 1]).astype(int):
+                    ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) & (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index))
                     self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
         # warnings.filterwarnings("ignore")
@@ -299,6 +301,7 @@ class BaseStation:
 
 
     def generate_weighted_bw(self, ue_bs, bs_index, c_target):
+        # import timeit
         self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)  # calculating the sector, beam and slice utilities
 
         # alterando o np.where para o indexado
@@ -312,12 +315,16 @@ class BaseStation:
 
         self.user_bw = np.zeros(shape=ue_bs.shape[0])
 
+        # start = timeit.default_timer()
         for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
-            for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) * (ue_bs[:, 2] == sector_index)][:, 1]).astype(int):
-                ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))
+            for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) & (ue_bs[:, 2] == sector_index)][:, 1]).astype(int):
+
+                ue_in_beam_bs = np.where((ue_bs[:, 0] == bs_index) & (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index))
                 self.user_bw[ue_in_beam_bs] = bw_min[beam_index, sector_index] + \
                           (self.slice_util[ue_in_beam_bs] /
                            self.beam_util[beam_index, sector_index]) * (self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[beam_index, sector_index])
+        # stop = timeit.default_timer()
+        # print('Time: ', stop - start)
 
     def generate_beam_bw_new(self, ue_bs=None, bs_index=None):
         # ue_bs -> bs|beam|sector|ch_gain
@@ -330,7 +337,7 @@ class BaseStation:
                     weighted_ch_gain_map = log2_ch_gain / np.min(log2_ch_gain)
                     sum_weights = np.sum(weighted_ch_gain_map)
                     min_bw = self.bw/sum_weights
-                    self.user_bw[np.where((ue_bs[:, 0] == bs_index) * (ue_bs[:, 1] == beam_index) * (ue_bs[:, 2] == sector_index))] = weighted_ch_gain_map * min_bw
+                    self.user_bw[np.where((ue_bs[:, 0] == bs_index) & (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index))] = weighted_ch_gain_map * min_bw
         else:
             warnings.filterwarnings("ignore")
             self.beam_bw = np.where(self.active_beams != 0, self.bw / self.active_beams, 0)
