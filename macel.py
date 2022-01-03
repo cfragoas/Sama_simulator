@@ -18,7 +18,7 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, criteria=None, log=False):
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, criteria=None, scheduling_opt=False, log=False):
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
@@ -27,7 +27,8 @@ class Macel:
         self.cell_size = cell_size  # size of one side of a cell, in meters
         self.log = log  # if true, prints information about the ongoing process
         self.default_base_station = base_station  # BaseStation class variable
-        self.simulation_time = simulation_time
+        self.scheduling_opt = scheduling_opt  # to choose if the optimized scheduling is to be used
+        self.simulation_time = simulation_time  # number of time slots
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -103,13 +104,15 @@ class Macel:
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
-            t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+            if self.scheduling_opt:
+                t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
-            base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
-            base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+                base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+            else:
+                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
+                base_station.generate_beam_bw()  # LISANDRO
 
-            # base_station.generate_beam_bw_new(ue_bs=self.ue.ue_bs, bs_index=bs_index)  # NOVO
-            # base_station.generate_beam_bw()  # calculating the bw for each active beam user  # ORIGINAL
         return
 
     def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None):
@@ -210,16 +213,17 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            # checking if one or multiple UEs have reached the target capacity
-            acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
-            satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
-            count_satisfied_ue = satisfied_ue.size
-            if count_satisfied_ue != 0:
-                if count_satisfied_ue_old != count_satisfied_ue:
-                    count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
-                    elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
-                    self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                    self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+            if self.scheduling_opt:
+                # checking if one or multiple UEs have reached the target capacity
+                acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
+                satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
+                count_satisfied_ue = satisfied_ue.size
+                if count_satisfied_ue != 0:
+                    if count_satisfied_ue_old != count_satisfied_ue:
+                        count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
+                        elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
+                        self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
+                        self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
 
 
         # preparing output data

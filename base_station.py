@@ -83,6 +83,7 @@ class BaseStation:
         self.active_beams = None
 
     def generate_beam_timing_new(self, simulation_time, time_slot, weighted_act_beams=None, uniform_time_dist=True):
+        # to check if the beam weights are to be used
         if not uniform_time_dist and weighted_act_beams is not None:
             # trying to better adjust the beam timing to serve the users uniformly
             # beams with more users will get more time slots
@@ -200,6 +201,7 @@ class BaseStation:
                     self.active_beams_index[sector_index] = 0
 
     def generate_beam_bw(self):
+        self.beam_bw = np.zeros(shape=self.active_beams.shape)
         self.beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0])
         # import warnings
         # warnings.filterwarnings("ignore")

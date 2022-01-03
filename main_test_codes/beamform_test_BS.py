@@ -361,6 +361,7 @@ if __name__ == '__main__':
     samples = 200
     max_iter = 100
     simulation_time = 1000  # number of time slots (1 ms)
+    scheduling_opt = False  # to choose if the optimized scheduling is to be used
     min_bs = 1
     max_bs = 30
     threads = None
@@ -388,7 +389,7 @@ if __name__ == '__main__':
     base_station = BaseStation(frequency=3.5, tx_power=20, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
                      downtilts=0, plot=False)
     base_station.sector_beam_pointing_configuration(n_beams=10)
-    macel = Macel(grid=grid, prop_model='free space', criteria=criteria, cell_size=30, base_station=base_station, simulation_time=simulation_time)
+    macel = Macel(grid=grid, prop_model='free space', criteria=criteria, cell_size=30, base_station=base_station, simulation_time=simulation_time, scheduling_opt=scheduling_opt)
 
     for n_cells in range(min_bs, max_bs + 1):
         macel.grid.clear_grid()  # added to avoid increasing UE number without intention
