@@ -39,7 +39,6 @@ class Cluster:
 
     def hierarchical_clustering(self, grid, n_clusters, plot=False):
         if n_clusters == 1:
-            # print('n_clusters = 1 -> using k_means instead')
             self.k_means(grid=grid, n_clusters=n_clusters, plot=plot)
             return
         self.centroids, self.labels = None, None
@@ -72,6 +71,18 @@ class Cluster:
 
         if plot:
             self.plot()
+
+    def random(self, grid, n_clusters, plot=False):  # not clustering!!!
+        # self.features = np.where(grid != 0)
+        self.scaling(grid=grid)
+        x_size = grid.shape[0]
+        y_size = grid.shape[1]
+        self.centroids = np.ndarray(shape=(n_clusters, 2))
+        for i in range(n_clusters):
+            # self.centroids[i] = [np.random.randint(0, x_size), np.random.randint(0, y_size)]
+            self.centroids[i] = np.random.uniform(0, x_size-1, 2)
+
+        print('')
 
     def plot(self):
         plt.scatter(self.features[:, 0], self.features[:, 1], c=self.labels)

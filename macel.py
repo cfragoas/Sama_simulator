@@ -115,13 +115,17 @@ class Macel:
 
         return
 
-    def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None):
-        if predetermined_centroids is not None:
-            self.cluster = K_Means_XP(k=n_centers)
-            self.cluster.fit(data=self.grid.grid, predetermined_centroids=predetermined_centroids)
+    def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None, clustering=True):
+        if clustering==True:
+            if predetermined_centroids is not None:
+                self.cluster = K_Means_XP(k=n_centers)
+                self.cluster.fit(data=self.grid.grid, predetermined_centroids=predetermined_centroids)
+            else:
+                self.cluster = Cluster()
+                self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
         else:
             self.cluster = Cluster()
-            self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
+            self.cluster.random(grid=self.grid.grid, n_clusters=n_centers)
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
@@ -158,6 +162,7 @@ class Macel:
         user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
+        meet_citeria = np.zeros(shape=self.base_station_list[0].beam_timing_sequence.shape[1])
 
         snr[:] = np.nan
         cap[:] = np.nan
@@ -218,6 +223,7 @@ class Macel:
                 acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
                 satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
                 count_satisfied_ue = satisfied_ue.size
+                meet_citeria[time_index] = count_satisfied_ue  # storing metrics
                 if count_satisfied_ue != 0:
                     if count_satisfied_ue_old != count_satisfied_ue:
                         count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
@@ -235,6 +241,7 @@ class Macel:
         user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / self.simulation_time # ME ARRUMA !!!
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(self.cluster.centroids).astype(int)]
+
 
 
         # simple stats data
@@ -256,9 +263,10 @@ class Macel:
         # max_user_bw = np.max(user_bw)
         #FAZER AS OUTRAS MÉTRICAS !!!!
 
-        meet_criteria = None
+        # this part of the code is to check if one or multiple UEs have reached the criteria
+        total_meet_criteria = None
         if self.criteria != None:
-            meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
+            total_meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
             deficit = self.criteria - cap_sum
             mean_deficit = np.mean(deficit)
             std_deficit = np.std(deficit)
@@ -269,18 +277,18 @@ class Macel:
             # print('mean deficit: ', mean_deficit, ' std deficit: ', std_deficit)
             # print('mean norm deficit: ', mean_norm_deficit, ' std norm deficit: ', std_norm_deficit)
 
-        if meet_criteria or meet_criteria == 0:
+        if total_meet_criteria or total_meet_criteria == 0:
             snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw,
-                             std_user_bw, meet_criteria, mean_deficit, std_deficit, mean_norm_deficit, std_norm_deficit]
+                             std_user_bw, total_meet_criteria, mean_deficit, std_deficit, mean_norm_deficit, std_norm_deficit]
         else:
             snr_cap_stats = [mean_mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw,
                              std_user_bw]
 
         # preparing 'raw' data to export
-        if meet_criteria or meet_criteria == 0:
+        if total_meet_criteria or total_meet_criteria == 0:
             raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                             'user_time': user_time, 'user_bw': np.nanmean(user_bw[self.ue.active_ue], axis=1), 'deficit': deficit,
-                             'norm_deficit': norm_deficit}
+                             'norm_deficit': norm_deficit, 'meet_criteria': meet_citeria}
         else:
             raw_data_dict = {'position': positions, 'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs,
                              'act_beams': mean_act_beams,

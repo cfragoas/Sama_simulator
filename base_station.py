@@ -213,6 +213,10 @@ class BaseStation:
         # import timeit
         # ue_bs -> bs|beam|sector|ch_gain
         if self.slice_util is None:
+            self.slice_util = np.zeros(shape=ue_bs.shape[0])
+            bw_need = np.zeros(shape=ue_bs.shape[0])
+            snr = np.zeros(shape=ue_bs.shape[0]) - 10000
+
             c_target = c_target * 10E6
 
             # start = timeit.default_timer()
@@ -222,6 +226,7 @@ class BaseStation:
             # segundo teste
             active_beam_index = self.active_beams != 0
             beam_bw[active_beam_index] = (self.bw / self.active_beams[active_beam_index]) / 10
+            active_ue = ue_bs[:, 1] != -1
 
             # beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0]) / 10
 
@@ -240,11 +245,11 @@ class BaseStation:
             pw_noise_bw = k*t*bw  # noise power
             # it is important here that tx_pw been in dBW (not dBm!!!)
             tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
-            snr = (tx_pw * 10**(ue_bs[:, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
-            bw_need = 2**(c_target/snr) - 1  # needed bw to achieve the capacity target
+            snr[active_ue] = (tx_pw * 10**(ue_bs[active_ue, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
+            bw_need[active_ue] = 2**(c_target/snr[active_ue]) - 1  # needed bw to achieve the capacity target
 
             # self.slice_util = np.zeros(shape=ue_bs.shape[0])
-            self.slice_util = (bw_min/bw_need) * np.log2(snr)
+            self.slice_util[active_ue] = (bw_min[active_ue]/bw_need[active_ue]) * np.log2(snr[active_ue])
 
     def beam_utility(self, ue_bs, bs_index, c_target):
         # ue_bs -> bs|beam|sector|ch_gain

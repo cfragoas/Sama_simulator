@@ -54,7 +54,7 @@ def save_data(path = None, data_dict = None):
 def macel_data_dict(data_dict_=None, data_=None):
     if not data_ or not data_dict_:
         data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
-                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'meet_criteria': [],
+                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'total_meet_criteria': [],
                       'mean_deficit': [], 'std_deficit': [], 'mean_norm_deficit': [], 'std_norm_deficit': []}
     else:
         snr_cap_stats = [x[0] for x in data]
@@ -73,7 +73,7 @@ def macel_data_dict(data_dict_=None, data_=None):
         data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
         data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
         data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
-        data_dict['meet_criteria'].append(np.mean(snr_cap_stats[:, 8]))
+        data_dict['total_meet_criteria'].append(np.mean(snr_cap_stats[:, 8]))
         data_dict['mean_deficit'].append(np.mean(snr_cap_stats[:, 9]))
         data_dict['std_deficit'].append(np.mean(snr_cap_stats[:, 10]))
         data_dict['mean_norm_deficit'].append(np.mean(snr_cap_stats[:, 11]))
@@ -86,7 +86,8 @@ def macel_data_dict(data_dict_=None, data_=None):
 
 
 def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         meet_criteria, max_iter, n_bs_vec,individual=False, path=''):
+         total_meet_criteria, max_iter, n_bs_vec, individual=False, path=''):
+
     if individual:
         # Mean SNIR
         plt.plot(mean_snr)
@@ -164,9 +165,9 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
     plt.rcdefaults()
 
     fig_perc = plt.figure(1, dpi=150)
-    plt.plot(n_bs_vec, meet_criteria)
+    plt.plot(n_bs_vec, total_meet_criteria)
     plt.title('% of UE that meets the ' + str(criteria) + ' Mbps criteria')
-    plt.savefig(path + 'meet_criteria.png')
+    plt.savefig(path + 'total_meet_criteria.png')
     plt.close('all')
 
 def plot_hist(raw_data, path, n_bs):
@@ -292,6 +293,16 @@ def plot_hist(raw_data, path, n_bs):
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.savefig(path + 'Metrics_' + str(n_bs) + ' BS.png')
 
+    # UEs that meet the requeired criteria
+    # special case for meet criteira (not a simplified parameters and not a raw histogram case)
+    meet_criteria = []
+    meet_criteria.append([x['meet_criteria'] for x in raw_data])
+    meet_criteria = np.mean(np.array(meet_criteria[0]), axis=0)
+    fig_criteria_it = plt.figure(2, dpi=150)
+    plt.plot(meet_criteria)
+    plt.title('Mean number of UEs that meet the criteria of ' + str(criteria) + 'Mbps per time slot')
+    plt.savefig(path + 'meet_criteria_per_iteration.png')
+
     plt.close('all')
 
 def plot_surface(grid, position, parameter, path, n_bs):
@@ -350,14 +361,14 @@ def simulate_ue_macel(args):
     macel.grid.make_points(dist_type='gaussian', samples=samples, n_centers=4, random_centers=False,
                           plot=False)  # distributing points around centers in the grid
     macel.set_ue(hrx=1.5)
-    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete')
+    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=False)
 
     return(snr_cap_stats, raw_data)
 
 
 if __name__ == '__main__':
     # parameters
-    criteria = 30  # Mbps
+    criteria = 50  # Mbps
     samples = 200
     max_iter = 100
     simulation_time = 1000  # number of time slots (1 ms)
@@ -418,5 +429,5 @@ if __name__ == '__main__':
              std_cap=data_dict['std_cap'],
              mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
              mean_user_bw=data_dict['mean_user_bw'],
-             std_user_bw=data_dict['std_user_bw'], meet_criteria=data_dict['meet_criteria'], max_iter=max_iter,
+             std_user_bw=data_dict['std_user_bw'],total_meet_criteria=data_dict['total_meet_criteria'], max_iter=max_iter,
              n_bs_vec=bs_vec, individual=False, path=folder)
