@@ -16,8 +16,12 @@ class Cluster:
         self.centroids = None
         self.labels = None
 
-    def scaling(self, grid):
+    def set_features(self, grid):
         self.features = np.where(grid != 0)
+
+    def scaling(self, grid):
+        self.set_features(grid)
+        # self.features = np.where(grid != 0)
         features_ = []
         for i in range(len(self.features[0])):
             features_.append([self.features[0][i], self.features[1][i]])

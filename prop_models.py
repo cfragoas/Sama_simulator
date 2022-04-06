@@ -347,10 +347,20 @@ def plot_func(map = None, sectors = 1, centroids=1, title=''):
 
 
 # @jit(nopython=True, parallel=True)
-def fs_path_loss(d, f):  # simple free space path loss function
-    fspl = 40 * np.log10(d) + 20 * np.log10(f) + 92.45  # f in GHz and d in km
+# def fs_path_loss(d, f):  # simple free space path loss function
+#     fspl = 40 * np.log10(d) + 20 * np.log10(f) + 92.45  # f in GHz and d in km
+#
+#     return fspl
 
-    return fspl
+def fs_path_loss(d, f, var=6): # simples free space path loss function with lognormal component
+    if var:
+        log_n = np.random.lognormal(mean=0, sigma=np.sqrt(var), size=d.shape)  # lognormal variance from the mediam path loss
+    else:
+        log_n = 0
+
+    pl = 40 * np.log10(d) + 20 * np.log10(f) + 92.45 + log_n  # f in GHz and d in km
+
+    return pl
 
 @jit()
 def calc_snr(coord_map, noise_power, rx_power_map, max_pw, map, noise_interf):

@@ -11,7 +11,7 @@ for i, y in enumerate(x):
 lineObjects = plt.plot(snr, util.T)
 plt.legend(iter(lineObjects), ('0.01', '0.1', '1', '10', '20', '40', '100'))
 # plt.plot(snr, util.T)
-plt.title('$Υ(t,u) x \Omega(n_u,b_u)$ x SNR(t,u)')
+plt.title('$Υ(t,u) x \Omega(n_u,b_u, s_u)$ x SNR(t,u)')
 plt.ylabel('Y(t,u)')
 plt.xlabel('SNR(t,u)')
 plt.show()

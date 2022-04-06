@@ -124,8 +124,14 @@ class Macel:
                 self.cluster = Cluster()
                 self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
         else:
-            self.cluster = Cluster()
-            self.cluster.random(grid=self.grid.grid, n_clusters=n_centers)
+            if predetermined_centroids is not None:
+                self.cluster = Cluster()
+                self.cluster.scaling(grid=self.grid.grid)
+                # self.cluster.features = self.cluster.set_features(grid=self.grid.grid)
+                self.cluster.centroids = np.array(predetermined_centroids)
+            else:
+                self.cluster = Cluster()
+                self.cluster.random(grid=self.grid.grid, n_clusters=n_centers)
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
