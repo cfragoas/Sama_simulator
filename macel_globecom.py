@@ -88,7 +88,7 @@ class Macel:
 
         return self.ch_gain_map, self.sector_map
 
-    def send_ue_to_bs(self, simulation_time, time_slot, simplified = True):
+    def send_ue_to_bs(self, simulation_time, time_slot):
         # set random activation indexes for all the BSs
         for bs_index, base_station in enumerate(self.base_station_list):
             base_station.clear_active_beams()
@@ -104,20 +104,11 @@ class Macel:
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
-            simplified = True
             if self.scheduling_opt:
-                if not simplified:
-                    t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
-                    base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
-                    base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                else:  # todo ISSO AQUI NÃO FUNCIONA!!! REFAZER COM AS CAPACIDADE ATUALIZADAS
-                    base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=self.criteria)  # todo não funciona isso aqui
-                    base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)
-
-                    t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                    base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
-
+                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+                base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
             else:
                 base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
                 base_station.generate_beam_bw()  # LISANDRO
@@ -204,17 +195,13 @@ class Macel:
 
                 interf_in_active_ue = 0
                 # interference calculation
-                for bs_index2, base_station2 in enumerate(self.base_station_list):
-                    if bs_index2 != bs_index:
-                        # if len(self.base_station_list) > 1:
-                        #     print('ui')
-                        interf = base_station.tx_power + \
-                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], v_time_index]]  # AQUI OI
-                        interf_in_active_ue += 10**(interf/10)
-                        # print("interf ",interf)
-                        # print("interf total ",interf_in_active_ue)
-                # print("time slot:", time_index)
-                # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
+                # for bs_index2, base_station2 in enumerate(self.base_station_list):
+                #     if bs_index2 != bs_index:
+                #
+                #         interf = base_station.tx_power + \
+                #                  ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], v_time_index]]  # AQUI OI
+                #         interf_in_active_ue += 10**(interf/10)
+
                 if base_station.beam_bw is not None:  # uniform beam bw
                     bw = base_station.beam_bw[base_station.beam_timing_sequence[
                                                   self.sector_map[bs_index, ue_in_active_beam], v_time_index],   # AQUI OI
@@ -233,28 +220,19 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            simplified = True  # todo REMEMBER TO REMOVE THIS !!!
             if self.scheduling_opt:
                 # checking if one or multiple UEs have reached the target capacity
-                acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
+                acc_ue_cap = np.nansum(cap, axis=1)/(self.simulation_time)  # accumulated capacity
                 satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
                 count_satisfied_ue = satisfied_ue.size
                 meet_citeria[time_index] = count_satisfied_ue  # storing metrics
-
-                if not simplified:
-                    cap_defcit = self.criteria - acc_ue_cap
-                    cap_defcit = np.where(cap_defcit < 0, 0, cap_defcit)
-
                 if count_satisfied_ue != 0:
-                    elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                     if count_satisfied_ue_old != count_satisfied_ue:
-                        if simplified:  # checking if the optimization method to be used is the simplified one
-                            # count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
-                            self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                            self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
-                        else:
-                            # HERE NEED TO PASS CAP DEFICIT TO THE FUNCION !!!!
-                            self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+                        count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
+                        elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
+                        self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
+                        self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+
 
         # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr[self.ue.active_ue]/10), axis=1))
@@ -289,7 +267,7 @@ class Macel:
 
         # this part of the code is to check if one or multiple UEs have reached the criteria
         total_meet_criteria = None
-        if self.criteria is not None:
+        if self.criteria != None:
             total_meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
             deficit = self.criteria - cap_sum
             mean_deficit = np.mean(deficit)
