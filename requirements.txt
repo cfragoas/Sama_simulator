@@ -2,3 +2,6 @@ matplotlib
 numba
 scikit-learn
 tqdm
+seaborn
+pickle-mixin
+pandas

@@ -1,9 +1,7 @@
-import georasters as gr
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from simpledbf import Dbf5
-from db_connect import get_table_sql
+# from db_connect import get_table_sql
 from sklearn.neighbors import NearestCentroid
 from sklearn.cluster import KMeans
 import pickle
@@ -27,6 +25,8 @@ class Map:
     # this function only works with the original data files (from .itf and from a mysql)
     # please ignore it and create a wgt_mtx, idx_mtx and idx_table to use the rest of functions
     def extract_data(self, folder, resolution=100, plot=False):
+        import georasters as gr
+        from simpledbf import Dbf5
         self.resolution = resolution # resolution = 100 # it can bem 100, 50 or 30 m
 
         # file folder
@@ -66,7 +66,7 @@ class Map:
 
 
         # getting the values to be filled in the raster from the sql table
-        self.data = get_table_sql('bandalarga_setor_censitario_2017')
+        self.data = self.get_table_sql('bandalarga_setor_censitario_2017')
         self.data = self.data.rename(columns={'Cod_setor_2017':'COD_SETOR'})  # renaming the field to ease merge with other tables
 
         # merging the data
@@ -159,6 +159,7 @@ class Map:
     # this will not save or load with all other variables
     def load_general_map_info(self, path, id_column, delimiter=','):
         if '.dbf' in path:
+            from simpledbf import Dbf5
             ref_tab = Dbf5(path)
             self.general_info = ref_tab.to_dataframe()
         elif '.csv' in path:

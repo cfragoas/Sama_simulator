@@ -372,14 +372,14 @@ if __name__ == '__main__':
     samples = 200
     max_iter = 100
     simulation_time = 1000  # number of time slots (1 ms)
-    scheduling_opt = False  # to choose if the optimized scheduling is to be used
+    scheduling_opt = True  # to choose if the optimized scheduling is to be used
     min_bs = 1
     max_bs = 30
     threads = None
 
     bs_vec = []
 
-    if threads == None:
+    if threads is None:
         threads = os.cpu_count()
     if threads > 61:  # to run in processors with 30+ cores
         threads = 61
@@ -405,7 +405,7 @@ if __name__ == '__main__':
     for n_cells in range(min_bs, max_bs + 1):
         macel.grid.clear_grid()  # added to avoid increasing UE number without intention
         bs_vec.append(n_cells)
-        print('running with ', n_cells,' BSs')
+        print('running with ', n_cells, ' BSs')
         data = list(
                     tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, samples) for i in range(max_iter)]), total=max_iter
                 ))

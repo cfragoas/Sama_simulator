@@ -212,47 +212,49 @@ class BaseStation:
     def slice_utility(self, ue_bs, c_target):  # utility per user bw/snr
         # import timeit
         # ue_bs -> bs|beam|sector|ch_gain
-        if self.slice_util is None:
-            self.slice_util = np.zeros(shape=ue_bs.shape[0])
-            bw_need = np.zeros(shape=ue_bs.shape[0])
-            snr = np.zeros(shape=ue_bs.shape[0]) - 10000
+        # if self.slice_util is None:
+        self.slice_util = np.zeros(shape=ue_bs.shape[0])
+        bw_need = np.zeros(shape=ue_bs.shape[0])
+        snr = np.zeros(shape=ue_bs.shape[0]) - 10000
 
-            c_target = c_target * 10E6
+        c_target = c_target * 10E6
 
-            # start = timeit.default_timer()
-            # ======= Alterando do np.where para este código alternativo =======
-            beam_bw = np.zeros(shape=self.active_beams.shape)
+        # start = timeit.default_timer()
+        # ======= Alterando do np.where para este código alternativo =======
+        beam_bw = np.zeros(shape=self.active_beams.shape)
 
-            # segundo teste
-            active_beam_index = self.active_beams != 0
-            beam_bw[active_beam_index] = (self.bw / self.active_beams[active_beam_index]) / 10
-            active_ue = ue_bs[:, 1] != -1
+        # segundo teste
+        active_beam_index = self.active_beams != 0
+        beam_bw[active_beam_index] = (self.bw / self.active_beams[active_beam_index]) / 10
+        active_ue = ue_bs[:, 1] != -1
 
-            # beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0]) / 10
+        # beam_bw[self.active_beams != 0] = (self.bw/self.active_beams[self.active_beams != 0]) / 10
 
-            # warnings.filterwarnings("ignore")
-            # beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
-            # warnings.simplefilter('always')
-            # stop = timeit.default_timer()
-            # print('Time: ', stop - start)
-            bw_min = np.zeros(shape=ue_bs.shape[0])
-            for ue_index, ue in enumerate(ue_bs):
-                bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
+        # warnings.filterwarnings("ignore")
+        # beam_bw = np.where(self.active_beams != 0, (self.bw / self.active_beams)/10, 0)  # minimum per beam bw
+        # warnings.simplefilter('always')
+        # stop = timeit.default_timer()
+        # print('Time: ', stop - start)
+        bw_min = np.zeros(shape=ue_bs.shape[0])
+        for ue_index, ue in enumerate(ue_bs):
+            bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6 # minimum per user bw
 
-            bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
-            k = 1.380649E-23  # Boltzmann's constant (J/K)
-            t = 290  # absolute temperature
-            pw_noise_bw = k*t*bw  # noise power
-            # it is important here that tx_pw been in dBW (not dBm!!!)
-            tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
-            snr[active_ue] = (tx_pw * 10**(ue_bs[active_ue, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
-            bw_need[active_ue] = 2**(c_target/snr[active_ue]) - 1  # needed bw to achieve the capacity target
+        bw = 5 * 10*6  # making SNR for a bandwidth of 5MHz
+        k = 1.380649E-23  # Boltzmann's constant (J/K)
+        t = 290  # absolute temperature
+        pw_noise_bw = k*t*bw  # noise power
+        # it is important here that tx_pw been in dBW (not dBm!!!)
+        tx_pw = 10**(self.tx_power/10)  # converting from dBW to watt
+        snr[active_ue] = (tx_pw * 10**(ue_bs[active_ue, 3]/10)) / pw_noise_bw  # signal to noise ratio (linear)
+        bw_need[active_ue] = 2**(c_target[active_ue]/snr[active_ue]) - 1  # needed bw to achieve the capacity target
 
-            # self.slice_util = np.zeros(shape=ue_bs.shape[0])
-            self.slice_util[active_ue] = (bw_min[active_ue]/bw_need[active_ue]) * np.log2(snr[active_ue])
+        # self.slice_util = np.zeros(shape=ue_bs.shape[0])
+        self.slice_util[active_ue] = (bw_min[active_ue]/bw_need[active_ue]) * np.log2(snr[active_ue])
 
     def beam_utility(self, ue_bs, bs_index, c_target):
         # ue_bs -> bs|beam|sector|ch_gain
+        c_target = c_target + np.zeros(shape=ue_bs.shape[0])  # because c_target can be unique for each UE
+
         self.slice_utility(ue_bs=ue_bs, c_target=c_target)
         self.beam_util = np.zeros(shape=self.active_beams.shape)
 
