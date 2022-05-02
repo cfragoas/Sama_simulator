@@ -96,38 +96,43 @@ class Macel:
         if cap_defict is None:
             cap_defict = self.criteria + np.zeros(shape=self.ue.ue_bs.shape[0])
 
-        # set random activation indexes for all the BSs
-        for bs_index, base_station in enumerate(self.base_station_list):
-            base_station.clear_active_beams()
-            # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
+        if bw_calc:  # if just need to adjust de bw without retiming the beams
+            for bs_index, base_station in enumerate(self.base_station_list):
+                base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
+                base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
+        else:
+            # set random activation indexes for all the BSs
+            for bs_index, base_station in enumerate(self.base_station_list):
+                base_station.clear_active_beams()
+                # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
 
-            for sector_index in range(base_station.n_sectors):
-                # ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
-                # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
-                # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
-                ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                                    & (self.ue.ue_bs[:, 2] == sector_index)), 1]
-                [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
+                for sector_index in range(base_station.n_sectors):
+                    # ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
+                    # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
+                    # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
+                    ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
+                                                        & (self.ue.ue_bs[:, 2] == sector_index)), 1]
+                    [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
-                base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
+                    base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
-            if self.scheduling_opt:
-                if not bw_calc:
-                    # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # teste - APAGAR DAQUI !!!
+                if self.scheduling_opt:
+                    # if not bw_calc:
+                        # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # teste - APAGAR DAQUI !!!
                     t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
                     base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
                     base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                else:  # todo ISSO AQUI NÃO FUNCIONA!!! REFAZER COM AS CAPACIDADE ATUALIZADAS
-                    base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
-                    base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
+                    # else:
+                    #     base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)
+                    #     base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
 
-                    # t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                    # base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+                        # t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                        # base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
 
-            else:
-                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
-                base_station.generate_beam_bw()  # LISANDRO
+                else:
+                    base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
+                    base_station.generate_beam_bw()  # LISANDRO
 
         return
 
@@ -240,7 +245,6 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            simplified = True  # todo REMEMBER TO REMOVE THIS !!!
             if self.scheduling_opt:
                 # checking if one or multiple UEs have reached the target capacity
                 acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
@@ -248,22 +252,26 @@ class Macel:
                 count_satisfied_ue = satisfied_ue.size
                 meet_citeria[time_index] = count_satisfied_ue  # storing metrics
 
-                if not self.simplified_schdl:  # todo junsto debugging! - to remove or solve this !!!
+                if not self.simplified_schdl:  # if it is using the complete scheduling solution
                     cap_defcit = self.criteria - acc_ue_cap
                     cap_defcit = np.where(cap_defcit < 0, 1E-6, cap_defcit)
+                    # if np.sum(cap_defcit[cap_defcit==1e-6]) != 0:
+                    #     print(np.where(cap_defcit==1e-6))
+                    #     print('ui')
                     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1,
                                        cap_defict=cap_defcit, bw_calc=True)
 
                 if count_satisfied_ue != 0:
                     elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                     if count_satisfied_ue_old != count_satisfied_ue:
-                        if self.simplified_schdl:  # checking if the optimization method to be used is the simplified one
+                        # if self.simplified_schdl:  # checking if the optimization method to be used is the simplified one
                             # count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
 
-                            self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                            self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
-                        else:
-                            self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+                        self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
+                        self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+                        # else:
+                        #     self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
+                        #     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
 
         # preparing output data
         mean_snr = 10*np.log10(np.nansum(10**(snr[self.ue.active_ue]/10), axis=1))
