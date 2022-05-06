@@ -21,6 +21,7 @@ class Map:
         self.sample_list = None  # list of positions for each sample (not mandatory)
         self.general_info = None  # a general information table related to idx_table (not mandatory)
         self.id_column = None  # id column from general_info to be used as a identifier
+        self.mask = None  # mask to or from a clipped shape
 
     # this function only works with the original data files (from .itf and from a mysql)
     # please ignore it and create a wgt_mtx, idx_mtx and idx_table to use the rest of functions
@@ -175,7 +176,7 @@ class Map:
     def clear_general_map_info(self):
         self.general_info = None
 
-    def clip_shape(self, shape, min_x=0, min_y=0, max_x=0, max_y=0, criteria=None, var=None, map_info=None, plot=False):
+    def clip_shape(self, shape, min_x=0, min_y=0, max_x=0, max_y=0, criteria=None, var=None, map_info=None, save=False, plot=False):
         if min_x+min_y+max_x+max_y != 0:
             shape = shape[:, range(min_x, shape.shape[1])]
             shape = shape[range(min_y, shape.shape[0])]
@@ -208,13 +209,16 @@ class Map:
             # new_shp = new_shp[y]
             # new_shp = new_shp[:, x]
 
+            if save:
+                self.mask = mask
+
             return new_shp, mask
 
         else:
             print('Need to set the x-y max/min values or a conditions to use clip function !!!')
             return
 
-    def apply_mask(self, shape, mask, plot=False):
+    def apply_mask(self, shape, mask, save=False, plot=False):
         new_shp = np.zeros(shape=shape.shape)
         new_shp[mask] = shape[mask]
 
@@ -225,8 +229,14 @@ class Map:
         new_shp = new_shp[y]
         new_shp = new_shp[:, x]
 
+        if save:
+            self.mask = mask
+
         if plot:
             self.plot_map(new_shp)
+
+        if save:
+            self.mask = mask
 
         return new_shp
 
@@ -255,7 +265,7 @@ class Map:
 
         return dnst_map
 
-    def uniform_dist(self, n_samples, id_mtx=None, dnst_map=None):
+    def uniform_dist(self, n_samples, id_mtx=None, dnst_map=None, mask=None):  # this is not needed - new function is generate_samples()
         flag = False  # verifying if the function will use class or external variables
         if id_mtx is None or dnst_map is None:
             flag = True  # when flag is true, it will save the results in class variables
@@ -271,6 +281,13 @@ class Map:
             print('CENSITARY AND WWIGHT MATRIXES WITH DIFFERENT SHAPES !!!')
             return
 
+        if mask is None:
+            mask = self.mask
+
+        if mask is not None:
+            id_mtx = self.apply_mask(shape=id_mtx, mask=mask)
+            dnst_map = self.apply_mask(shape=dnst_map, mask=mask)
+
         # checking the size of the matrix to generate the points
         x_size = id_mtx.shape[0]
         y_size = id_mtx.shape[1]
@@ -281,6 +298,10 @@ class Map:
 
         points_map = np.zeros(shape=id_mtx.shape)
         dnst_map_scld = dnst_map/np.max(dnst_map)  # scaling to make values between 0 and 1
+
+        # plt.imshow(dnst_map_scld)
+        # plt.colorbar()
+        # plt.show()
 
         complete = False  # this variable is to inform if all the samples are sampled on the matrix map
         to_complete = n_samples  # variable that stores the number of samples not sampled wet
@@ -320,8 +341,70 @@ class Map:
         if flag:
             self.sample_mtx = points_map
             self.sample_list = point_list
+        else:
+            return points_map, point_list
 
-        return points_map, point_list
+    def generate_samples(self, n_samples, id_mtx=None, weight_mtx=None, mask=None, plot=False):
+        flag = False  # verifying if the function will use class or external variables
+        if id_mtx is None or weight_mtx is None:
+            flag = True  # when flag is true, it will save the results in class variables
+            id_mtx = self.idx_mtx
+            weight_mtx = self.wgt_mtx
+            # dnst_map = self.dst_mtx
+
+            if self.idx_mtx is None or self.wgt_mtx is None or self.dst_mtx is None:
+                print('Need to set all input arguments for the function or class')
+                return
+
+        if id_mtx.shape != weight_mtx.shape:
+            print('CENSITARY AND WWIGHT MATRIXES WITH DIFFERENT SHAPES !!!')
+            return
+
+        if mask is None:
+            mask = self.mask
+
+        if mask is not None:
+            id_mtx = self.apply_mask(shape=id_mtx, mask=mask)
+            weight_mtx = self.apply_mask(shape=weight_mtx, mask=mask)
+
+        points_map = np.zeros(shape=id_mtx.shape)
+
+        # dnst_map = self.apply_mask(shape=self.wgt_mtx, mask=mask)
+
+        # generating the samples from the weights from dsnt_map
+        linear_idx = np.random.choice(weight_mtx.size, p=weight_mtx.ravel() / float(weight_mtx.sum()), size=n_samples)  # linear index from random values from dnst_map
+        unique, counts = np.unique(linear_idx, return_counts=True)  # counting unique values
+        x, y = np.unravel_index(unique, weight_mtx.shape)  # converting the linear index to x y
+        point_list = np.column_stack((x, y))  # saving the coordinates in a np array
+        points_map[x, y] = counts  # storing the sampled coordinates in a matrix
+
+        if plot:
+            self.plot_map(map=points_map)
+
+        if flag:
+            self.sample_mtx = points_map
+            self.sample_list = point_list
+        else:
+            return points_map, point_list
+
+
+    def make_grid(self):
+        from make_grid import Grid
+        # converting to a Grid object
+        map_grid = Grid()
+        map_grid.grid = self.sample_mtx
+        map_grid.lines = self.sample_mtx.shape[0]
+        map_grid.columns = self.sample_mtx.shape[1]
+
+        center_list = []
+        for center in self.centers:
+            center_list.append([center[1], center[2]])
+        center_list = np.array(center_list).astype(int)
+
+        map_grid.centers_set = center_list
+
+        return map_grid
+
 
     def clear_points(self):  # to clear the sampled points
         self.sample_mtx = None
