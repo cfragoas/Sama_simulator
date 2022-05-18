@@ -17,7 +17,15 @@ class Cluster:
         self.labels = None
 
     def set_features(self, grid):
-        self.features = np.where(grid != 0)
+        max_value = grid.max()  # finding the maximum value to loop
+        x = []
+        y = []
+        for value in range(1, grid.max().astype(int) + 1):
+            x_, y_ = (np.where(grid == value))
+            x = np.hstack((x, x_))
+            y = np.hstack((y, y_))
+        self.features = [x, y]
+        # self.features = np.where(grid != 0)
 
     def scaling(self, grid):
         self.set_features(grid)

@@ -88,13 +88,6 @@ class BaseStation:
             # trying to better adjust the beam timing to serve the users uniformly
             # beams with more users will get more time slots
 
-            # self.beam_timing = [None] * self.n_sectors
-            # min_ue_sector = np.zeros(self.n_sectors)
-            # for sector_index, sector_beams in enumerate(self.active_beams.T):
-            #     if len(sector_beams[sector_beams != 0]) != 0:
-            #         min_ue_sector[sector_index] = np.min(sector_beams[sector_beams != 0])
-            # wighted_act_beams = np.round(self.active_beams / min_ue_sector)
-
             self.beam_timing = [None] * self.n_sectors
             for sector_index, sector in enumerate(self.beam_timing):
                 sector = np.where(weighted_act_beams[:, sector_index] != 0)[0]
@@ -340,9 +333,9 @@ class BaseStation:
         if ue_bs is not None:
             if not hasattr(self, 'user_bw'):  # ARRUMAR A INSTÂNCIA DO SELF.USER_BW !!!!!
                 self.user_bw = np.zeros(ue_bs.shape[0])
-            for sector_index in np.unique(ue_bs[ue_bs[:,0] == bs_index][:, 2]).astype(int):
-                for beam_index in np.unique(ue_bs[(ue_bs[:,0] == bs_index) * (ue_bs[:,2] == sector_index)][:, 1]).astype(int):
-                    log2_ch_gain = np.log2(1 + 10 ** (ue_bs[(ue_bs[:,0] == bs_index) * (ue_bs[:,1] == beam_index) * (ue_bs[:, 2] == sector_index)][:,3]/10))
+            for sector_index in np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int):
+                for beam_index in np.unique(ue_bs[(ue_bs[:, 0] == bs_index) * (ue_bs[:,2] == sector_index)][:, 1]).astype(int):
+                    log2_ch_gain = np.log2(1 + 10 ** (ue_bs[(ue_bs[:, 0] == bs_index) & (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index)][:, 3]/10))
                     weighted_ch_gain_map = log2_ch_gain / np.min(log2_ch_gain)
                     sum_weights = np.sum(weighted_ch_gain_map)
                     min_bw = self.bw/sum_weights

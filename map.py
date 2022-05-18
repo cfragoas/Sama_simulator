@@ -265,7 +265,7 @@ class Map:
 
         return dnst_map
 
-    def uniform_dist(self, n_samples, id_mtx=None, dnst_map=None, mask=None):  # this is not needed - new function is generate_samples()
+    def uniform_dist(self, n_samples, id_mtx=None, dnst_map=None, mask=None):  # THIS IS NOT NEEDED !!! - new function is generate_samples()
         flag = False  # verifying if the function will use class or external variables
         if id_mtx is None or dnst_map is None:
             flag = True  # when flag is true, it will save the results in class variables

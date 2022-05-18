@@ -3,6 +3,7 @@ import multiprocessing.pool
 import os
 import tqdm
 import numpy as np
+import pandas as pd
 import copy
 from prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance, generate_bf_gain
@@ -98,7 +99,7 @@ class Macel:
 
         if bw_calc:  # if just need to adjust de bw without retiming the beams
             for bs_index, base_station in enumerate(self.base_station_list):
-                base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
+                # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
                 base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
         else:
             # set random activation indexes for all the BSs
@@ -132,12 +133,12 @@ class Macel:
 
                 else:
                     base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
-                    base_station.generate_beam_bw()  # LISANDRO
+                    base_station.generate_beam_bw()
 
         return
 
     def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None, clustering=True):
-        if clustering==True:
+        if clustering:
             if predetermined_centroids is not None:
                 self.cluster = K_Means_XP(k=n_centers)
                 self.cluster.fit(data=self.grid.grid, predetermined_centroids=predetermined_centroids)
@@ -326,13 +327,16 @@ class Macel:
                              std_user_bw]
 
         # preparing 'raw' data to export
+        ue_bs_stats = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
+        ue_pos = self.cluster.features
         if total_meet_criteria or total_meet_criteria == 0:
-            raw_data_dict = {'position': positions,'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
-                            'user_time': user_time, 'user_bw': np.nanmean(user_bw[self.ue.active_ue], axis=1), 'deficit': deficit,
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
+                             'user_bs': mean_user_bs, 'act_beams': mean_act_beams,'user_time': user_time,
+                             'user_bw': np.nanmean(user_bw[self.ue.active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit, 'meet_criteria': meet_citeria}
         else:
-            raw_data_dict = {'position': positions, 'snr': mean_snr, 'cap': cap_sum, 'user_bs': mean_user_bs,
-                             'act_beams': mean_act_beams,
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
+                             'user_bs': mean_user_bs,'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(user_bw, axis=1)}
 
         if output_typ == 'simple':
