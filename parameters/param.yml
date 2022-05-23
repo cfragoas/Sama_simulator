@@ -1,0 +1,53 @@
+exec_param:
+  threads: 0  # if 0 - uses the maximum number of threads - 1
+  plot_curves: True
+  plot_surf: True
+  plot_hit: True
+  backup_data: True
+  output_type: 'complete'
+
+roi_param:
+  grid: True
+  grid_lines: 1000
+  grid_columns: 1000
+  cel_size: 30
+  map: False
+  name_map: ''
+
+macel_param:
+  criteria: 50  # Mbps
+  n_samples: 200
+  n_centers: 4  # number of distributions to be summed (gaussian/etc)
+  max_iter: 5  # number of iterations (repetitions/batches)  todo - change to exec param
+  time_slots: 1000  # number of time slots (1 ms)
+  scheduling_opt: True  # to choose if the optimized scheduling is to be used
+  simplified_schdl: True
+  min_bs: 1
+  max_bs: 30
+
+antenna_param:  # -- refer to ITU 2101 --
+  # antenna element parameters
+  max_element_gain: 5
+  phi_3db: 65
+  theta_3db: 65
+  front_back_h: 30
+  sla_v: 30
+  # antenna array parameters
+  frequency: 10  # not used
+  n_rows: 8
+  n_columns: 8
+  horizontal_spacing: 0.5
+  vertical_spacing: 0.5
+
+bs_param:
+  freq: 3.5  # frequency (GHz)
+  htx: 30
+  tx_power: 20  # transmission power (dBW)
+  bw: 300  # bw for n sectores (to be fixed)
+  n_sectors: 3
+  gain: 10  # not used
+  downtilt: 0
+  n_beams: 10
+
+ue_param:
+  hrx = 1.5
