@@ -1,93 +1,10 @@
-import copy
-import datetime, pickle, os, logging, multiprocessing, platform
-import tqdm
+import os, platform, copy
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
-import time
-
-from antennas.beamforming import Beamforming_Antenna
-from antennas.ITU2101_Element import Element_ITU2101
-from base_station import BaseStation
-from make_grid import Grid
-from macel import Macel
-
-def load_data(name_file):
-    folder = os.path.dirname(__file__)
-    folder = '\\'.join(folder.split('\\')[:-1])
-    folder += '\\output\\' + name_file + '\\'
-    folder += name_file + '.pkl'
-
-    with open(folder, 'rb') as f:
-        data_dict = pickle.load(f)
-        f.close()
-
-    return(data_dict)
-
-def save_data(path = None, data_dict = None):
-    if not path:
-        folder = os.path.dirname(__file__)
-        folder = folder.replace('/', '\\')
-        folder = '\\'.join(folder.split('\\')[:-1])
-        date = datetime.datetime.now()
-        name_file = date.strftime('%x') + '-' + date.strftime('%X')
-        name_file = name_file.replace('/', '_').replace(':', '_')
-        folder += '\\output\\' + name_file + '\\'
-        path = folder + name_file + '.pkl'
-
-        if platform.system() == 'Darwin':
-            path = path.replace('\\', '/')
-            folder = folder.replace('\\', '/')
-        print(folder)
-        os.mkdir(folder)
-
-        return path, folder
-
-    else:
-        if data_dict and type(data_dict) is dict:
-            with open(path, 'wb') as f:
-                pickle.dump([data_dict], f)
-                f.close()
-                logging.info('Saved/updated file ' + path)
-        else:
-            logging.error('data_dictionary not provided!!!!')
-
-def macel_data_dict(data_dict_=None, data_=None):
-    if not data_ or not data_dict_:
-        data_dict_ = {'BSs': 0, 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
-                      'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'total_meet_criteria': [],
-                      'mean_deficit': [], 'std_deficit': [], 'mean_norm_deficit': [], 'std_norm_deficit': []}
-    else:
-        snr_cap_stats = [x[0] for x in data]
-        raw_data = [x[1] for x in data]
-
-
-        # saving cumulative simple metrics
-        snr_cap_stats = np.array(snr_cap_stats)
-
-        data_dict['BSs'] = n_cells
-        data_dict['mean_snr'].append(np.mean(snr_cap_stats[:, 0]))
-        data_dict['std_snr'].append(np.mean(snr_cap_stats[:, 1]))
-        data_dict['mean_cap'].append(np.mean(snr_cap_stats[:, 2]))
-        data_dict['std_cap'].append(np.mean(snr_cap_stats[:, 3]))
-        data_dict['mean_user_time'].append(np.mean(snr_cap_stats[:, 4]))
-        data_dict['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
-        data_dict['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
-        data_dict['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
-        data_dict['total_meet_criteria'].append(np.mean(snr_cap_stats[:, 8]))
-        data_dict['mean_deficit'].append(np.mean(snr_cap_stats[:, 9]))
-        data_dict['std_deficit'].append(np.mean(snr_cap_stats[:, 10]))
-        data_dict['mean_norm_deficit'].append(np.mean(snr_cap_stats[:, 11]))
-        data_dict['std_norm_deficit'].append(np.mean(snr_cap_stats[:, 12]))
-
-        # saving the raw data
-        data_dict['raw_data'].append(raw_data)
-
-    return data_dict_
-
+import seaborn as sns
 
 def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_time, mean_user_bw, std_user_bw,
-         total_meet_criteria, max_iter, n_bs_vec, individual=False, path=''):
+         total_meet_criteria, max_iter, n_bs_vec, criteria, individual=False, path=''):
 
     if individual:
         # Mean SNIR
@@ -171,7 +88,7 @@ def plot_curves(mean_snr, std_snr, mean_cap, std_cap, mean_user_time, std_user_t
     plt.savefig(path + 'total_meet_criteria.png')
     plt.close('all')
 
-def plot_hist(raw_data, path, n_bs):
+def plot_hist(raw_data, path, n_bs, max_iter, criteria):
     #creating subfolder
     path = path + '\\' + str(n_bs) + 'BSs\\'
     if platform.system() == 'Darwin':
@@ -306,7 +223,7 @@ def plot_hist(raw_data, path, n_bs):
 
     plt.close('all')
 
-def plot_surface(grid, position, parameter, path, n_bs, plt_name=None):
+def plot_surface(grid, position, parameter, path, n_bs, max_iter, plt_name=None):
     # creating subfolder
     path = path + '\\' + str(n_bs) + 'BSs\\'
     if platform.system() == 'Darwin':
@@ -352,114 +269,3 @@ def plot_surface(grid, position, parameter, path, n_bs, plt_name=None):
 
     plt.savefig(path + 'bs_dist_surf_' + str(n_bs) + ' BS.png')
     plt.close('all')
-
-def write_conf(folder, parameters):
-    with open(folder + 'configuration.txt', 'w') as f:
-        for key, item in parameters.items():
-            f.writelines(str(key) + ': ' + str(item) + '\n')
-
-
-
-def simulate_ue_macel(args):
-    n_bs = args[0]
-    macel = args[1]
-    n_centers = args[2]
-    samples = args[3]
-
-    macel.grid.make_points(dist_type='gaussian', samples=samples, n_centers=n_centers, random_centers=False,
-                          plot=False)  # distributing points around centers in the grid
-    macel.set_ue(hrx=1.5)
-    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=False)
-
-    return(snr_cap_stats, raw_data)
-
-
-if __name__ == '__main__':
-    # parameters
-    criteria = 50  # Mbps
-    n_samples = 200
-    n_centers = 4  # number of distributions to be summed (gaussian/etc)
-    max_iter = 20  # number of iterations (repetitions)
-    time_slots = 1000  # number of time slots (1 ms)
-    scheduling_opt = True  # to choose if the optimized scheduling is to be used
-    simplified_schdl = True
-    min_bs = 10
-    max_bs = 30
-    threads = None
-
-    bs_vec = []
-
-    if threads is None:
-        threads = os.cpu_count()
-    if threads > 61:  # to run in processors with 30+ cores
-        threads = 61
-    print('Running with ' + str(threads) + ' threads')
-    p = multiprocessing.Pool(processes=threads - 1)
-
-    parameters = {'criteria': criteria,
-                  'n_samples': n_samples,
-                  'centers': n_centers,
-                  'max_inter': max_iter,
-                  'time_slots': time_slots,
-                  'simplified_schdl': simplified_schdl,
-                  'scheduling_opt': scheduling_opt,
-                  'min_bs': min_bs,
-                  'max_bs': max_bs,
-                  'threads': threads,
-                  'last_bs': 0,
-                  'simulation_time': []}
-
-    path, folder = save_data()  # storing the path used to save in all iterations
-
-    data_dict = macel_data_dict()
-
-    write_conf(folder=folder, parameters=parameters)
-
-    # ==========================================
-    grid = Grid()  # grid object
-    grid.make_grid(1000, 1000)
-
-    element = Element_ITU2101(max_gain=5, phi_3db=65, theta_3db=65, front_back_h=30, sla_v=30, plot=False)
-    beam_ant = Beamforming_Antenna(ant_element=element, frequency=10, n_rows=8, n_columns=8, horizontal_spacing=0.5,
-                                   vertical_spacing=0.5)
-    base_station = BaseStation(frequency=3.5, tx_power=20, tx_height=30, bw=300, n_sectors=3, antenna=beam_ant, gain=10,
-                     downtilts=0, plot=False)
-    base_station.sector_beam_pointing_configuration(n_beams=10)
-    macel = Macel(grid=grid, prop_model='free space', criteria=criteria,
-                  cell_size=30, base_station=base_station,
-                  simulation_time=time_slots, scheduling_opt=scheduling_opt, simplified_schdl=simplified_schdl)
-
-    for n_cells in range(min_bs, max_bs + 1):
-        print('running with ', n_cells, ' BSs')
-
-        initial_time = time.time()
-
-        macel.grid.clear_grid()  # added to avoid increasing UE number without intention
-        bs_vec.append(n_cells)
-
-        data = list(
-                    tqdm.tqdm(p.imap_unordered(simulate_ue_macel, [(n_cells, macel, n_samples, n_centers) for i in range(max_iter)]), total=max_iter
-                ))
-        snr_cap_stats = [x[0] for x in data]
-        raw_data = [x[1] for x in data]
-
-        plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells)
-
-        plot_surface(grid=grid.grid, position=np.concatenate([x['bs_position'] for x in raw_data]),
-                     parameter=np.array(snr_cap_stats)[:, 2], path=folder, n_bs=n_cells)
-
-        data_dict = macel_data_dict(data_dict_=data_dict, data_=data)
-
-        save_data(path=path, data_dict=data_dict)  # saving/updating data
-
-        plot_curves(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
-             std_cap=data_dict['std_cap'],
-             mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
-             mean_user_bw=data_dict['mean_user_bw'],
-             std_user_bw=data_dict['std_user_bw'],total_meet_criteria=data_dict['total_meet_criteria'], max_iter=max_iter,
-             n_bs_vec=bs_vec, individual=False, path=folder)
-
-        parameters['last_bs'] = n_cells
-        parameters['simulation_time'].append(np.round((time.time()-initial_time)/60, decimals=2))  # simulation time (in minutes)
-
-        write_conf(folder=folder, parameters=parameters)

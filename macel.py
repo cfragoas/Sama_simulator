@@ -256,9 +256,6 @@ class Macel:
                 if not self.simplified_schdl:  # if it is using the complete scheduling solution
                     cap_defcit = self.criteria - acc_ue_cap
                     cap_defcit = np.where(cap_defcit < 0, 1E-6, cap_defcit)
-                    # if np.sum(cap_defcit[cap_defcit==1e-6]) != 0:
-                    #     print(np.where(cap_defcit==1e-6))
-                    #     print('ui')
                     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1,
                                        cap_defict=cap_defcit, bw_calc=True)
 
@@ -327,10 +324,11 @@ class Macel:
                              std_user_bw]
 
         # preparing 'raw' data to export
-        ue_bs_stats = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
+        ue_bs_table = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
         ue_pos = self.cluster.features
         if total_meet_criteria or total_meet_criteria == 0:
-            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
+                             'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,'user_time': user_time,
                              'user_bw': np.nanmean(user_bw[self.ue.active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit, 'meet_criteria': meet_citeria}

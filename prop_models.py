@@ -177,7 +177,15 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
     dist_map = generate_distance_map(eucli_dist_map, cell_size, htx, hrx)
 
     # calculating the prop model for each centroid for each cell of the grid
-    path_loss_map = fs_path_loss(dist_map/1000, frequency)
+    if prop_model == 'free space':
+        if 'var' in kwargs:
+            var = kwargs['var']
+            path_loss_map = fs_path_loss(dist_map/1000, frequency, var=var)
+        else:
+            path_loss_map = fs_path_loss(dist_map / 1000, frequency)
+
+    else:
+        print('wrong path loss model !!! please see the available ones in: .....')
 
     if plot:
         n_centroids = eucli_dist_map.shape[0]
@@ -352,7 +360,7 @@ def plot_func(map = None, sectors = 1, centroids=1, title=''):
 #
 #     return fspl
 
-def fs_path_loss(d, f, var=6): # simples free space path loss function with lognormal component
+def fs_path_loss(d, f, var=6):  # simple free space path loss function with lognormal component
     if var:
         log_n = np.random.lognormal(mean=0, sigma=np.sqrt(var), size=d.shape)  # lognormal variance from the mediam path loss
     else:

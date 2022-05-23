@@ -7,7 +7,6 @@ class User_eq:
         self.bs_candidates = None
         self.gain_matrix = None
 
-
         self.sector_map = None
 
         # calculated variables

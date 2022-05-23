@@ -123,7 +123,7 @@ class Map:
                     cens_sct2[i] = [value, cens_sct[1][i]]
                 clf = NearestCentroid()
                 kmeans = KMeans(n_clusters=1, random_state=0).fit(cens_sct2)
-                center = np.round(kmeans.cluster_centers_[0])
+                center = np.rint(kmeans.cluster_centers_[0])
                 # clf.fit(cens_sct2, np.ones(shape=cens_sct[0].shape[0]))
                 self.centers.append([val, center[0], center[1]])
 
@@ -305,7 +305,7 @@ class Map:
 
         complete = False  # this variable is to inform if all the samples are sampled on the matrix map
         to_complete = n_samples  # variable that stores the number of samples not sampled wet
-        n_points = np.round(n_samples / 2).astype(int)  # firstly, half of total samples are sampled
+        n_points = np.rint(n_samples / 2).astype(int)  # firstly, half of total samples are sampled
 
         # this variable is important, because we will not draw a minimum value of zero but it needs
         # to be lower than the minimum probability on the matrix
@@ -319,14 +319,14 @@ class Map:
             #     n_points = np.round(n_samples / 2).astype(int)
 
             # drawing multiple point coordinates from a uniform distribution
-            points = np.round(np.random.uniform(low=xy_min, high=xy_max, size=(n_points, 2))).astype(int)
+            points = np.rint(np.random.uniform(low=xy_min, high=xy_max, size=(n_points, 2))).astype(int)
 
             # if n_points == 1:
             #     points = np.expand_dims(points, axis=0)
 
             # checking if at leats one point is in a valid coordinate (not of a zero probability point)
             while np.sum(dnst_map[points[:, 0], points[:, 1]]) == 0:
-                points = np.round(np.random.uniform(low=xy_min, high=xy_max, size=(n_points, 2))).astype(int)
+                points = np.rint(np.random.uniform(low=xy_min, high=xy_max, size=(n_points, 2))).astype(int)
             # drawing probability values for each point from a uniform distribution
             probability = np.random.uniform(low=min_sp, high=1, size=n_points)
 

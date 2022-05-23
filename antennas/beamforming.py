@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 class Beamforming_Antenna():
     def __init__(self, ant_element, frequency, n_rows, n_columns, horizontal_spacing, vertical_spacing, point_theta=None, point_phi=None):
         self.ant_element = ant_element
-        self.frequency = frequency
+        self.frequency = frequency  # not used
         self.n_rows = n_rows
         self.n_columns = n_columns
         # c = 299792458  # speed of light
