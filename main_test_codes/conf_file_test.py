@@ -10,15 +10,16 @@ import numpy as np
 if __name__ == '__main__':
 
     conf_file = 'param.yml'
-    global_parameters = load_param(filename=conf_file)
 
     bs_vec = []
 
     path, folder = save_data()  # storing the path used to save in all iterations
 
+    global_parameters, param_path = load_param(filename=conf_file, backup=True)
+
     data_dict = macel_data_dict()  # creating the structure of the output dictonary
 
-    write_conf(folder=folder, parameters=global_parameters, yml_file='param.yml')  # saving the param/stats files
+    write_conf(folder=folder, parameters=global_parameters, yml_file=param_path)  # saving the param/stats files
 
     p = prep_multiproc(threads=global_parameters['exec_param']['threads'])
 
@@ -27,6 +28,7 @@ if __name__ == '__main__':
 
     macel = create_enviroment(parameters=global_parameters)
 
+    # separate parameters to pass the minimum data to the pool
     n_samples = global_parameters['macel_param']['n_samples']
     n_centers = global_parameters['macel_param']['n_centers']
     max_iter = global_parameters['macel_param']['max_iter']

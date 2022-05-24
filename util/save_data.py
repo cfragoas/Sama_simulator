@@ -3,14 +3,16 @@ import numpy as np
 import pickle
 
 def write_conf(folder, parameters, yml_file=None):
-    with open(folder + 'configuration.txt', 'w') as f:
-        for key, item in parameters.items():
-            f.writelines(str(key) + ': ' + str(item) + '\n')
+    with open(folder + 'exec_stats.txt', 'w') as f:
+        for key, dict in parameters.items():
+            f.writelines(str(key) + '\n \n')
+            for key2, item in parameters[key].items():
+                f.writelines(str(key2) + ': ' + str(item) + '\n')
+            f.writelines('\n')
 
-    if yml_file is not None:
-        pass
-    # save param file here
-
+    if yml_file is not None:  # to save the yaml file (to rerun or resume an execution)
+        import shutil
+        shutil.copy(yml_file, folder)
 
 
 def macel_data_dict(data_dict_=None, data_=None, n_cells=None):

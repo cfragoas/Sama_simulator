@@ -1,21 +1,29 @@
 import yaml
 
 
-def load_param(path=None, filename=None):
+def load_param(path=None, filename=None, backup=False):
     try:
         if filename is not None:
             if not '.yml' in filename:
                 filename = filename + '.yml'
             if path is not None:
-                with open(path + filename, 'r') as file:
-                    global_conf = yaml.safe_load(file)
+                param_path = path + filename
+                # with open(param_path, 'r') as file:
+                #     global_conf = yaml.safe_load(file)
             else:
-                with open('../parameters/' + filename, 'r') as file:
-                    global_conf = yaml.safe_load(file)
+                param_path = '../parameters/' + filename
+                # with open(param_path, 'r') as file:
+                #     global_conf = yaml.safe_load(file)
         else:
-            with open(path, 'r') as file:
-                global_conf = yaml.safe_load(file)
+            param_path = path
+            # with open(param_path, 'r') as file:
+            #     global_conf = yaml.safe_load(file)
+        with open(param_path, 'r') as file:
+            global_conf = yaml.safe_load(file)
     except:
         raise ValueError("path or filename not found")
 
-    return global_conf
+    if backup:
+        return global_conf, param_path
+    else:
+        return global_conf

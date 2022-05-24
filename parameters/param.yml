@@ -50,4 +50,4 @@ bs_param:
   n_beams: 10
 
 ue_param:
-  hrx = 1.5
+  hrx: 1.5
