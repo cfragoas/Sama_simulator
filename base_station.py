@@ -89,7 +89,7 @@ class BaseStation:
             # beams with more users will get more time slots
 
             self.beam_timing = [None] * self.n_sectors
-            for sector_index, sector in enumerate(self.beam_timing):
+            for sector_index, _ in enumerate(self.beam_timing):
                 sector = np.where(weighted_act_beams[:, sector_index] != 0)[0]
                 # np.random.shuffle(sector)  # randomizing the beam timing sequence
                 sector = sector[np.random.permutation(sector.shape[0])]  # randomizing the beam timing sequence
@@ -104,7 +104,7 @@ class BaseStation:
             wighted_act_beams_bkp = copy.copy(weighted_act_beams)
             for time in np.arange(0, simulation_time, time_slot):
                 wighted_act_beams = self.next_active_beam_new(weighted_act_beams)  # passing the beam list with how many times each beam need to be active
-                for sector_index, sector in enumerate(self.beam_timing):
+                for sector_index, _ in enumerate(self.beam_timing):
                     if self.active_beams_index[sector_index].astype(int) == -1:
                         self.active_beams_index[sector_index] = 0
                         wighted_act_beams[:, sector_index] = wighted_act_beams_bkp[:, sector_index]
@@ -116,7 +116,7 @@ class BaseStation:
         else:
             # same time distribution for all beams
             self.beam_timing = [None] * self.n_sectors
-            for sector_index, sector in enumerate(self.beam_timing):
+            for sector_index, _ in enumerate(self.beam_timing):
                 sector = np.where(self.active_beams[:, sector_index] != 0)[0]
                 np.random.shuffle(sector)  # randomizing the beam timing sequence
                 self.beam_timing[
@@ -137,7 +137,7 @@ class BaseStation:
     def generate_beam_timing(self, simulation_time, time_slot):
         # self.beam_timing = np.ndarray(shape=self.n_sectors)
         self.beam_timing = [None] * self.n_sectors
-        for sector_index, sector in enumerate(self.beam_timing):
+        for sector_index, _ in enumerate(self.beam_timing):
             sector = np.where(self.active_beams[:, sector_index] != 0)[0]
             np.random.shuffle(sector)  # randomizing the beam timing sequence
             self.beam_timing[sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
@@ -262,8 +262,9 @@ class BaseStation:
 
         # ================= CHECAR ALTERAÇÃO !!! ====================
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
-        existing_beams = self.beam_util != 0
-        self.beam_util_log[existing_beams] = np.log2(self.beam_util[existing_beams])
+        beams_2calc = (self.beam_util != 0) & (self.beam_util > 1)  # active beams and beam_util not between 0~1
+        self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+
 
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
 
@@ -294,8 +295,21 @@ class BaseStation:
 
         sector_index = np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int)
         non_zero = (self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
-        t_beam[self.beam_util != 0] = (t_min + (self.beam_util_log[:, sector_index]/ self.sector_util[sector_index])[non_zero]
-                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index][non_zero]) * t_min))
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error')
+            try:
+                t_beam[self.beam_util != 0] = (t_min + (self.beam_util_log[:, sector_index]/ self.sector_util[sector_index])[non_zero]
+                                               * (t_total - np.count_nonzero(self.active_beams[:, sector_index][non_zero]) * t_min))
+            except Warning as e:
+                print('ui')
+
+        # try:
+        #     x = np.sum(self.beam_util_log < 0)
+        #     if x > 0:
+        #         print('ui')
+        # except:
+        #     pass
 
         # t_beam.reshape(shape_t_beam)  # necessary to return to the active_beam shape
 

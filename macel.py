@@ -262,6 +262,7 @@ class Macel:
                 if count_satisfied_ue != 0:
                     elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                     if count_satisfied_ue_old != count_satisfied_ue:
+                        count_satisfied_ue_old = count_satisfied_ue
                         # if self.simplified_schdl:  # checking if the optimization method to be used is the simplified one
                             # count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
 

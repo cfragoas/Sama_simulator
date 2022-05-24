@@ -8,7 +8,7 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
     macel.grid.make_points(dist_type='gaussian', samples=n_samples, n_centers=n_centers, random_centers=False,
                            plot=False)  # distributing points around centers in the grid
     macel.set_ue(hrx=1.5)
-    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=False)
+    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
     # snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs, output_typ='simple', clustering=False)
     return(snr_cap_stats, raw_data)
 

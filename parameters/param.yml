@@ -15,10 +15,10 @@ roi_param:
   name_map: ''
 
 macel_param:
-  criteria: 50  # Mbps
+  criteria: 30  # Mbps
   n_samples: 200
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
-  max_iter: 5  # number of iterations (repetitions/batches)  todo - change to exec param
+  max_iter: 15  # number of iterations (repetitions/batches)  todo - change to exec param
   time_slots: 1000  # number of time slots (1 ms)
   scheduling_opt: True  # to choose if the optimized scheduling is to be used
   simplified_schdl: True
@@ -43,7 +43,7 @@ bs_param:
   freq: 3.5  # frequency (GHz)
   htx: 30
   tx_power: 20  # transmission power (dBW)
-  bw: 300  # bw for n sectores (to be fixed)
+  bw: 300  # bw for n sectors (to be fixed)
   n_sectors: 3
   gain: 10  # not used
   downtilt: 0
