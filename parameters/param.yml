@@ -18,10 +18,11 @@ macel_param:
   criteria: 30  # Mbps
   n_samples: 200
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
-  max_iter: 15  # number of iterations (repetitions/batches)  todo - change to exec param
+  max_iter: 30  # number of iterations (repetitions/batches)  todo - change to exec param
   time_slots: 1000  # number of time slots (1 ms)
   scheduling_opt: True  # to choose if the optimized scheduling is to be used
   simplified_schdl: True
+  t_min: 10  # minimum allocated time for an execution time = time_slots
   min_bs: 1
   max_bs: 30
 

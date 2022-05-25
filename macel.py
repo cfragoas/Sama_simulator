@@ -19,8 +19,9 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time,
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time,t_min=None,
                  criteria=None, scheduling_opt=False, log=False, simplified_schdl=True):
+
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
@@ -34,6 +35,7 @@ class Macel:
 
         if self.scheduling_opt:
             self.simplified_schdl = simplified_schdl
+            self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -93,9 +95,12 @@ class Macel:
 
         return self.ch_gain_map, self.sector_map
 
-    def send_ue_to_bs(self, simulation_time, time_slot, bw_calc=False, cap_defict=None):
+    def send_ue_to_bs(self, simulation_time, time_slot, bw_calc=False, cap_defict=None, t_min=None):
         if cap_defict is None:
             cap_defict = self.criteria + np.zeros(shape=self.ue.ue_bs.shape[0])
+
+        if t_min is None:
+            t_min = self.t_min
 
         if bw_calc:  # if just need to adjust de bw without retiming the beams
             for bs_index, base_station in enumerate(self.base_station_list):
@@ -118,9 +123,8 @@ class Macel:
                     base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
                 if self.scheduling_opt:
-                    # if not bw_calc:
-                        # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # teste - APAGAR DAQUI !!!
-                    t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+
+                    t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria, t_min=t_min)  # LISANDRO
 
                     base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
                     base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
@@ -262,12 +266,14 @@ class Macel:
                 if count_satisfied_ue != 0:
                     elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                     if count_satisfied_ue_old != count_satisfied_ue:
-                        count_satisfied_ue_old = count_satisfied_ue
+                        count_satisfied_ue_old = copy.copy(count_satisfied_ue)
                         # if self.simplified_schdl:  # checking if the optimization method to be used is the simplified one
                             # count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
 
                         self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                        self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
+                        time_left = self.simulation_time - elapsed_time
+                        new_tmin = self.t_min*(time_left/self.simulation_time)
+                        self.send_ue_to_bs(simulation_time=time_left, time_slot=1, t_min=new_tmin)  # redoing the beam weights and timings
                         # else:
                         #     self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
                         #     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings

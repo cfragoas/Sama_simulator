@@ -155,8 +155,6 @@ class BaseStation:
         if beam_list is not None:
             if self.active_beams_index is None:
                 self.active_beams_index = np.zeros(shape=self.n_sectors).astype(int)
-            # else:
-            #     self.active_beams_index += 1
 
             for sector_index, beam_index in enumerate(self.active_beams_index):
                 if np.sum(beam_list[:, sector_index]) != 0:
@@ -172,6 +170,13 @@ class BaseStation:
                     self.active_beams_index[sector_index] = beam_index
                 else:
                     self.active_beams_index[sector_index] = -1  # informing that the beam list need to be restarted
+
+                # try:
+                #     x = np.sum(beam_list < 0)
+                #     if x > 0:
+                #         print('ui')
+                # except:
+                #     pass
 
             return beam_list
 
@@ -262,14 +267,15 @@ class BaseStation:
 
         # ================= CHECAR ALTERAÇÃO !!! ====================
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
-        beams_2calc = (self.beam_util != 0) & (self.beam_util > 1)  # active beams and beam_util not between 0~1
+        beams_2calc = self.beam_util != 0  # active beams and beam_util not between 0~1
         self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+        self.beam_util_log[self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
 
 
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
 
-    def generate_weighted_beam_time(self, t_total, ue_bs, bs_index, c_target):
-        t_min = 10  # milliseconds
+    def generate_weighted_beam_time(self, t_total, ue_bs, bs_index, c_target, t_min):
+        # t_min = 10  # milliseconds
         self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)
         t_beam = np.zeros(shape=self.active_beams.shape)
 
@@ -295,17 +301,19 @@ class BaseStation:
 
         sector_index = np.unique(ue_bs[ue_bs[:, 0] == bs_index][:, 2]).astype(int)
         non_zero = (self.beam_util[:, sector_index] != 0)  # to prevent a divide by zero occurence
-        import warnings
-        with warnings.catch_warnings():
-            warnings.filterwarnings('error')
-            try:
-                t_beam[self.beam_util != 0] = (t_min + (self.beam_util_log[:, sector_index]/ self.sector_util[sector_index])[non_zero]
-                                               * (t_total - np.count_nonzero(self.active_beams[:, sector_index][non_zero]) * t_min))
-            except Warning as e:
-                print('ui')
+
+        # import warnings
+        # with warnings.catch_warnings():
+        #     warnings.filterwarnings('error')
+        #     try:
+
+        t_beam[self.beam_util != 0] = (t_min + (self.beam_util_log[:, sector_index]/ self.sector_util[sector_index])
+                                       * (t_total - np.count_nonzero(self.active_beams[:, sector_index], axis=0) * t_min))[non_zero]
+            # except Warning as e:
+            #     print('ui')
 
         # try:
-        #     x = np.sum(self.beam_util_log < 0)
+        #     x = np.sum(t_beam < 0)
         #     if x > 0:
         #         print('ui')
         # except:

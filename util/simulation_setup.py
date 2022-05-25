@@ -56,6 +56,7 @@ def create_enviroment(parameters):
                   cell_size=parameters['roi_param']['cel_size'],  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,
                   simulation_time=parameters['macel_param']['time_slots'],
+                  t_min=parameters['macel_param']['t_min'],
                   scheduling_opt=parameters['macel_param']['scheduling_opt'],
                   simplified_schdl=parameters['macel_param']['simplified_schdl'])
 
@@ -66,11 +67,16 @@ def prep_multiproc(threads):
     import multiprocessing
     import os
 
+    max_threads = os.cpu_count()
+
     if threads == 0:
-        threads = os.cpu_count()
-    if threads > 61:  # to run in processors with 30+ cores
+        threads = max_threads - 1
+    elif threads > max_threads:
+        threads = max_threads - 1
+        print('The selected number of threads is higher than the maximum of the CPU.')
+    elif threads > 61:  # to run in processors with 30+ cores
         threads = 61
     print('Running with ' + str(threads) + ' threads')
-    p = multiprocessing.Pool(processes=threads - 1)
+    p = multiprocessing.Pool(processes=threads)
 
     return p
