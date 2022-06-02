@@ -1,5 +1,6 @@
 exec_param:
-  threads: 0  # if 0 - uses the maximum number of threads - 1
+  threads: 1 # if 0 - uses the maximum number of threads - 1
+  max_iter: 30  # number of iterations (repetitions/batches)  todo - fix this in outside code
   plot_curves: True
   plot_surf: True
   plot_hit: True
@@ -18,10 +19,10 @@ macel_param:
   criteria: 30  # Mbps
   n_samples: 200
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
-  max_iter: 30  # number of iterations (repetitions/batches)  todo - change to exec param
   time_slots: 1000  # number of time slots (1 ms)
-  scheduling_opt: True  # to choose if the optimized scheduling is to be used
-  simplified_schdl: True
+  scheduler: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+#  scheduling_opt: True  # to choose if the optimized scheduling is to be used
+#  simplified_schdl: False
   t_min: 10  # minimum allocated time for an execution time = time_slots
   min_bs: 1
   max_bs: 30

@@ -1,3 +1,5 @@
+import socket
+
 from util.save_data import save_data, load_data, macel_data_dict, write_conf
 from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.simulation_setup import simulate_macel_downlink, create_enviroment, prep_multiproc
@@ -25,13 +27,14 @@ if __name__ == '__main__':
 
     global_parameters['exec_param']['simulation_time'] = []
     global_parameters['exec_param']['threads'] = p._processes
+    global_parameters['exec_param']['PC_ID'] = socket.gethostname()
 
     macel = create_enviroment(parameters=global_parameters)
 
     # separate parameters to pass the minimum data to the pool
     n_samples = global_parameters['macel_param']['n_samples']
     n_centers = global_parameters['macel_param']['n_centers']
-    max_iter = global_parameters['macel_param']['max_iter']
+    max_iter = global_parameters['exec_param']['max_iter']
 
     for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
         print('running with ', n_cells, ' BSs')

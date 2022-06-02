@@ -107,11 +107,11 @@ class Macel:
             if self.scheduling_opt:
                 t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
-                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+                base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
                 base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
             else:
-                base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
-                base_station.generate_beam_bw()  # LISANDRO
+                base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot)
+                base_station.generate_proportional_beam_bw()  # LISANDRO
 
         return
 

@@ -19,8 +19,8 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time,t_min=None,
-                 criteria=None, scheduling_opt=False, log=False, simplified_schdl=True):
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, t_min=None,
+                 criteria=None, scheduler=None, scheduling_opt=False, log=False, simplified_schdl=True):
 
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
@@ -30,12 +30,16 @@ class Macel:
         self.cell_size = cell_size  # size of one side of a cell, in meters
         self.log = log  # if true, prints information about the ongoing process
         self.default_base_station = base_station  # BaseStation class variable
-        self.scheduling_opt = scheduling_opt  # to choose if the optimized scheduling is to be used
+        # self.scheduling_opt = scheduling_opt  # to choose if the optimized scheduling is to be used
         self.simulation_time = simulation_time  # number of time slots
+        self.scheduler = scheduler  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
 
-        if self.scheduling_opt:
-            self.simplified_schdl = simplified_schdl
+        if self.scheduler == 'prop-cmp' or scheduler == 'prop-smp':
             self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
+
+        # if self.scheduling_opt:
+        #     self.simplified_schdl = simplified_schdl
+        #     self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -52,6 +56,17 @@ class Macel:
         self.snr_map = None
         self.cap_map = None
         self.cluster = None
+
+    def get_scheduler(schdl_name):
+        # round-robin, prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+        switcher = {
+            'RR': 0,
+            'prop-cmp': 1,
+            'prop-smp': 2,
+            'BCQI': 3
+        }
+
+        return switcher.get(schdl_name, "nothing")
 
     def set_base_station(self, base_station):  # simple function, but will include sectors and MIMO in the future
         self.default_base_station = base_station
@@ -99,9 +114,6 @@ class Macel:
         if cap_defict is None:
             cap_defict = self.criteria + np.zeros(shape=self.ue.ue_bs.shape[0])
 
-        if t_min is None:
-            t_min = self.t_min
-
         if bw_calc:  # if just need to adjust de bw without retiming the beams
             for bs_index, base_station in enumerate(self.base_station_list):
                 # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
@@ -122,11 +134,14 @@ class Macel:
 
                     base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
-                if self.scheduling_opt:
+                if self.scheduler == 'prop-cmp' or self.scheduler == 'prop-smp':
+                # if self.scheduling_opt:
+                    if t_min is None:
+                        t_min = self.t_min
 
                     t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria, t_min=t_min)  # LISANDRO
 
-                    base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
+                    base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False, scheduler=self.scheduler)  # precalculating the beam activation timings
                     base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
                     # else:
                     #     base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)
@@ -135,9 +150,10 @@ class Macel:
                         # t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
                         # base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
 
-                else:
-                    base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot)
-                    base_station.generate_beam_bw()
+                elif self.scheduler == 'RR':
+                # else:
+                    base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, scheduler=self.scheduler)
+                    base_station.generate_proportional_beam_bw()
 
         return
 
@@ -195,6 +211,7 @@ class Macel:
         act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
         meet_citeria = np.zeros(shape=self.base_station_list[0].beam_timing_sequence.shape[1])
+        ue_bs_table = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
 
         snr[:] = np.nan
         cap[:] = np.nan
@@ -250,14 +267,14 @@ class Macel:
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            if self.scheduling_opt:
+            if self.scheduler == 'prop-smp' or self.scheduler == 'prop-cmp':
                 # checking if one or multiple UEs have reached the target capacity
                 acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
                 satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
                 count_satisfied_ue = satisfied_ue.size
                 meet_citeria[time_index] = count_satisfied_ue  # storing metrics
 
-                if not self.simplified_schdl:  # if it is using the complete scheduling solution
+                if self.scheduler == 'prop-cmp':  # if it is using the complete scheduling solution
                     cap_defcit = self.criteria - acc_ue_cap
                     cap_defcit = np.where(cap_defcit < 0, 1E-6, cap_defcit)
                     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1,
@@ -331,7 +348,6 @@ class Macel:
                              std_user_bw]
 
         # preparing 'raw' data to export
-        ue_bs_table = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
         ue_pos = self.cluster.features
         if total_meet_criteria or total_meet_criteria == 0:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,

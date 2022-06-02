@@ -256,7 +256,7 @@ def plot_surface(grid, position, parameter, path, n_bs, max_iter, plt_name=None)
     fig2, ax1 = plt.subplots(1, dpi=300)
     fig2.suptitle('Average SNIR ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
     z = ax1.matshow(mean_snr, origin='lower')
-    fig1.colorbar(z, ax=ax1)
+    fig2.colorbar(z, ax=ax1)
     print(parameter.shape[0])
     plt.savefig(path + 'mean_cap_surf_' + str(n_bs) + ' BS.png')
 

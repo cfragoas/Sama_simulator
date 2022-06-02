@@ -57,8 +57,9 @@ def create_enviroment(parameters):
                   base_station=base_station,
                   simulation_time=parameters['macel_param']['time_slots'],
                   t_min=parameters['macel_param']['t_min'],
-                  scheduling_opt=parameters['macel_param']['scheduling_opt'],
-                  simplified_schdl=parameters['macel_param']['simplified_schdl'])
+                  scheduler=parameters['macel_param']['scheduler'])
+                  # scheduling_opt=parameters['macel_param']['scheduling_opt'],
+                  # simplified_schdl=parameters['macel_param']['simplified_schdl'])
 
     return macel
 
@@ -74,7 +75,7 @@ def prep_multiproc(threads):
     elif threads > max_threads:
         threads = max_threads - 1
         print('The selected number of threads is higher than the maximum of the CPU.')
-    elif threads > 61:  # to run in processors with 30+ cores
+    if threads > 61:  # to run in processors with 30+ cores
         threads = 61
     print('Running with ' + str(threads) + ' threads')
     p = multiprocessing.Pool(processes=threads)
