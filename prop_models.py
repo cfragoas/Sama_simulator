@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import models
+from util.util_funcs import azimuth_angle_clockwise
 from numba import jit  # some functions uses numba to improve performance (some functions are not used anymore)
 
 # This file is used for functions to calculated propagation models and calculations that are directly linked it
@@ -20,12 +20,12 @@ def generate_azimuth_map(lines, columns, centroids, samples=None, plot=False):
 
         az_map = np.ndarray(shape=(centroids.shape[0], lines, columns))
         for i, centroid in enumerate(centroids):
-            az_map[i] = models.azimuth_angle_clockwise(np.asarray([centroid[0], centroid[1]]),
+            az_map[i] = azimuth_angle_clockwise(np.asarray([centroid[0], centroid[1]]),
                                                 np.asarray([coord_map[0], coord_map[1]]))
     else:
         az_map = np.ndarray(shape=(centroids.shape[0], samples.shape[0]))
         for i, centroid in enumerate(centroids):
-            az_map[i] = models.azimuth_angle_clockwise(np.asarray([centroid[0], centroid[1]]),
+            az_map[i] = azimuth_angle_clockwise(np.asarray([centroid[0], centroid[1]]),
                                                        np.asarray([samples[:, 0], samples[:, 1]]))
 
     if plot:

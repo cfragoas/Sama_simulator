@@ -1,12 +1,9 @@
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 from random import randint, gauss, gammavariate
 import sys
-from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
-import models
-
+from util.util_funcs import highestPowerOf2
 
 class Grid:
     def __init__(self):
@@ -47,7 +44,7 @@ class Grid:
             elif n_centers % 2 != 0:
                 sys.exit('n_centers must be a even number!!!')
             else:
-                n = models.highestPowerOf2(n_centers)  # number of lines
+                n = highestPowerOf2(n_centers)  # number of lines
                 if n % 2 != 0:
                     n -= 1
                 if n == 0:

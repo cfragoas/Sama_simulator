@@ -1,5 +1,5 @@
 exec_param:
-  threads: 1 # if 0 - uses the maximum number of threads - 1
+  threads: 7 # if 0 - uses the maximum number of threads - 1
   max_iter: 30  # number of iterations (repetitions/batches)  todo - fix this in outside code
   plot_curves: True
   plot_surf: True
@@ -20,7 +20,8 @@ macel_param:
   n_samples: 200
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
   time_slots: 1000  # number of time slots (1 ms)
-  scheduler: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  time_slot_lngt: 1  # duration of a time slot (ms)
+  scheduler_typ: 'prop-cmp'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
 #  scheduling_opt: True  # to choose if the optimized scheduling is to be used
 #  simplified_schdl: False
   t_min: 10  # minimum allocated time for an execution time = time_slots

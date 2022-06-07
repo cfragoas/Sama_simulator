@@ -1,14 +1,16 @@
-from utility_based_fn import Util_fn
 import numpy as np
 
-class Freq_Scheduler():
+class Freq_Scheduler:
     def __init__(self, bw, bs_index, scheduler_typ):
         self.bw = bw
+        self.bs_index = bs_index
 
         # calculated variables
-        if scheduler_typ == 'prop-cmp' or scheduler_typ == 'prop-smp':
-            self.user_bw = None
-        self.bs_index = bs_index
+        # if scheduler_typ == 'prop-cmp' or scheduler_typ == 'prop-smp':
+        self.user_bw = None
+        self.beam_bw = None
+
+        # TODO - ALTERAR AQUI PARA SEMPRE USAR O USER_BW PARA TODOS OS CASOS
 
     def generate_proportional_beam_bw(self, active_beams):
         self.beam_bw = np.zeros(shape=active_beams.shape)

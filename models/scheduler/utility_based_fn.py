@@ -71,10 +71,7 @@ class Util_fn:
         self.beam_util_log[
             self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
 
-        # self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
-
-
-    def sector_util(self):
+    def sector_utility(self):
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.
 
     ####################################################################################################################
