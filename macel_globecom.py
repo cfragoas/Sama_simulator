@@ -4,16 +4,12 @@ import os
 import tqdm
 import numpy as np
 import copy
-from prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
+from models.propagation.prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance, generate_bf_gain
 from user_eq import User_eq
 from random import gauss
-from make_voronoi import Voronoi
 from clustering import Cluster
 import matplotlib.pyplot as plt
-from itertools import product
-from matplotlib import cm
-import base_station
 from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
@@ -105,7 +101,7 @@ class Macel:
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
             if self.scheduling_opt:
-                t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                t_beam = base_station.generate_utility_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
                 base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
                 base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO

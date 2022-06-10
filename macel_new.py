@@ -5,16 +5,12 @@ import tqdm
 import numpy as np
 import pandas as pd
 import copy
-from prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
+from models.propagation.prop_models import generate_path_loss_map, generate_elevation_map, generate_azimuth_map, generate_gain_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance, generate_bf_gain
 from user_eq import User_eq
 from random import gauss
-from make_voronoi import Voronoi
 from clustering import Cluster
 import matplotlib.pyplot as plt
-from itertools import product
-from matplotlib import cm
-import base_station
 from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
@@ -35,8 +31,10 @@ class Macel:
         self.time_slot = time_slot  # size of the time slot (ms)
         self.scheduler_typ = scheduler_typ  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
 
-        if self.scheduler_typ == 'prop-cmp' or self.scheduler_typ == 'prop-smp':
-            self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
+        # if self.scheduler_typ == 'prop-cmp' or self.scheduler_typ == 'prop-smp':
+        #     self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
+
+        self.t_min = t_min  # minimum per beam allocated time if schdl opt is used (prop smp or prop cmp)
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -73,6 +71,32 @@ class Macel:
         ue = User_eq(positions=self.grid.grid, height=hrx)  # creating the user equipament object
         self.ue = ue
         # self.rx_height = rx_height
+
+
+    # UPLINK TESTING (DELETE ME!)
+    # ======================================================
+    # def generate_ue_gain_maps(self):
+    #     lines = self.grid.lines
+    #     columns = self.grid.columns
+    #     # az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.features,
+    #     #                               samples=self.cluster.features)
+    #     dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.features,
+    #                                            samples=self.cluster.features, plot=False)
+    #     # elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=self.cell_size, samples=None)
+    #
+    #     # path loss attenuation to sum with the beam gain
+    #     att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
+    #                                      frequency=self.base_station_list[0].frequency,  # todo
+    #                                      htx=1.5,
+    #                                      hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI !!!
+    #
+    #     # todo - especificar densidade espectral de potência dos ue e ver essa eq
+    #     rx_max_pwr = 0
+    #     ue_bw = 100
+    #     pw_in_5mghz = rx_max_pwr + 10 * np.log10(5 / ue_bw)
+    #     ue_in_ue_range = pw_in_5mghz + 30 - att_map > -100
+    #     pw_in_5mghz[ue_in_ue_range] = None
+
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
@@ -159,6 +183,10 @@ class Macel:
 
         self.generate_base_station_list(n_centers=n_centers, scheduler_typ=self.scheduler_typ)
         self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+        # ====================================================
+        # TESTING UPLINK (DELETE ME!!!)
+        # self.generate_ue_gain_maps()
+        # =====================================================
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
                                      sector_map=self.sector_map,
                                     pw_5mhz=self.default_base_station.tx_power + 10*np.log10(5/self.default_base_station.bw))  # calculating the best ch gain for each UE
@@ -203,7 +231,7 @@ class Macel:
                 ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
                                              & (self.ue.ue_bs[:, 1] == base_station.scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
                 pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
-
+                # print(ue_in_active_beam)
                 interf_in_active_ue = 0
                 # interference calculation
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
@@ -252,16 +280,7 @@ class Macel:
                 count_satisfied_ue_old = copy.copy(count_satisfied_ue)
                 self.ue.remove_ue(ue_index=satisfied_ue)  # removing selected UEs from the rest of simulation time
                 elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
-                # redoing the beam map and scheduling for the selected BSs
-                # print(bs_2b_updt)
-                # print(count_satisfied_ue)
-                # print(time_index)
             self.send_ue_to_bs(t_index=time_index+1, cap_defict=cap_deficit, bs_2b_updt=bs_2b_updt)
-            # else:
-            #     # if needed - updating the scheduler
-            #     for bs in self.base_station_list:
-            #         bs.scheduler.update_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
-            #                                       t_index=time_index+1, c_target=cap_deficit)
 
         # preparing output  data
         mean_snr = 10*np.log10(np.nansum(10**(snr[self.ue.active_ue]/10), axis=1))

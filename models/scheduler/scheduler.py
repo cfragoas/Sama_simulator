@@ -33,9 +33,8 @@ class Scheduler:
                 self.util_bsd_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs, c_target=c_target)
                 # self.generate_weighted_bw(ue_bs=ue_bs, bs_index=self.bs_index, active_beams=active_beams, t_index=t_index)
             else:
-                pass
-                # todo fazer a exceção aqui
-                # raise Exception
+                raise ValueError('The scheduler type is typed wring or its not supported! Please check the param.yml file.')
+
 
     def util_bsd_bw(self, active_beams, t_index, ue_bs, c_target=None, ue_updt=False):
         if self.scheduler_typ == 'prop-smp':

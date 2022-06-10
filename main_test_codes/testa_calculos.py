@@ -3,9 +3,8 @@ from make_grid import Grid
 from make_voronoi import Voronoi
 from clustering import Cluster
 from base_station import BaseStation
-from prop_models import generate_azimuth_map, generate_elevation_map, generate_gain_map, generate_path_loss_map, \
+from models.propagation.prop_models import generate_azimuth_map, generate_elevation_map, generate_gain_map, generate_path_loss_map, \
     generate_rx_power_map, generate_snr_map, generate_capcity_map, generate_euclidian_distance
-from macel import Macel
 import numpy as np
 from demos_and_examples.kmeans_from_scratch import K_Means
 import time

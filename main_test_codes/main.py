@@ -4,9 +4,8 @@ import models
 from make_grid import Grid
 from clustering import Cluster
 from make_voronoi import Voronoi
-from macel import Macel
 import matplotlib.pyplot as plt
-from prop_models import generate_path_loss_map, generate_srn_map, generate_capcity_map
+from models.propagation.prop_models import generate_path_loss_map, generate_capcity_map
 
 grid = Grid()  # grid object
 grid.make_grid(100, 100)  # creating a grid with x, y dimensions

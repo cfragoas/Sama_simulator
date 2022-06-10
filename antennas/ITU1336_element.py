@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 class Element_ITU1336:
     # original from recomendation ITU F1336-5 item 3.1.1
