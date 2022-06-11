@@ -27,7 +27,7 @@ class Scheduler:
     def generate_beam_bw(self, active_beams, t_index, ue_bs=None, c_target=None, ue_updt=False):
         if self.scheduler_typ == 'RR':
             if t_index == 0:
-                self.freq_scheduler.generate_proportional_beam_bw(active_beams=active_beams)
+                self.freq_scheduler.generate_RR_bw(ue_bs=ue_bs, active_beams=active_beams)
         elif self.scheduler_typ == 'prop-smp' or self.scheduler_typ == 'prop-cmp':
             if ue_bs is not None or c_target is not None:
                 self.util_bsd_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs, c_target=c_target)
@@ -87,7 +87,7 @@ class Scheduler:
                                                                        beam_util_log=self.util_fn.beam_util_log,
                                                                        sector_util=self.util_fn.sector_util)
         elif self.scheduler_typ == 'RR':
-            if t_index == 0:
-                self.time_scheduler.generate_proportional_beam_timing(time_slot=1, active_beams=active_beams)
+            if t_index != self.t_index:
+                self.time_scheduler.generate_ue_qtd_proportional_beam_timing(time_slot=1, active_beams=active_beams, t_index=t_index)
 
         # self.beam_timing_sequence = self.beam_timing_sequence.astype(int)

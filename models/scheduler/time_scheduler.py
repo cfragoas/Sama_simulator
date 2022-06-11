@@ -42,13 +42,13 @@ class Time_Scheduler:
                     self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][
                         self.active_beams_index[sector_index].astype(int)]
 
-    def generate_ue_qtd_proportional_beam_timing(self, time_slot, active_beams):
+    def generate_ue_qtd_proportional_beam_timing(self, time_slot, active_beams, t_index):
         #  this function will allocate the beams times based on the quantities of active UEs in each beam
         users_sector = np.sum(active_beams, axis=0)
         users_sector[users_sector == 0] = 0.1
         # beam_weights = np.round(active_beams / users_sector)
         self.weighted_act_beams = np.round(active_beams / users_sector)
-        self.generate_weighted_time_matrix()
+        self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
 
         # self.beam_timing = [None] * self.n_sectors
         #
@@ -89,7 +89,7 @@ class Time_Scheduler:
         self.generate_utility_weighted_beam_time(t_total=self.simulation_time - t_index, ue_bs=ue_bs, active_beams=active_beams,
                                                  t_min=t_min, beam_util=beam_util, beam_util_log=beam_util_log, sector_util=sector_util)  # T_MIN HERE IS THE MINIMUM RESERVED BEAM TIME !!!!! FIXFIXFIXFIX
 
-        self.generate_weighted_time_matrix()
+        self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
         # self.beam_timing = [None] * self.weighted_act_beams.shape[1]  # VER SE A DIMENSÃO ESTÁ CERTA AQUI
         # for sector_index, _ in enumerate(self.beam_timing):
         #     sector = np.where(self.weighted_act_beams[:, sector_index] != 0)[0]
@@ -120,7 +120,7 @@ class Time_Scheduler:
         #
         # self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
 
-    def generate_weighted_time_matrix(self):
+    def generate_weighted_time_matrix(self, simulation_time):
         self.beam_timing = [None] * self.n_sectors
 
         for sector_index, _ in enumerate(self.beam_timing):
@@ -137,10 +137,10 @@ class Time_Scheduler:
 
         self.beam_timing_sequence = np.zeros(
             shape=(self.n_sectors,
-                   np.round(self.simulation_time / self.time_slot).astype(
+                   np.round(simulation_time / self.time_slot).astype(
                        int))) + self.n_beams  # filling the initial beam_timing_sequence with beam_index that non exist
         wighted_act_beams_bkp = copy.copy(self.weighted_act_beams)
-        for time in np.arange(0, self.simulation_time, self.time_slot):
+        for time in np.arange(0, simulation_time, self.time_slot):
             wighted_act_beams = self.next_weighted_active_beam(
                 self.weighted_act_beams)  # passing the beam list with how many times each beam need to be active
             for sector_index, _ in enumerate(self.beam_timing):
