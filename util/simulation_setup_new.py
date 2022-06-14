@@ -58,7 +58,8 @@ def create_enviroment(parameters):
                   simulation_time=parameters['macel_param']['time_slots'],
                   time_slot=parameters['macel_param']['time_slot_lngt'],
                   t_min=parameters['macel_param']['t_min'],
-                  scheduler_typ=parameters['macel_param']['scheduler_typ'])
+                  scheduler_typ=parameters['macel_param']['scheduler_typ'],
+                  bw_slot=parameters['macel_param']['bw_slot'])
                   # scheduling_opt=parameters['macel_param']['scheduling_opt'],
                   # simplified_schdl=parameters['macel_param']['simplified_schdl'])
 

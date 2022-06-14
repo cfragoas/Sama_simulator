@@ -42,7 +42,7 @@ class Time_Scheduler:
                     self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][
                         self.active_beams_index[sector_index].astype(int)]
 
-    def generate_ue_qtd_proportional_beam_timing(self, time_slot, active_beams, t_index):
+    def generate_ue_qtd_proportional_beam_timing(self, active_beams, t_index):
         #  this function will allocate the beams times based on the quantities of active UEs in each beam
         users_sector = np.sum(active_beams, axis=0)
         users_sector[users_sector == 0] = 0.1

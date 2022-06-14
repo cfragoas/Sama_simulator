@@ -15,7 +15,7 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, t_min=None,
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, t_min=None, bw_slot=None,
                  criteria=None, scheduler_typ=None, log=False):
 
         self.grid = grid  # grid object - size, points, etc
@@ -35,6 +35,7 @@ class Macel:
         #     self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
 
         self.t_min = t_min  # minimum per beam allocated time if schdl opt is used (prop smp or prop cmp)
+        self.bw_slot = bw_slot # slot fixed bandwidth for scheduller with a queue (RR)
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -65,7 +66,8 @@ class Macel:
         # setting the scheduler for each bs
         for bs_index, bs in enumerate(self.base_station_list):
             bs.initialize_scheduler(scheduler_typ=scheduler_typ, time_slot=self.time_slot, t_min=self.t_min,
-                                              simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria)
+                                    simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
+                                    bw_slot=self.bw_slot)
 
     def set_ue(self, hrx):
         ue = User_eq(positions=self.grid.grid, height=hrx)  # creating the user equipament object

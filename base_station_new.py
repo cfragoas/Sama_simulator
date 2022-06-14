@@ -43,10 +43,11 @@ class BaseStation:
             else:
                 self.beams = None
 
-    def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None):
+    def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None, bw_slot=None):
         # initializing the scheduler with a bs_index to ease internal computations
         self.scheduler = Scheduler(scheduler_typ=scheduler_typ, bs_index=bs_index, bw=self.bw, time_slot=time_slot,
-                                   simulation_time=simulation_time, tx_power=self.tx_power, t_min=t_min, c_target=c_target)
+                                   simulation_time=simulation_time, tx_power=self.tx_power, t_min=t_min, c_target=c_target,
+                                   bw_slot=bw_slot)
 
     def beam_configuration(self, az_map, elev_map=None): # change the beam configuration according to the grid if beamforing is used
         # always in sample list!!!

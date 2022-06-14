@@ -23,10 +23,10 @@ if __name__ == '__main__':
 
     write_conf(folder=folder, parameters=global_parameters, yml_file=param_path)  # saving the param/stats files
 
-    p = prep_multiproc(threads=global_parameters['exec_param']['threads'])
+    processing_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])
 
     global_parameters['exec_param']['simulation_time'] = []
-    global_parameters['exec_param']['threads'] = p._processes
+    global_parameters['exec_param']['threads'] = processing_pool._processes
     global_parameters['exec_param']['PC_ID'] = socket.gethostname()
 
     macel = create_enviroment(parameters=global_parameters)
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     max_iter = global_parameters['exec_param']['max_iter']
 
     bs_range = [1, 2, 4, 6, 8, 10, 12, 14, 16]
+    # bs_range = [2, 4, 6, 8, 10, 12, 14, 16]
 
     for n_cells in bs_range:
         print('running with ', n_cells, ' BSs')
@@ -46,12 +47,24 @@ if __name__ == '__main__':
         # macel.grid.clear_grid()  # added to avoid increasing UE number without intention
         bs_vec.append(n_cells)
 
-        data = list(
-                    tqdm.tqdm(
-                        p.imap_unordered(simulate_macel_downlink,
-                                         [(n_cells, macel, n_samples, n_centers) for i in range(max_iter)]),
-                        total=max_iter
-                ))
+        i = 0
+        for sub_iter in range(0, max_iter, round(max_iter / 20)):
+            i += 1
+            data = []
+            print(' ')
+            print('Running step ', i, ' of ', round(max_iter/(max_iter / 20)), ':')
+
+            data_ = list(
+                        tqdm.tqdm(
+                            processing_pool.imap_unordered(simulate_macel_downlink,
+                                             [(n_cells, macel, n_samples, n_centers) for i in range(round(max_iter / 20))]),
+                            total=round(max_iter / 20)
+                    ))
+
+            data = data + data_
+
+        # processing_pool.terminate()
+        # processing_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])
 
         snr_cap_stats = [x[0] for x in data]
         raw_data = [x[1] for x in data]
@@ -79,3 +92,5 @@ if __name__ == '__main__':
         global_parameters['exec_param']['simulation_time'].append(np.round((time.time()-initial_time)/60, decimals=2))  # simulation time (in minutes)
 
         write_conf(folder=folder, parameters=global_parameters)
+
+        data = None
