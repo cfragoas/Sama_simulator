@@ -1,3 +1,5 @@
+# Just a set of auxiliary functions to setup a simulation environment
+
 
 def simulate_macel_downlink(args):  # todo - fix the and check all the options here
     n_bs = args[0]
@@ -14,6 +16,7 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
 
 
 def create_enviroment(parameters):
+    # this function creates the objects and the relationships necessary to run a simulation in simulate_macel_downlink
     from make_grid import Grid
     from antennas.ITU2101_Element import Element_ITU2101
     from antennas.beamforming import Beamforming_Antenna
@@ -56,10 +59,10 @@ def create_enviroment(parameters):
                   cell_size=parameters['roi_param']['cel_size'],  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,
                   simulation_time=parameters['macel_param']['time_slots'],
+                  time_slot=parameters['macel_param']['time_slot_lngt'],
                   t_min=parameters['macel_param']['t_min'],
-                  scheduler=parameters['macel_param']['scheduler_typ'])
-                  # scheduling_opt=parameters['macel_param']['scheduling_opt'],
-                  # simplified_schdl=parameters['macel_param']['simplified_schdl'])
+                  scheduler_typ=parameters['macel_param']['scheduler_typ'],
+                  bw_slot=parameters['macel_param']['bw_slot'])
 
     return macel
 

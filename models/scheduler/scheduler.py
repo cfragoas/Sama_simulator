@@ -1,14 +1,18 @@
 from models.scheduler.freq_scheduler import Freq_Scheduler
 from models.scheduler.time_scheduler import Time_Scheduler
 
-# TODO - LEMBRAR QUE NO MODELO PROPOSTO COMPLETO O C_TARGET PRECISA SER ATUALIZADOR POR FORA
+# Scheduler class is responsable to call the correct time and frequency schedulers depending of the state of the
+# simulation on the last time index and the choosen scheduler (scheduler_typ). It has one Freq_Scheduler and one
+# Time_Scheduler object.
+# A Schedule class object is unique for each base station.
 
 class Scheduler:
     def __init__(self, scheduler_typ, bs_index, bw, simulation_time, time_slot, t_min=None, bw_slot=None,
                  c_target=None, tx_power=None):
-        self.scheduler_typ = scheduler_typ
-        self.bw = bw
-        self.t_index = None
+        self.scheduler_typ = scheduler_typ  # its a string representing the choosen scheduller
+        self.bw = bw  # the bandwidth available for each BS sector (MHz)
+        self.t_index = None  # indicates the last t_index when the scheduler is called
+        # instatiating the Freq_Scheduler and TIme_Scheduler based on the scheduler_type options
         if self.scheduler_typ == 'prop-cmp' or self.scheduler_typ == 'prop-smp':
             from models.scheduler.utility_based_fn import Util_fn
             self.util_fn = Util_fn(bs_index=bs_index, c_target=c_target, tx_power=tx_power, bw=bw)
@@ -19,24 +23,44 @@ class Scheduler:
             self.freq_scheduler = Freq_Scheduler(bw=bw, bs_index=bs_index, scheduler_typ=scheduler_typ, bw_slot=bw_slot)
             self.time_scheduler = Time_Scheduler(simulation_time=simulation_time, scheduler_typ=scheduler_typ,
                                                  bs_index=bs_index, time_slot=time_slot)
+        elif self.scheduler_typ == 'BCQI':
+            self.freq_scheduler = Freq_Scheduler(bw=bw, bs_index=bs_index, scheduler_typ=scheduler_typ,
+                                                 tx_power=tx_power, simulation_time=simulation_time,
+                                                 time_slot=time_slot)
+            self.time_scheduler = Time_Scheduler(simulation_time=simulation_time, scheduler_typ=scheduler_typ,
+                                                 bs_index=bs_index, time_slot=time_slot)
+        else:
+            raise ValueError('Invalid scheduler type! Please check the param.yml file.')
 
-    def update_scheduler(self, active_beams, ue_bs, t_index=0, c_target=None, ue_updt=False):
-        self.generate_beam_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs, c_target=c_target, ue_updt=ue_updt)
+    def update_scheduler(self, active_beams, ue_bs, t_index=0, c_target=None, ue_updt=False, updated_beams=None):
+        # this is the function responsable to call the general time and frequency functions to update the schedullers,
+        # if necessary
+        self.generate_beam_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs,
+                              c_target=c_target, ue_updt=ue_updt, updated_beams=updated_beams)
         self.generate_beam_timing(ue_bs=ue_bs, active_beams=active_beams, t_index=t_index,
                                   c_target=c_target, ue_updt=ue_updt)
 
-    def generate_beam_bw(self, active_beams, t_index, ue_bs=None, c_target=None, ue_updt=False):
+    def generate_beam_bw(self, active_beams, t_index, ue_bs=None, c_target=None, ue_updt=False, updated_beams=None):
+        # this function is responsable to call the frequency schedulers for the choosen scheduler_typ
         if self.scheduler_typ == 'RR':
-            self.freq_scheduler.generate_RR_bw(ue_bs=ue_bs, active_beams=active_beams)
+            if self.t_index != t_index:
+                self.t_index = t_index
+                self.freq_scheduler.generate_RR_bw(ue_bs=ue_bs, active_beams=active_beams, updated_beams=updated_beams)
         elif self.scheduler_typ == 'prop-smp' or self.scheduler_typ == 'prop-cmp':
             if ue_bs is not None or c_target is not None:
                 self.util_bsd_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs, c_target=c_target)
                 # self.generate_weighted_bw(ue_bs=ue_bs, bs_index=self.bs_index, active_beams=active_beams, t_index=t_index)
             else:
-                raise ValueError('The scheduler type is typed wring or its not supported! Please check the param.yml file.')
+                raise ValueError('The scheduler type is typed wrong or its not supported! Please check the param.yml file.')
+        elif self.scheduler_typ == 'BCQI':
+            if self.time_scheduler.best_cqi_beams is None or self.t_index != t_index:
+                self.generate_beam_timing(ue_bs=ue_bs, active_beams=active_beams, t_index=t_index)
+            self.freq_scheduler.generate_best_CQI_bw(ue_bs=ue_bs, best_cqi_beams=self.time_scheduler.best_cqi_beams,
+                                                     c_target=c_target)
 
 
     def util_bsd_bw(self, active_beams, t_index, ue_bs, c_target=None, ue_updt=False):
+        # this function is exclusive for the proposed utility-based scheduler call and auxiliary functions (util_fn object)
         if self.scheduler_typ == 'prop-smp':
             if t_index == 0:
                 self.util_fn.update_c_target(shape=ue_bs.shape[0])
@@ -58,7 +82,7 @@ class Scheduler:
 
     def generate_beam_timing(self, ue_bs, active_beams, t_index=0, c_target=None, ue_updt=False):
         # reminder: t_min is the minimum reserved per beam time
-        # this function point to other functions based on the choosen scheduler
+        # this function is responsable to call the time schedulers and auxiliary functions for the choosen scheduler_typ
         if t_index == 0:
             # this function call is to pass the base dimensions to simplfy some interal expressions (beams and sectors)
             self.time_scheduler.set_base_dimensions(n_beams=active_beams.shape[0], n_sectors=active_beams.shape[1])
@@ -79,6 +103,7 @@ class Scheduler:
         elif self.scheduler_typ == 'prop-smp':
             if ue_updt:
                 if t_index != self.t_index:
+                    self.t_index = t_index
                     self.util_fn.beam_utility(ue_bs=ue_bs, active_beams=active_beams)
                 self.util_fn.sector_utility()
                 self.time_scheduler.generate_utility_based_beam_timing(t_index=t_index, ue_bs=ue_bs,
@@ -88,7 +113,9 @@ class Scheduler:
                                                                        sector_util=self.util_fn.sector_util)
         elif self.scheduler_typ == 'RR':
             if ue_updt:
-                if t_index != self.t_index:
-                    self.time_scheduler.generate_ue_qtd_proportional_beam_timing(active_beams=active_beams, t_index=t_index)
+                self.time_scheduler.generate_ue_qtd_proportional_beam_timing(active_beams=active_beams, t_index=t_index)
 
-        # self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
+        elif self.scheduler_typ == 'BCQI':
+            if t_index != self.t_index:
+                self.t_index = t_index
+                self.time_scheduler.generate_best_cqi_beam_timing(ue_bs=ue_bs)

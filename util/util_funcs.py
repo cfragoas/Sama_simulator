@@ -19,3 +19,20 @@ def elevation_angle(centroid, x, htx, hrx, cell_size, dist_matrix):
     theta = np.rad2deg(np.arctan((htx-hrx)/d_euclid))
 
     return theta
+
+def shannon_cap():
+    return
+
+def shannon_bw(bw, tx_power, channel_state, c_target):
+    # this function will return the needed bw for a target capacity
+    # bw in hearts, c_target in bits/s, tx_power in dBW, channel_state in dB
+    k = 1.380649E-23  # Boltzmann's constant (J/K)
+    t = 290  # absolute temperature
+    pw_noise_bw = k * t * bw  # noise power
+    # it is important here that tx_pw been in dBW (not dBm!!!)
+    tx_pw = 10 ** (tx_power / 10)  # converting from dBW to watt
+    snr = (tx_pw * 10 ** (channel_state/10)) / pw_noise_bw  # signal to noise ratio (linear, not dB) todo - checar se precisa verser 10^x/10 no channel state
+    # bw_need = 2 ** (c_target[best_cqi_ue] / snr) - 1
+    bw_need = c_target / (np.log2(1 + snr)) # needed bw to achieve the capacity target
+
+    return bw_need

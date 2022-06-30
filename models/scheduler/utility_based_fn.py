@@ -40,16 +40,20 @@ class Util_fn:
         for ue_index, ue in enumerate(ue_bs):
             bw_min[ue_index] = beam_bw[ue[1], ue[2]] * 10E6  # minimum per user bw
 
-        bw = 5 * 10 * 6  # making SNR for a bandwidth of 5MHz
+        bw = self.bw * 10E6  # making SNR for a bandwidth of 5MHz
         k = 1.380649E-23  # Boltzmann's constant (J/K)
         t = 290  # absolute temperature
         pw_noise_bw = k * t * bw  # noise power
         # it is important here that tx_pw been in dBW (not dBm!!!)
         tx_pw = 10 ** (self.tx_power / 10)  # converting from dBW to watt
         snr[active_ue] = (tx_pw * 10 ** (ue_bs[active_ue, 3] / 10)) / pw_noise_bw  # signal to noise ratio (linear)
-        bw_need[active_ue] = 2 ** (c_target[active_ue] / snr[active_ue]) - 1  # needed bw to achieve the capacity target
+        bw_need[active_ue] = c_target[active_ue]/(np.log2(1 + snr[active_ue]))
+        # bw_need[active_ue] = 2 ** (c_target[active_ue] / snr[active_ue]) - 1  # needed bw to achieve the capacity target
+        snr[active_ue][snr[active_ue] < 0] = 10E-12  # to prevent a negative utility value in log2
 
         self.slice_util[active_ue] = (bw_min[active_ue] / bw_need[active_ue]) * np.log2(snr[active_ue])
+        # if np.sum(self.slice_util[active_ue] < 0) > 0:
+        #     print('ui')
 
 
     def beam_utility(self, ue_bs, active_beams):
@@ -65,11 +69,15 @@ class Util_fn:
                 self.beam_util[beam_index, sector_index] = np.sum(self.slice_util[ue_in_beam_bs])
 
         # ================= CHECAR ALTERAÇÃO !!! ====================
+        self.beam_util[self.beam_util < 0] = 10E-12  # to prevent a negative utility value in log2
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
         beams_2calc = self.beam_util != 0  # active beams and beam_util not between 0~1
-        self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
-        self.beam_util_log[
-            self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
+        try:
+            self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+        except:
+            print(np.where(self.slice_util<0))
+            print('ui')
+        self.beam_util_log[self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
 
     def sector_utility(self):
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.

@@ -15,8 +15,8 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, t_min=None,
-                 criteria=None, scheduler=None, scheduling_opt=False, log=False, simplified_schdl=True):
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, t_min=None, bw_slot=None,
+                 criteria=None, scheduler_typ=None, log=False):
 
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
@@ -27,15 +27,15 @@ class Macel:
         self.log = log  # if true, prints information about the ongoing process
         self.default_base_station = base_station  # BaseStation class variable
         # self.scheduling_opt = scheduling_opt  # to choose if the optimized scheduling is to be used
-        self.simulation_time = simulation_time  # number of time slots
-        self.scheduler = scheduler  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+        self.simulation_time = simulation_time  # number of time slots (ms)
+        self.time_slot = time_slot  # size of the time slot (ms)
+        self.scheduler_typ = scheduler_typ  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
 
-        if self.scheduler == 'prop-cmp' or scheduler == 'prop-smp':
-            self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
-
-        # if self.scheduling_opt:
-        #     self.simplified_schdl = simplified_schdl
+        # if self.scheduler_typ == 'prop-cmp' or self.scheduler_typ == 'prop-smp':
         #     self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
+
+        self.t_min = t_min  # minimum per beam allocated time if schdl opt is used (prop smp or prop cmp)
+        self.bw_slot = bw_slot # slot fixed bandwidth for scheduller with a queue (RR)
 
         self.ue = None  # the user equipment object - position and technical characteristics
 
@@ -53,31 +53,52 @@ class Macel:
         self.cap_map = None
         self.cluster = None
 
-    def get_scheduler(schdl_name):
-        # round-robin, prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
-        switcher = {
-            'RR': 0,
-            'prop-cmp': 1,
-            'prop-smp': 2,
-            'BCQI': 3
-        }
-
-        return switcher.get(schdl_name, "nothing")
-
     def set_base_station(self, base_station):  # simple function, but will include sectors and MIMO in the future
         self.default_base_station = base_station
 
-    def generate_base_station_list(self, n_centers):
+    def generate_base_station_list(self, n_centers, scheduler_typ):
         # generating copies for different base station configurations
         self.base_station_list = []
         self.n_centers = n_centers
         for i in range(self.n_centers):
             self.base_station_list.append(copy.deepcopy(self.default_base_station))
 
+        # setting the scheduler for each bs
+        for bs_index, bs in enumerate(self.base_station_list):
+            bs.initialize_scheduler(scheduler_typ=scheduler_typ, time_slot=self.time_slot, t_min=self.t_min,
+                                    simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
+                                    bw_slot=self.bw_slot)
+
     def set_ue(self, hrx):
         ue = User_eq(positions=self.grid.grid, height=hrx)  # creating the user equipament object
         self.ue = ue
         # self.rx_height = rx_height
+
+
+    # UPLINK TESTING (DELETE ME!)
+    # ======================================================
+    # def generate_ue_gain_maps(self):
+    #     lines = self.grid.lines
+    #     columns = self.grid.columns
+    #     # az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.features,
+    #     #                               samples=self.cluster.features)
+    #     dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.features,
+    #                                            samples=self.cluster.features, plot=False)
+    #     # elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=self.cell_size, samples=None)
+    #
+    #     # path loss attenuation to sum with the beam gain
+    #     att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
+    #                                      frequency=self.base_station_list[0].frequency,  # todo
+    #                                      htx=1.5,
+    #                                      hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI !!!
+    #
+    #     # todo - especificar densidade espectral de potência dos ue e ver essa eq
+    #     rx_max_pwr = 0
+    #     ue_bw = 100
+    #     pw_in_5mghz = rx_max_pwr + 10 * np.log10(5 / ue_bw)
+    #     ue_in_ue_range = pw_in_5mghz + 30 - att_map > -100
+    #     pw_in_5mghz[ue_in_ue_range] = None
+
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
@@ -106,52 +127,33 @@ class Macel:
 
         return self.ch_gain_map, self.sector_map
 
-    def send_ue_to_bs(self, simulation_time, time_slot, bw_calc=False, cap_defict=None, t_min=None):
+    def send_ue_to_bs(self, t_index=0, cap_defict=None, t_min=None, bs_2b_updt=None, updated_beams=None):
         if cap_defict is None:
             cap_defict = self.criteria + np.zeros(shape=self.ue.ue_bs.shape[0])
 
-        if bw_calc:  # if just need to adjust de bw without retiming the beams
-            for bs_index, base_station in enumerate(self.base_station_list):
-                # base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)  # todo não funciona isso aqui
-                base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
-        else:
-            # set random activation indexes for all the BSs
-            for bs_index, base_station in enumerate(self.base_station_list):
-                base_station.clear_active_beams()
-                # ue_in_bs = np.where(self.ue.ue_bs[:, 0] == bs_index)
+        if bs_2b_updt is None:
+            bs_2b_updt = range(len(self.base_station_list))
 
-                for sector_index in range(base_station.n_sectors):
-                    # ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
-                    # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
-                    # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
+        # set random activation indexes for all the BSs
+        for bs_index, bs in enumerate(self.base_station_list):
+            if bs_index in bs_2b_updt:
+                bs.clear_active_beams()
+                for sector_index in range(bs.n_sectors):
                     ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
                                                         & (self.ue.ue_bs[:, 2] == sector_index)), 1]
                     [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
-                    base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
+                    bs.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
-                if self.scheduler == 'prop-cmp' or self.scheduler == 'prop-smp':
-                # if self.scheduling_opt:
-                    if t_min is None:
-                        t_min = self.t_min
-
-                    t_beam = base_station.generate_utility_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria, t_min=t_min)  # LISANDRO
-
-                    base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False, scheduler=self.scheduler)  # precalculating the beam activation timings
-                    base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                    # else:
-                    #     base_station.slice_utility(ue_bs=self.ue.ue_bs, c_target=cap_defict)
-                    #     base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=cap_defict)
-
-                        # t_beam = base_station.generate_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
-                        # base_station.generate_beam_timing_new(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
-
-                elif self.scheduler == 'RR':
-                # else:
-                    base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, scheduler=self.scheduler)
-                    base_station.generate_proportional_beam_bw()
-
-        return
+        # SCHEDULING
+        for bs_index, bs in enumerate(self.base_station_list):
+            if bs_index in bs_2b_updt:
+                bs.scheduler.update_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
+                                              t_index=t_index, c_target=cap_defict, ue_updt=True)
+            else:
+                bs.scheduler.update_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
+                                              t_index=t_index, c_target=cap_defict, ue_updt=False,
+                                              updated_beams=updated_beams[bs_index])
 
     def place_and_configure_bs(self, n_centers, output_typ='raw', predetermined_centroids=None, clustering=True):
         if clustering:
@@ -182,39 +184,43 @@ class Macel:
 
         # =============================================================================================
 
-        self.generate_base_station_list(n_centers)
+        self.generate_base_station_list(n_centers=n_centers, scheduler_typ=self.scheduler_typ)
         self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+        # ====================================================
+        # TESTING UPLINK (DELETE ME!!!)
+        # self.generate_ue_gain_maps()
+        # =====================================================
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
                                      sector_map=self.sector_map,
                                     pw_5mhz=self.default_base_station.tx_power + 10*np.log10(5/self.default_base_station.bw))  # calculating the best ch gain for each UE
-        self.send_ue_to_bs(simulation_time=self.simulation_time, time_slot=1)
+        self.send_ue_to_bs()
 
         snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)
 
         return snr_cap_stats
 
     def simulate_ue_bs_comm(self, ch_gain_map, output_typ='raw'):
-        # ch_gain_map_total = ch_gain_map
-        # sector_map_total = self.sector_map
-        # self.sector_map = self.sector_map[:, self.ue.active_ue[0]].astype(int)
-        # ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
         self.sector_map = self.sector_map.astype(int)
 
-        cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
-        user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
-        meet_citeria = np.zeros(shape=self.base_station_list[0].beam_timing_sequence.shape[1])
-        ue_bs_table = pd.DataFrame(self.ue.ue_bs, columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
+        # creating the matrices to store the simulation metrics
+        cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
+        meet_citeria = np.zeros(shape=self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1])
+        ue_bs_table = pd.DataFrame(copy.copy(self.ue.ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
 
         snr[:] = np.nan
         cap[:] = np.nan
         user_time[:] = np.nan
-        user_bw[:] = np.nan
         act_beams_nmb[:] = np.nan
         user_per_bs[:] = np.nan
+
+        # this is because in BCQI an user can be active in a network and not receive any slice or bw
+        if self.scheduler_typ != 'BCQI':
+            user_bw[:] = np.nan
 
         # to calculate noise power
         k = 1.380649E-23  # Boltzmann's constant (J/K)
@@ -223,76 +229,70 @@ class Macel:
         elapsed_time = 0
         count_satisfied_ue_old = 0
 
-        for time_index, _ in enumerate(self.base_station_list[0].beam_timing_sequence.T):
+        for time_index, _ in enumerate(self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.T):
             v_time_index = time_index - elapsed_time  # virtual time index used after generating new beam timing sequence when needed
             #check the active Bs's in time_index
+            updated_beams = []  # this vector stores the schedulled beams in the time scheduler to inform the scheduller controler
             for bs_index, base_station in enumerate(self.base_station_list):
-                # todo - concertar para usuário sem BS!!!
-                ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
-                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
+                ue_in_active_beam = (self.ue.ue_bs[:, 0] == bs_index) & (self.ue.ue_bs[:, 1] == base_station.scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index])
+                active_ue_in_active_beam = np.where((base_station.scheduler.freq_scheduler.user_bw !=0) & ue_in_active_beam)
+                # ue_in_active_beam = np.where(active_ue_in_active_beam)
 
+                updated_beams.append(base_station.scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])
+
+                if base_station.scheduler.freq_scheduler.user_bw is None:  # uniform beam bw
+                    bw = base_station.scheduler.freq_scheduler.beam_bw[base_station.scheduler.time_scheduler.beam_timing_sequence[
+                                                  self.sector_map[bs_index, active_ue_in_active_beam], v_time_index],   # AQUI OI
+                                              self.sector_map[bs_index, active_ue_in_active_beam]]  # user BW
+                else:  # different bw for each user
+                    bw = base_station.scheduler.freq_scheduler.user_bw[active_ue_in_active_beam]
+
+                # ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
+                #                              & (self.ue.ue_bs[:, 1] == base_station.scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
+                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][active_ue_in_active_beam, self.ue.ue_bs[active_ue_in_active_beam, 1]]
                 interf_in_active_ue = 0
                 # interference calculation
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
-                        # if len(self.base_station_list) > 1:
-                        #     print('ui')
-                        interf = base_station.tx_power + \
-                                 ch_gain_map[bs_index2][ue_in_active_beam, base_station2.beam_timing_sequence[self.sector_map[bs_index2, ue_in_active_beam], v_time_index]]  # AQUI OI
+                        interf = base_station2.tx_power + \
+                                 ch_gain_map[bs_index2][active_ue_in_active_beam, base_station2.scheduler.time_scheduler.beam_timing_sequence[self.sector_map[bs_index2, active_ue_in_active_beam], v_time_index]]  # AQUI OI
                         interf_in_active_ue += 10**(interf/10)
-                        # print("interf ",interf)
-                        # print("interf total ",interf_in_active_ue)
-                # print("time slot:", time_index)
-                # print("snr (dB)", 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue))
-                if base_station.beam_bw is not None:  # uniform beam bw
-                    bw = base_station.beam_bw[base_station.beam_timing_sequence[
-                                                  self.sector_map[bs_index, ue_in_active_beam], v_time_index],   # AQUI OI
-                                              self.sector_map[bs_index, ue_in_active_beam]]  # user BW
-                else:  # different bw for each user
-                    bw = base_station.user_bw[ue_in_active_beam]
 
                 noise_power = k * t * bw * 10E6
                 interf_in_active_ue += noise_power
 
                 # metrics
-                snr[ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
-                cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/(10E6)
-                user_time[ue_in_active_beam, time_index] = 1
-                user_bw[ue_in_active_beam, time_index] = bw
+                snr[active_ue_in_active_beam, time_index] = 10*np.log10(10**(pw_in_active_ue/10)/interf_in_active_ue)
+                cap[active_ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/(10E6)
+                user_time[active_ue_in_active_beam, time_index] = 1
+                user_bw[active_ue_in_active_beam, time_index] = bw
                 act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-            if self.scheduler == 'prop-smp' or self.scheduler == 'prop-cmp':
-                # checking if one or multiple UEs have reached the target capacity
-                acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
-                satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
-                count_satisfied_ue = satisfied_ue.size
-                meet_citeria[time_index] = count_satisfied_ue  # storing metrics
+            # checking if one or multiple UEs have reached the target capacity and are to be removed from the ue_bs list
+            acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
+            satisfied_ue = np.where(acc_ue_cap >= self.criteria)[0]  # UEs that satisfied the capacity goal
+            count_satisfied_ue = satisfied_ue.size
+            bs_2b_updt = np.unique(self.ue.ue_bs[satisfied_ue, 0])  # is the BSs of the UEs that meet c_target
+            bs_2b_updt = bs_2b_updt[bs_2b_updt >= 0]  # removing the all the UEs that already have been removed before
+            meet_citeria[time_index] = count_satisfied_ue  # storing metrics
 
-                if self.scheduler == 'prop-cmp':  # if it is using the complete scheduling solution
-                    cap_defcit = self.criteria - acc_ue_cap
-                    cap_defcit = np.where(cap_defcit < 0, 1E-6, cap_defcit)
-                    self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1,
-                                       cap_defict=cap_defcit, bw_calc=True)
+            cap_deficit = self.criteria - acc_ue_cap
+            cap_deficit = np.where(cap_deficit < 0, 1E-6, cap_deficit)
 
-                if count_satisfied_ue != 0:
-                    elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
-                    if count_satisfied_ue_old != count_satisfied_ue:
-                        count_satisfied_ue_old = copy.copy(count_satisfied_ue)
-                        # if self.simplified_schdl:  # checking if the optimization method to be used is the simplified one
-                            # count_satisfied_ue_old = count_satisfied_ue  # to check if the satisfied ue number has varied
+            if count_satisfied_ue_old != count_satisfied_ue:
+                count_satisfied_ue_old = copy.copy(count_satisfied_ue)
+                self.ue.remove_ue(ue_index=satisfied_ue)  # removing selected UEs from the rest of simulation time
+                elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
+            # this command will redo the beam allocations and scheduling, if necessary
+            self.send_ue_to_bs(t_index=time_index+1, cap_defict=cap_deficit, bs_2b_updt=bs_2b_updt, updated_beams=updated_beams)
 
-                        self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                        time_left = self.simulation_time - elapsed_time
-                        new_tmin = self.t_min*(time_left/self.simulation_time)
-                        self.send_ue_to_bs(simulation_time=time_left, time_slot=1, t_min=new_tmin)  # redoing the beam weights and timings
-                        # else:
-                        #     self.ue.remove_ue(ue_index=satisfied_ue)  # removing the selected ues from the simulation
-                        #     self.send_ue_to_bs(simulation_time=self.simulation_time - elapsed_time, time_slot=1)  # redoing the beam weights and timings
-
-        # preparing output data
-        mean_snr = 10*np.log10(np.nansum(10**(snr[self.ue.active_ue]/10), axis=1))
+        if self.scheduler_typ == 'BCQI':
+            val_snr_line = np.nansum(snr, axis=1) != 0
+            # todo definir mean snr
+            mean_snr = 10 * np.log10(np.nanmean(10 ** (snr[val_snr_line, :] / 10), axis=1))
+        else:
+            mean_snr = 10 * np.log10(np.nansum(10 ** (snr[self.ue.active_ue] / 10), axis=1))
         cap_sum = np.nansum(cap[self.ue.active_ue], axis=1) / self.simulation_time  # ME ARRUMA !!!
         # cap_sum = np.nansum(cap[self.ue.active_ue], axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         mean_act_beams = np.mean(act_beams_nmb, axis=1)
@@ -301,9 +301,8 @@ class Macel:
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(self.cluster.centroids).astype(int)]
 
-
-
         # simple stats data
+
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
         # min_mean_snr = np.min(mean_mean_snr)
@@ -325,7 +324,7 @@ class Macel:
         # this part of the code is to check if one or multiple UEs have reached the criteria
         total_meet_criteria = None
         if self.criteria is not None:
-            total_meet_criteria = np.sum(cap_sum >= self.criteria)/cap_sum.shape[0]
+            total_meet_criteria = np.sum(cap_sum >= self.criteria)/self.ue.ue_bs.shape[0]
             deficit = self.criteria - cap_sum
             mean_deficit = np.mean(deficit)
             std_deficit = np.std(deficit)
@@ -362,267 +361,3 @@ class Macel:
             return snr_cap_stats, raw_data_dict
         if output_typ == 'raw':
             return raw_data_dict
-
-    def adjust_weights(self, max_iter):  # NOT USED (FOR NOW)
-        fulfillment = False
-        more_cells = False
-
-        path_loss_map = generate_path_loss_map(eucli_dist_map=self.voronoi.dist_mtx, centroids=self.voronoi.n_centers,
-                                               cell_size=self.cell_size, prop_model='fs', frequency=2.8,
-                                               htx=self.tx_height, hrx=self.rx_height)
-
-        rx_power_map = self.tx_power - path_loss_map
-
-        if self.log:
-            print('Generated ', self.voronoi.n_centers, 'reception power maps')
-
-        # main loop - increases cell number and changes cell size when criteria is not match
-        while not more_cells:
-            # checking the fulfillment of the criteria
-            counter = 0
-            total_points = len(self.grid.grid[0]) * len(self.grid.grid[1])
-            total_coverate_perc = np.zeros(shape=(max_iter))
-
-            while not fulfillment:
-                counter += 1
-                fulfill_criteria_abs = np.zeros(shape=(self.voronoi.n_centers))
-                fulfill_criteria_perc = np.zeros(shape=(self.voronoi.n_centers))
-
-                total_coverage_abs = 0
-
-                for i in range(self.voronoi.n_centers):
-                    indices = np.where(self.voronoi.power_voronoi_map == i)
-                    total_points_centroid = len(indices[0])
-                    # indices = list(zip(indices[0], indices[1]))
-                    x = len(np.where(rx_power_map[i][indices[0], indices[1]] > self.criteria)[0])
-                    fulfill_criteria_abs[i] = len(np.where(rx_power_map[i][indices[0], indices[1]] > self.criteria)[0])
-                    fulfill_criteria_perc[i] = fulfill_criteria_abs[i]/total_points_centroid
-                    total_coverage_abs += fulfill_criteria_abs[i]
-
-                total_coverate_perc[counter - 1] = total_coverage_abs/total_points
-
-                if not (fulfill_criteria_perc[fulfill_criteria_perc > 0.85]).size == self.voronoi.n_centers:  # checking if the criteria is met for all cells
-                    new_weights = np.zeros(shape=(self.voronoi.n_centers))
-                    for i, weight in enumerate(self.voronoi.weights):  # changing all weights
-                        new_weight = gauss(mu=weight, sigma=weight/10)
-                        new_weights[i] = new_weight
-                    self.voronoi.generate_power_voronoi(weights=new_weights)  # calculating new voronoi with the new weights
-                else:
-                    if self.log:
-                        print('Criteria was met in ', counter, 'iterations')
-                        print(fulfill_criteria_perc)
-                        print((fulfill_criteria_perc[fulfill_criteria_perc > 0.85]).size)
-                    return more_cells, total_coverate_perc  # return false when the criteria is met
-
-                if counter >= max_iter:
-                    more_cells = True
-                    if self.log:
-                        print('Criteria was not met. Thought ', counter, 'iterations, the best result was ', max(total_coverate_perc))
-                    return more_cells, total_coverate_perc
-
-
-    def adjust_cell_number(self, min_n_cell, max_iter, max_n_cell=None, default_cells=None, processes=-1, log=False, log_lv=3):
-        more_cells = True  # variable to change value when a desired criteria is met
-        if default_cells is not None:
-            n_cells = default_cells.shape[0] + min_n_cell
-        else:
-            n_cells = min_n_cell  # minimum cell number
-        lines = self.grid.lines  # grid line size
-        columns = self.grid.columns  # grid column size
-        weight_norm_param = 15  # not using wights, for now
-        max_iter = max_iter  # maximum number of iterations per BS number
-        total_coverage_perc = []
-        snr_samples_hist = []
-        snr_grid_hist = []
-        cap_samples_hist = []
-        cap_grid_hist = []
-        n_cells_hist = []
-
-        if self.log:
-            print('Initializing execution...')
-            print(max_iter, 'iterations per cluster process')
-
-        self.generate_base_station_list(n_cells=n_cells)
-        # self.base_station_list = []
-        # for i in range(n_cells):
-        #     self.base_station_list.append(self.default_base_station)  # generating copies for different base station configurations
-
-        # creating a poll for multithreading
-        if processes == -1:  # to use all available cores -1 (using all threads may cause system instability)
-            threads = os.cpu_count()
-            p = multiprocessing.Pool(processes=threads-1)
-        else:
-            p = multiprocessing.Pool(processes=processes)
-
-        # executing the function (optmize_cell) that will sample and calcullate and optimize the macro cell performance
-        # it will return the performance and the position of each BS per iteration in data in list form
-        data = list(
-            tqdm.tqdm(p.imap_unordered(self.optimize_cell, [(n_cells, default_cells) for i in range(max_iter)]), total=max_iter
-        ))
-
-        data = np.array(data)
-        data = np.transpose(data)
-        perf_list = data[0]
-        centroids_list = data[1]
-        # sample_list = data[2]
-        # samples_dist = np.sum(sample_list, axis=0)
-        # plt.matshow(samples_dist)
-        # plt.colorbar()
-        # plt.show()
-
-        map_data = np.zeros(shape=(lines, columns))
-        map_data2 = np.zeros(shape=(lines, columns))
-        for i, centroids in enumerate(centroids_list):
-            for j, centroid in enumerate(centroids):
-                if j > 1:
-                    map_data[int(np.round(centroid[0], 0)), int(np.round(centroid[1], 0))] += perf_list[i]/10E6
-                    map_data2[int(np.round(centroid[0], 0)), int(np.round(centroid[1], 0))] += 1
-
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        X, Y = np.meshgrid(range(lines), range(columns))
-        ax.plot_surface(X, Y, map_data)
-        ax.scatter3D([100, 400], [100, 400], [10, 10], color='black', alpha=0.8, marker='x')
-        plt.show()
-
-        plt.matshow(map_data.T, origin='lower')
-        plt.set_cmap('RdYlGn')
-        plt.colorbar()
-        plt.scatter([100, 400], [100, 400])
-        plt.show()
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        X, Y = np.meshgrid(range(lines), range(columns))
-        ax.plot_surface(X, Y, map_data2)
-        ax.scatter([100, 400], [100, 400], [0, 0])
-        plt.show()
-
-        plt.matshow(map_data2.T,origin='lower')
-        plt.colorbar()
-        plt.scatter([100, 400], [100, 400])
-        plt.show()
-
-        map_data_norm = np.where(map_data!=0, map_data/map_data2, 0)
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        X, Y = np.meshgrid(range(lines), range(columns))
-        ax.plot_surface(X, Y, map_data_norm)
-        ax.scatter([100, 400], [100, 400], [10, 10])
-        plt.show()
-
-        plt.matshow(map_data_norm.T, origin='lower')
-        plt.colorbar()
-        plt.scatter([100, 400], [100, 400])
-        plt.show()
-
-    def optimize_cell(self, args):
-        grid = self.grid
-        # grid = args[0]
-        n_cells = args[0]
-        default_cells = args[1]
-        # print(default_cells)
-        lines = grid.lines
-        columns = grid.columns
-        grid.clear_grid()
-        grid.make_points(dist_type='gaussian', samples=20, n_centers=self.n_centers, random_centers=False, plot=False)
-        # cluster = Cluster()
-        # cluster.gaussian_mixture_model(grid=grid.grid, n_clusters=n_cells, plot=False)
-        # exotic cluster execution
-        cluster = K_Means(k=4)
-        cluster.fit(data=grid.grid, predetermined_centroids=np.array([[100, 100], [400, 400]]))
-        # cluster.predict()
-        # cluster.plot()
-
-        # JUST A TEST!!!
-        if hasattr(base_station_list[0].antenna, 'beamforming_id'):
-            pass
-
-        azi_map = generate_azimuth_map(lines=lines, columns=columns, centroids=cluster.centroids,
-                                        samples=cluster.features)
-        dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=cluster.centroids,
-                                               samples=cluster.features, plot=False)
-        elev_map = generate_elevation_map(htx=self.default_base_station.tx_height, hrx=self.rx_height,
-                                            d_euclid=dist_map, cell_size=self.cell_size, samples=None)
-        path_loss_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size,
-                                                prop_model='fs', frequency=self.default_base_station.frequency,
-                                                htx=self.default_base_station.tx_height, hrx=self.rx_height,
-                                                samples=None)
-
-        gain_map = generate_gain_map(antenna=self.default_base_station.antenna, elevation_map=elev_map,
-                                          azimuth_map=azi_map, base_station_list=self.base_station_list)
-
-        rx_pw_map = generate_rx_power_map(path_loss_map=path_loss_map, azimuth_map=azi_map,
-                                            elevation_map=elev_map, base_station=self.default_base_station,
-                                            gain_map=gain_map)
-        snr_map, snr_map_uni, snr_grid = generate_snr_map(base_station=self.default_base_station,
-                                                            rx_power_map=rx_pw_map, unified=True)
-        cap_map, cap_grid_criteria, cap_grid = generate_capcity_map(snr_map=snr_map,
-                                                                    bw=self.default_base_station.bw,
-                                                                    threshold=self.criteria, unified=False)
-
-        if self.log:
-            # print('using ', n_cells, ' with weights: ', weights, 'throught ', max_iter, ' iterations')
-            print('using ', n_cells, 'standard voronoi cells')
-        cap = np.mean(cap_map)
-        # print('cap samples: ' + str(np.round(cap_samples/10E6, decimals=2)) + ' Mbps')
-        # print('cap grid: ' + str(np.round(cap_grid/10E6, decimals=2)) + ' Mbps')
-        # print('cap samples: ' + str(np.round(np.mean(cap_map) / 10E6, decimals=2)) + ' Mbps')
-        return cap, cluster.centroids  #, grid.grid
-
-
-    def adjust_elev_pattern(self, min_tilt, max_tilt, samples):
-        import warnings
-        warnings.filterwarnings('ignore')
-        # downtilts = np.asarray(list(combinations_with_replacement(np.arange(min_tilt, max_tilt, 5), 3)))  # all possible tilts combinations
-        downtilts = np.asarray(list(itertools.product(np.arange(min_tilt, max_tilt + 1, 1), repeat=3)))
-        mean_perf = np.ndarray(shape=downtilts.shape[0])
-
-        # adjusting the samples to the calcullated voronoi cells
-        # samples = np.where(self.voronoi.std_voronoi_map[samples[samples, 0], samples[samples, 1]] == i]
-
-        for i, bs in enumerate(self.base_station_list):
-            for j, downtilt in enumerate(downtilts):
-                bs.change_downtilt(downtilt)
-                user_samples = np.where(self.voronoi.std_voronoi_map[samples[:, 0], samples[:, 1]] == i)
-                user_gain_map = generate_gain_map(antenna=bs.antenna, elevation_map=self.elev_map[i][samples[user_samples, 0], samples[user_samples, 1]],
-                                             azimuth_map=self.azi_map[i][samples[user_samples, 0], samples[user_samples, 1]], sectors_ver_pattern=bs.sectors_ver_pattern,
-                                             sectors_hor_pattern=bs.sectors_hor_pattern)
-                # user_rx_pw_map = generate_rx_power_map(path_loss_map=self.path_loss_map[i][samples[user_samples, 0], samples[user_samples, 1]],
-                #                                        azimuth_map=self.azi_map[i][samples[user_samples, 0], samples[user_samples, 1]],
-                #                                        elevation_map=self.elev_map[i][samples[user_samples, 0], samples[user_samples, 1]],
-                #                                        base_station=bs, gain_map=user_gain_map)
-                interf_samples = np.where(self.voronoi.std_voronoi_map[samples[:, 0], samples[:, 1]] != i)
-                interf_gain_map = generate_gain_map(antenna=bs.antenna, elevation_map=self.elev_map[i][samples[interf_samples, 0], samples[interf_samples, 1]],
-                                             azimuth_map=self.azi_map[i][samples[interf_samples, 0], samples[interf_samples, 1]], sectors_ver_pattern=bs.sectors_ver_pattern,
-                                             sectors_hor_pattern=bs.sectors_hor_pattern)
-                # interf_rx_pw_map = generate_rx_power_map(path_loss_map=self.path_loss_map[i][samples[interf_samples, 0], samples[interf_samples, 1]],
-                #                                        azimuth_map=self.azi_map[i][samples[interf_samples, 0], samples[interf_samples, 1]],
-                #                                        elevation_map=self.elev_map[i][samples[interf_samples, 0], samples[interf_samples, 1]],
-                #                                        base_station=bs, gain_map=interf_gain_map)
-
-
-                user_gain_map_unified = np.max(10**(user_gain_map/10), axis=0)
-                interf_gain_map_unified = np.max(10**(interf_gain_map/10), axis=0)
-                mean_perf[j] = np.mean(user_gain_map_unified) #- np.mean(interf_gain_map_unified)
-
-                # user_pw_map_unified = np.max(10**(user_rx_pw_map/10), axis=0)
-                # interf_pw_map_unified = np.max(10**(interf_rx_pw_map/10), axis=0)
-                # mean_perf[j] = np.mean(user_pw_map_unified) - np.mean(interf_pw_map_unified)
-
-            best_downtilt = np.argmax(mean_perf)
-            print(downtilts[best_downtilt])
-            # if best_downtilt != 0:
-            #     print(mean_perf)
-            #     print(best_downtilt)
-            #     plt.plot(mean_perf)
-            #     plt.show()
-            bs.change_downtilt(downtilts[best_downtilt])
-            self.base_station_list[i] = bs
-
-        warnings.filterwarnings('default')
-
-
-

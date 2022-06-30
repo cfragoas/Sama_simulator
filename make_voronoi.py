@@ -48,20 +48,10 @@ class Voronoi:
 
     def generate_voronoi(self, plot=False):
         # returns per pixel classification of voronoi regions of n_centers
-        if self.dist_mtx is None:  # this is so we don't recalculate the matrix and save time
+        if self.dist_mtx is None:  # this is so we don't recalculate the matrix and save some time
             self.distance_matrix()
 
-        # fill_completion_map = np.zeros(shape=(self.lines, self.columns))
-
         fill_completion_map = np.argmin(self.dist_mtx, axis=0)
-
-        # for line in self.__coord_map:
-        #     for coord in line:
-        #         superpos = self.dist_mtx[:, coord[0], coord[1]]
-        #
-        #         # if np.argmin(superpos) != 1000000:  # need to remove this workaround
-        #         #     fill_completion_map[coord[1], coord[0]] = np.argmin(superpos)
-        #         fill_completion_map[coord[0], coord[1]] = np.argmin(superpos)
 
         if plot:
             plt.matshow(fill_completion_map, origin='lower')
@@ -75,6 +65,7 @@ class Voronoi:
         return self.std_voronoi_map
 
     def generate_power_voronoi(self, weights, typ=None, plot=False):
+        # this function generates a classification based on a set of weights for the voronoi diagram
         if self.dist_mtx is None:  # this is so we don't recalculate the matrix and save time
             self.distance_matrix()
         self.distance_matrix()

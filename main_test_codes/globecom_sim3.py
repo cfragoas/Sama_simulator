@@ -2,7 +2,7 @@ import socket
 
 from util.save_data import save_data, load_data, macel_data_dict, write_conf
 from util.plot_data import plot_hist, plot_surface, plot_curves
-from util.simulation_setup_globecom import simulate_macel_downlink, create_enviroment, prep_multiproc
+from util.simulation_setup import simulate_macel_downlink, create_enviroment, prep_multiproc
 from util.load_parameters import load_param
 
 import multiprocessing, os, tqdm, time
@@ -48,9 +48,10 @@ if __name__ == '__main__':
         bs_vec.append(n_cells)
 
         i = 0
+        data = []
         for sub_iter in range(0, max_iter, round(max_iter / 20)):
             i += 1
-            data = []
+
             print(' ')
             print('Running step ', i, ' of ', round(max_iter/(max_iter / 20)), ':')
 
@@ -62,6 +63,7 @@ if __name__ == '__main__':
                     ))
 
             data = data + data_
+            data_ = None
 
         # processing_pool.terminate()
         # processing_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])

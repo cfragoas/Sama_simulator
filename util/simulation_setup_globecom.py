@@ -19,8 +19,8 @@ def create_enviroment(parameters):
     from make_grid import Grid
     from antennas.ITU2101_Element import Element_ITU2101
     from antennas.beamforming import Beamforming_Antenna
-    from base_station_new import BaseStation
-    from macel_new import Macel
+    from base_station import BaseStation
+    from macel import Macel
 
 
     grid = Grid()  # grid object

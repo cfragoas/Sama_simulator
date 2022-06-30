@@ -1,5 +1,9 @@
 import numpy as np
 
+# The User_eq class represents the set of UEs and its functions in a network
+# The mais function of the class is to store the UE set and his associations with BS, sector and beam in the network
+# UEs can be turned off when its necessary if the flag -1 is used
+
 class User_eq:
     def __init__(self, positions, height):
         self.positions = positions
@@ -19,22 +23,13 @@ class User_eq:
         self.ue_bs = np.ndarray(shape=(ch_gain_map.shape[1], 4))  # bs|beam|sector|ch_gain
 
         for ue_index in range(ch_gain_map.shape[1]):
-            # self.ue_bs[ue_index] = np.unravel_index(np.argmax(ch_gain_map[:, ue_index]), ch_gain_map[:, ue_index].shape)
-            # self.ue_bs[ue_index] = np.concatenate((np.array(
-            #     np.unravel_index(np.argmax(ch_gain_map[:, ue_index]), ch_gain_map[:, ue_index].shape)), np.array(
-            #     self.sector_map[np.unravel_index(np.argmax(ch_gain_map[:, ue_index]), ch_gain_map[:, ue_index].shape)[
-            #                         0], ue_index])), axis=None)
-
             self.ue_bs[ue_index] = np.concatenate((np.array(
                 np.unravel_index(np.argmax(ch_gain_map[:, ue_index]), ch_gain_map[:, ue_index].shape)),
                    np.array(self.sector_map[np.unravel_index(np.argmax(ch_gain_map[:, ue_index]),
                      ch_gain_map[:, ue_index].shape)[0], ue_index]),
                        np.array(np.max(ch_gain_map[:, ue_index]))), axis=None)
 
-            # if self.ue_bs[ue_index] < -100:  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
-            #     self.ue_bs[ue_index] = np.nan
-
-        # the '+30' here is because of the convertion from dBW to dBm
+        # the '+30' here is because of the conversion from dBW to dBm
         inactive_ue = np.where(self.ue_bs[:, 3] + pw_5mhz + 30 < -100)  # ref: ETSI TS 138 101-1 (in 5 MHz) (simplifying for all bands here)
         self.ue_bs[inactive_ue, 0:3] = -1
 
@@ -55,8 +50,5 @@ class User_eq:
 
         # self.ue_bs[~np.isnan(self.ue_bs)] = self.ue_bs[~np.isnan(self.ue_bs)].astype(int)
 
-    def remove_ue(self, ue_index):  # to stop communicating with ue that achieve the target capacity
-        # self.ue_bs = np.delete(self.ue_bs, ue_index)
-        # self.active_ue = np.delete(self.ue_bs, ue_index)
-
+    def remove_ue(self, ue_index):  # put a -1 flag to stop communicating with UE that achieve the target capacity
         self.ue_bs[ue_index, 0:3] = -1

@@ -1,11 +1,14 @@
 import copy
 import numpy as np
 
+# The Time_Scheduler class is responsable for all the different time schedullers. It will generate time-indexed
+# allocation for all remaining simulation time
+
 class Time_Scheduler:
     def __init__(self, simulation_time, time_slot, scheduler_typ, bs_index, t_min=None):
-        self.simulation_time = simulation_time
-        self.time_slot = time_slot
-        self.bs_index = bs_index
+        self.simulation_time = simulation_time  # the number of time slots that will comprise the simulation time
+        self.time_slot = time_slot  # the lenght of a time slot (in ms)
+        self.bs_index = bs_index  # the index of the base station associated with the scheduler
 
         # calculated variables
         self.beam_timing = None
@@ -19,6 +22,8 @@ class Time_Scheduler:
                 self.t_min = t_min
             else:
                 raise ValueError('Need to set t_min when using schedulers prop-cmp or prop-smp.')
+        if scheduler_typ == 'BCQI':
+            self.best_cqi_beams = None
 
     def set_base_dimensions(self, n_sectors, n_beams):
         self.n_sectors = n_sectors  # this variable is used to shape the dimensions of some matrices
@@ -45,44 +50,13 @@ class Time_Scheduler:
     def generate_ue_qtd_proportional_beam_timing(self, active_beams, t_index):
         #  this function will allocate the beams times based on the quantities of active UEs in each beam
         users_sector = np.sum(active_beams, axis=0)
-        users_sector[users_sector == 0] = 0.1
-        # beam_weights = np.round(active_beams / users_sector)
-        self.weighted_act_beams = np.round(active_beams / users_sector)
+        users_sector[users_sector == 0] = 0.1  # this prevents a div0 situation
+        self.weighted_act_beams = np.ceil(100 * active_beams / users_sector)
         self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
-
-        # self.beam_timing = [None] * self.n_sectors
-        #
-        # for sector_index, _ in enumerate(self.beam_timing):
-        #     sector = np.where(self.weighted_act_beams[:, sector_index] != 0)[0]
-        #     # np.random.shuffle(sector)  # randomizing the beam timing sequence
-        #     sector = sector[np.random.permutation(sector.shape[0])]  # randomizing the beam timing sequence
-        #
-        #     ordened_weighted_beams = copy.copy(self.weighted_act_beams[:, sector_index])
-        #     self.weighted_act_beams[:, sector_index] = 0
-        #     self.weighted_act_beams[np.arange(len(sector)), sector_index] = ordened_weighted_beams[sector]  # putting the weights in the same shuffle order of the beams
-        #     self.beam_timing[sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
-        #
-        # self.beam_timing_sequence = np.zeros(
-        #     shape=(self.n_sectors,
-        #            np.round(self.simulation_time / self.time_slot).astype(int))) + self.n_beams  # filling the initial beam_timing_sequence with beam_index that non exist
-        # wighted_act_beams_bkp = copy.copy(self.weighted_act_beams)
-        # for time in np.arange(0, self.simulation_time, self.time_slot):
-        #     wighted_act_beams = self.next_weighted_active_beam(
-        #         self.weighted_act_beams)  # passing the beam list with how many times each beam need to be active
-        #     for sector_index, _ in enumerate(self.beam_timing):
-        #         if self.active_beams_index[sector_index].astype(int) == -1:
-        #             self.active_beams_index[sector_index] = 0
-        #             wighted_act_beams[:, sector_index] = wighted_act_beams_bkp[:, sector_index]
-        #         if self.beam_timing[sector_index].size != 0:
-        #             self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][
-        #                 self.active_beams_index[sector_index].astype(int)]
-        #
-        # self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
-
 
     def generate_utility_based_beam_timing(self, t_index, ue_bs, active_beams, beam_util, beam_util_log, sector_util):
         # trying to better adjust the beam timing to serve the users uniformly
-        # beams with more users with more utilities will get more time slots
+        # beams with more users and better channels will get more time slots (more utility)
 
         # updating t_min to shrink proportionally to the elapsed time
         t_min = self.t_min*((self.simulation_time - t_index)/self.simulation_time)
@@ -90,42 +64,29 @@ class Time_Scheduler:
                                                  t_min=t_min, beam_util=beam_util, beam_util_log=beam_util_log, sector_util=sector_util)  # T_MIN HERE IS THE MINIMUM RESERVED BEAM TIME !!!!! FIXFIXFIXFIX
 
         self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
-        # self.beam_timing = [None] * self.weighted_act_beams.shape[1]  # VER SE A DIMENSÃO ESTÁ CERTA AQUI
-        # for sector_index, _ in enumerate(self.beam_timing):
-        #     sector = np.where(self.weighted_act_beams[:, sector_index] != 0)[0]
-        #     # np.random.shuffle(sector)  # randomizing the beam timing sequence
-        #     sector = sector[np.random.permutation(sector.shape[0])]  # randomizing the beam timing sequence
-        #
-        #     ordened_weighted_beams = copy.copy(self.weighted_act_beams[:, sector_index])
-        #     self.weighted_act_beams[:, sector_index] = 0
-        #     self.weighted_act_beams[np.arange(len(sector)), sector_index] = ordened_weighted_beams[
-        #         sector]  # putting the weights in the same shuffle order of the beams
-        #     self.beam_timing[
-        #         sector_index] = sector  # I really dont know why this line is needed to this code to work!!!
-        #
-        # self.beam_timing_sequence = np.zeros(
-        #     shape=(self.weighted_act_beams.shape[1],
-        #            np.round(self.simulation_time / self.time_slot).astype(int))) + self.n_beams  # filling the initial beam_timing_sequence with beam_index that non exist
-        # wighted_act_beams_bkp = copy.copy(self.weighted_act_beams)
-        # for time in np.arange(0, self.simulation_time, self.time_slot):
-        #     wighted_act_beams = self.next_weighted_active_beam(
-        #         self.weighted_act_beams)  # passing the beam list with how many times each beam need to be active
-        #     for sector_index, _ in enumerate(self.beam_timing):
-        #         if self.active_beams_index[sector_index].astype(int) == -1:
-        #             self.active_beams_index[sector_index] = 0
-        #             wighted_act_beams[:, sector_index] = wighted_act_beams_bkp[:, sector_index]
-        #         if self.beam_timing[sector_index].size != 0:
-        #             self.beam_timing_sequence[sector_index, time] = self.beam_timing[sector_index][
-        #                 self.active_beams_index[sector_index].astype(int)]
-        #
-        # self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
+
+    def generate_best_cqi_beam_timing(self, ue_bs):
+        self.beam_timing_sequence = np.zeros(shape=(self.n_sectors,
+                                    np.round(self.simulation_time / self.time_slot).astype(int)), dtype='int') + self.n_beams
+        self.best_cqi_beams = np.zeros(shape=self.n_sectors, dtype='int') + self.n_beams
+        for sector_index in range(self.n_sectors):
+            active_ue_in_bs_sec = (ue_bs[:, 0] == self.bs_index) & (ue_bs[:, 2] == sector_index)
+            if np.sum(active_ue_in_bs_sec) != 0:
+                best_cqi_beam = ue_bs[active_ue_in_bs_sec][np.argmax(ue_bs[active_ue_in_bs_sec][:, 3]), 1]
+                self.best_cqi_beams[sector_index] = best_cqi_beam
+                self.beam_timing_sequence[sector_index, :] = best_cqi_beam
+        # print('ui')
+        # self.beam_timing_sequence[range(self.n_sectors), :] = self.best_cqi_beams[range(self.n_sectors)]
+
 
     def generate_weighted_time_matrix(self, simulation_time):
+        # this function generates a complete time allocation for all the beams for each sector of the BS
+        # it shuffles a beam order it distributes neatly until his weight reaches zero
         self.beam_timing = [None] * self.n_sectors
+        # self.weighted_act_beams[self.weighted_act_beams == 0] = 1  # to prevent a beam never receiving a time resource
 
         for sector_index, _ in enumerate(self.beam_timing):
             sector = np.where(self.weighted_act_beams[:, sector_index] != 0)[0]
-            # np.random.shuffle(sector)  # randomizing the beam timing sequence
             sector = sector[np.random.permutation(sector.shape[0])]  # randomizing the beam timing sequence
 
             ordened_weighted_beams = copy.copy(self.weighted_act_beams[:, sector_index])
@@ -154,8 +115,7 @@ class Time_Scheduler:
         self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
 
     def generate_utility_weighted_beam_time(self, t_total, ue_bs, t_min, active_beams, beam_util, beam_util_log, sector_util):
-        # t_min = 10  # milliseconds
-        # self.beam_utility(ue_bs=ue_bs, bs_index=bs_index, c_target=c_target)
+        # this function calculates the allocation time for each beam based on the bema and sector utilities
         t_beam = np.zeros(shape=beam_util.shape)
 
         sector_index = np.unique(ue_bs[ue_bs[:, 0] == self.bs_index][:, 2]).astype(int)
@@ -167,6 +127,7 @@ class Time_Scheduler:
         self.weighted_act_beams = np.round(t_beam).astype(int)
 
     def next_active_beam(self):
+        # like a queue, it returns the next beams that need to be allocated
         if self.active_beams_index is None:
             self.active_beams_index = np.zeros(shape=self.n_sectors)
         else:
@@ -176,33 +137,31 @@ class Time_Scheduler:
                     self.active_beams_index[sector_index] = 0
 
     def next_weighted_active_beam(self, beam_list=None):
+        # like a queue, it return the next beams that need to be allocated based in the number of time slots for each one
         if beam_list is not None:
             if self.active_beams_index is None:
                 self.active_beams_index = np.zeros(shape=self.n_sectors).astype(int)
 
             for sector_index, beam_index in enumerate(self.active_beams_index):
-                try:
-                    if np.sum(beam_list[:, sector_index]) != 0:
+                if np.sum(beam_list[:, sector_index]) != 0:
+                    beam_index += 1
+                    if beam_index > len(beam_list[:, sector_index]) - 1:
+                        beam_index = 0
+                    # this block code is slower than the following one
+                    # while beam_list[beam_index, sector_index] == 0:
+                    #     try:
+                    #         non_zero = np.nonzero(beam_list[:, sector_index])[0]
+                    #         beam_index = (non_zero[non_zero > beam_index]).min()
+                    #     except:
+                    #         beam_index = 0
+                    while beam_list[beam_index, sector_index] == 0:  # pick the 1st nonzero occurence after beam_index
                         beam_index += 1
-                        if beam_index > len(beam_list[:, sector_index]) - 1:
+                        if beam_index > len(beam_list[:, sector_index]) - 1:  # loops into the first position otherwise
                             beam_index = 0
-                        # this block code is slower than the following one
-                        # while beam_list[beam_index, sector_index] == 0:
-                        #     try:
-                        #         non_zero = np.nonzero(beam_list[:, sector_index])[0]
-                        #         beam_index = (non_zero[non_zero > beam_index]).min()
-                        #     except:
-                        #         beam_index = 0
-                        while beam_list[beam_index, sector_index] == 0:  # picks the 1st nonzero occurence after beam_index
-                            beam_index += 1
-                            if beam_index > len(beam_list[:, sector_index]) - 1:  # loops into the first position otherwise
-                                beam_index = 0
-                        beam_list[beam_index, sector_index] -= 1
-                        self.active_beams_index[sector_index] = beam_index
-                    else:
-                        self.active_beams_index[sector_index] = -1  # informing that the beam list need to be restarted
-                except:
-                    print('ui')
+                    beam_list[beam_index, sector_index] -= 1
+                    self.active_beams_index[sector_index] = beam_index
+                else:
+                    self.active_beams_index[sector_index] = -1  # informing that the beam list need to be restarted
 
             return beam_list
 
