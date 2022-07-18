@@ -15,10 +15,11 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
 
     macel.grid.make_points(dist_type='gaussian', samples=n_samples, n_centers=n_centers, random_centers=False,
                            plot=False)  # distributing points around centers in the grid
-    macel.set_ue(hrx=1.5)
-    snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
+    macel.set_ue(hrx=1.5, tx_power=0)
+    # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
+    output = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
     # snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs, output_typ='simple', clustering=False)
-    return(snr_cap_stats, raw_data)
+    return output
 
 
 def create_enviroment(parameters):
@@ -61,14 +62,16 @@ def create_enviroment(parameters):
     base_station.sector_beam_pointing_configuration(n_beams=parameters['bs_param']['n_beams'])
 
     macel = Macel(grid=grid, prop_model='free space',
-                  criteria=parameters['macel_param']['criteria'],
+                  criteria=parameters['downlink_scheduler']['criteria'],
                   cell_size=parameters['roi_param']['cel_size'],  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,
                   simulation_time=parameters['macel_param']['time_slots'],
                   time_slot=parameters['macel_param']['time_slot_lngt'],
-                  t_min=parameters['macel_param']['t_min'],
-                  scheduler_typ=parameters['macel_param']['scheduler_typ'],
-                  bw_slot=parameters['macel_param']['bw_slot'])
+                  t_min=parameters['downlink_scheduler']['t_min'],
+                  scheduler_typ=parameters['downlink_scheduler']['scheduler_typ'],
+                  bw_slot=parameters['downlink_scheduler']['bw_slot'],
+                  downlink_specs=parameters['downlink_scheduler'],
+                  uplink_specs=parameters['uplink_scheduler'])
 
     return macel
 
@@ -155,8 +158,8 @@ def start_simmulation(conf_file):
             data = data + data_
             data_ = None
 
-        snr_cap_stats = [x[0] for x in data]
-        raw_data = [x[1] for x in data]
+        snr_cap_stats = [x['snr_cap_stats'] for x in data]
+        raw_data = [x['raw_data_dict'] for x in data]
 
         plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells,
                   max_iter=max_iter,

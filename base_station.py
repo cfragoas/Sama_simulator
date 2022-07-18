@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy, warnings
 from models.scheduler.scheduler import Scheduler
+from models.scheduler.master_scheduler import Master_scheduler
 from numba import jit  # some functions uses numba to improve performance (some functions are not used anymore)
 
 
@@ -23,6 +24,8 @@ class BaseStation:
 
         self.antenna = antenna  # antenna object
         self.scheduler = None  # scheduler object
+        self.tdd_mux = Master_scheduler()  # time/frequency multiplexer
+
 
         # initializing calculated variables
         self.sectors_pointing = None
@@ -42,6 +45,33 @@ class BaseStation:
                 self.beams = self.antenna.beams
             else:
                 self.beams = None
+
+    def initialize_mux(self, simulation_time=None, up_tdd_time=None):
+        self.tdd_mux.create_tdd_scheduler(simulation_time=simulation_time, up_tdd_time=up_tdd_time)
+
+    def initialize_dwn_up_scheduler(self, downlink_specs=None, uplink_specs=None):
+        if self.tdd_mux.dwn_tdd_time != 0:
+            if downlink_specs is not None:
+                self.tdd_mux.create_downlink(scheduler_typ=downlink_specs['scheduler_typ'],
+                                             bs_index=downlink_specs['bs_index'], bw=downlink_specs['bw'],
+                                             time_slot=downlink_specs['time_slot'],
+                                             simulation_time=downlink_specs['simulation_time'],
+                                             t_min=downlink_specs['t_min'],
+                                             bw_slot=downlink_specs['bw_slot'],c_target=downlink_specs['c_target'],
+                                             tx_power=downlink_specs['tx_power'])
+            # else:
+            #     raise ValueError('The downlink scheduler specifications are not found. Please check the .yml parameters file.')
+        if self.tdd_mux.up_tdd_time != 0:
+            if uplink_specs is not None:
+                self.tdd_mux.create_uplink(scheduler_typ=uplink_specs['scheduler_typ'],
+                                           bs_index=uplink_specs['bs_index'], bw=uplink_specs['bw'],
+                                           time_slot=uplink_specs['time_slot'],
+                                           simulation_time=uplink_specs['simulation_time'],
+                                           t_min=uplink_specs['t_min'],
+                                           bw_slot=uplink_specs['bw_slot'], c_target=downlink_specs['c_target'],
+                                           tx_power=uplink_specs['tx_power'])
+            # else:
+            #     raise ValueError('The uplink scheduler specifications are not found. Please check the .yml parameters file.')
 
     def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None, bw_slot=None):
         # initializing the scheduler with a bs_index to ease internal computations

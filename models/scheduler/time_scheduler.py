@@ -78,7 +78,6 @@ class Time_Scheduler:
         # print('ui')
         # self.beam_timing_sequence[range(self.n_sectors), :] = self.best_cqi_beams[range(self.n_sectors)]
 
-
     def generate_weighted_time_matrix(self, simulation_time):
         # this function generates a complete time allocation for all the beams for each sector of the BS
         # it shuffles a beam order it distributes neatly until his weight reaches zero

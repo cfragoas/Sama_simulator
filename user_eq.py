@@ -5,11 +5,12 @@ import numpy as np
 # UEs can be turned off when its necessary if the flag -1 is used
 
 class User_eq:
-    def __init__(self, positions, height):
-        self.positions = positions
-        self.height = height
+    def __init__(self, positions, height, tx_power):
+        self.positions = positions  # x, y of each UE located on the ROI
+        self.height = height  # UE height (m)
         self.bs_candidates = None
         self.gain_matrix = None
+        self.tx_power = tx_power  # UE tx power in dBW
 
         self.sector_map = None
 

@@ -78,7 +78,7 @@ class Freq_Scheduler:
             for sector_index in range(beams_2b_updtd.shape[1]):
                 beam_index = updated_beams[sector_index]
                 ue_to_erase_bw = ue_in_bs & (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index)
-            self.user_bw[ue_to_erase_bw] = 0
+                self.user_bw[ue_to_erase_bw] = 0
 
         active_beams = active_beams.astype(int)
         # slot_bw is the bandwidth of the fixe frequency slot to be distributed
