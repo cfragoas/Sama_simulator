@@ -57,7 +57,7 @@ class BaseStation:
                                              time_slot=downlink_specs['time_slot'],
                                              simulation_time=downlink_specs['simulation_time'],
                                              t_min=downlink_specs['t_min'],
-                                             bw_slot=downlink_specs['bw_slot'],c_target=downlink_specs['c_target'],
+                                             bw_slot=downlink_specs['bw_slot'],c_target=downlink_specs['criteria'],
                                              tx_power=downlink_specs['tx_power'])
             # else:
             #     raise ValueError('The downlink scheduler specifications are not found. Please check the .yml parameters file.')

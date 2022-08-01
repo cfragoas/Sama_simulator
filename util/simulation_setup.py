@@ -1,9 +1,10 @@
 import numpy as np
-from util.save_data import save_data, load_data, macel_data_dict, write_conf
-from util.plot_data import plot_hist, plot_surface, plot_curves
+from util.data_management import save_data, load_data, macel_data_dict, write_conf
+# from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.load_parameters import load_param
 import multiprocessing, os, tqdm, time
 import socket
+from util.plot_data_new import plot_histograms, plot_curves, plot_surfaces
 
 # Just a set of auxiliary functions to setup a simulation environment
 
@@ -95,15 +96,16 @@ def prep_multiproc(threads):
     return p
 
 def get_additional_sim_param(global_parameters, param_path, process_pool):
-    path, folder = save_data()  # storing the path used to save in all iterations
+    path, folder, name_file = save_data()  # storing the path used to save in all iterations
     data_dict = macel_data_dict()  # creating the structure of the output dictonary
     write_conf(folder=folder, parameters=global_parameters, yml_file=param_path)  # saving the param/stats files
 
     global_parameters['exec_param']['simulation_time'] = []
+    global_parameters['exec_param']['executed_n_bs'] = []
     global_parameters['exec_param']['threads'] = process_pool._processes
     global_parameters['exec_param']['PC_ID'] = socket.gethostname()
 
-    return global_parameters, path, folder, data_dict
+    return global_parameters, path, folder, name_file, data_dict
 
 
 def start_simmulation(conf_file):
@@ -111,7 +113,7 @@ def start_simmulation(conf_file):
 
     process_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])
 
-    global_parameters, path, folder, data_dict = get_additional_sim_param(global_parameters=global_parameters,
+    global_parameters, path, folder, name_file, data_dict = get_additional_sim_param(global_parameters=global_parameters,
                                                                param_path=param_path, process_pool=process_pool)
 
     # separating parameters to pass the minimum data to the pool
@@ -161,31 +163,47 @@ def start_simmulation(conf_file):
         snr_cap_stats = [x['snr_cap_stats'] for x in data]
         raw_data = [x['raw_data_dict'] for x in data]
 
-        plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells,
-                  max_iter=max_iter,
-                  criteria=global_parameters['macel_param']['criteria'])
-
-        plot_surface(grid=macel.grid.grid, position=np.concatenate([x['bs_position'] for x in raw_data]),
-                     parameter=np.array(snr_cap_stats)[:, 2], path=folder, n_bs=n_cells,
-                     max_iter=max_iter)
-
-        data_dict = macel_data_dict(data_dict_=data_dict, data_=data)
+        data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 
-        plot_curves(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
-                    std_cap=data_dict['std_cap'],
-                    mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
-                    mean_user_bw=data_dict['mean_user_bw'],
-                    std_user_bw=data_dict['std_user_bw'], total_meet_criteria=data_dict['total_meet_criteria'],
-                    max_iter=max_iter,
-                    n_bs_vec=bs_vec, individual=False, path=folder,
-                    criteria=global_parameters['macel_param']['criteria'])
-
-        global_parameters['macel_param']['last_n_bs'] = n_cells
+        global_parameters['exec_param']['executed_n_bs'].append(n_cells)
         global_parameters['exec_param']['simulation_time'].append(
             np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
 
         write_conf(folder=folder, parameters=global_parameters)
 
+        if global_parameters['exec_param']['plot_curves']:
+            print('saving curves ....')
+            plot_curves(name_file=name_file, max_iter=max_iter, bs_list=global_parameters['exec_param']['executed_n_bs'],
+                        global_parameters=global_parameters)
+            print('saving curves .... [done]')
+
+        if global_parameters['exec_param']['plot_hist']:
+            print('saving histograms ....')
+            plot_histograms(name_file=name_file, max_iter=max_iter, global_parameters=global_parameters)  # testing !!!
+            print('saving histograms .... [done]')
+
+        if global_parameters['exec_param']['plot_surf']:
+            print('saving surface plots ....')
+            plot_surfaces(name_file=name_file, global_parameters=global_parameters)
+            print('saving surface plots .... [done]')
+
+        # plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells, max_iter=max_iter,
+        #           criteria=global_parameters['macel_param']['criteria'])
+        #
+        # plot_surface(grid=macel.grid.grid, position=np.concatenate([x['bs_position'] for x in raw_data]),
+        #              parameter=np.array(snr_cap_stats)[:, 2], path=folder, n_bs=n_cells,
+        #              max_iter=max_iter)
+        #
+        # plot_curves(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
+        #             std_cap=data_dict['std_cap'],
+        #             mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
+        #             mean_user_bw=data_dict['mean_user_bw'],
+        #             std_user_bw=data_dict['std_user_bw'], total_meet_criteria=data_dict['total_meet_criteria'],
+        #             max_iter=max_iter,
+        #             n_bs_vec=bs_vec, individual=False, path=folder,
+        #             criteria=global_parameters['macel_param']['criteria'])
+
+        # global_parameters['macel_param']['last_n_bs'] = n_cells
         data = None

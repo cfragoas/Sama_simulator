@@ -1,6 +1,6 @@
 import socket
 
-from util.save_data import save_data, load_data, macel_data_dict, write_conf
+from util.data_management import save_data, load_data, macel_data_dict, write_conf
 from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.simulation_setup import simulate_macel_downlink, create_enviroment, prep_multiproc
 from util.load_parameters import load_param

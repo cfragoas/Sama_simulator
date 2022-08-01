@@ -19,7 +19,7 @@ class Metrics:
         self.dwn_snr = None
         self.dwn_user_time = None
         self.dwn_user_bw = None
-        self.dwn_meet_criteria = None
+        # self.dwn_meet_criteria = None
 
         # BS metrics
         # uplink
@@ -75,7 +75,7 @@ class Metrics:
     def store_downlink_metrics(self, cap=None, snr=None, t_index=None, base_station_list=None, n_bs=None, n_ues=None,
                              simulation_time=None, time_slot=None, criteria=None):
         # this function stores the downlink metrics during the simulation time
-        if (self.dwn_cap is None) or (self.dwn_snr is None) or (self.dwn_user_time is None) or (self.dwn_user_bw is None) or (self.dwn_meet_criteria is None):
+        if (self.dwn_cap is None) or (self.dwn_snr is None) or (self.dwn_user_time is None) or (self.dwn_user_bw is None) or (self.dwn_cnt_satisfied_ue is None):
             if (simulation_time is not None) and (time_slot is not None) and (n_ues is not None) and (n_bs is not None):
                 self.create_downlink_matrices(simulation_time=simulation_time, time_slot=time_slot,
                                               n_ues=n_ues, n_bs=n_bs, criteria=criteria)
@@ -89,8 +89,8 @@ class Metrics:
             for bs_index, base_station in enumerate(base_station_list):
                 self.dwn_act_beams_nmb[bs_index, t_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 self.dwn_user_per_bs[bs_index, t_index] = np.sum(base_station.active_beams)
-                bw[base_station.scheduler.freq_scheduler.user_bw != 0] = \
-                    base_station.scheduler.freq_scheduler.user_bw[base_station.scheduler.freq_scheduler.user_bw != 0]
+                bw[base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw != 0] = \
+                    base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw[base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw != 0]
 
             self.dwn_user_bw[:, t_index][~np.isnan(cap)] = bw[~np.isnan(cap)]
             if self.dwn_criteria is not None:
@@ -115,7 +115,7 @@ class Metrics:
         self.up_snr.fill(np.nan)
         self.up_user_time.fill(np.nan)
         self.up_user_bw.fill(np.nan)
-        self.up_meet_criteria.fill(np.nan)
+        # self.up_meet_criteria.fill(np.nan)
         # initialize BS metrics matrices
         self.up_act_beams_nmb = np.zeros(shape=[n_bs, n_slots])
         self.up_user_per_bs = np.zeros(shape=[n_bs, n_slots])
@@ -135,13 +135,13 @@ class Metrics:
         self.dwn_snr = np.zeros(shape=[n_ues, n_slots])
         self.dwn_user_time = np.zeros(shape=[n_ues, n_slots])
         self.dwn_user_bw = np.zeros(shape=[n_ues, n_slots])
-        self.dwn_meet_criteria = np.zeros(n_slots)
+        # self.dwn_meet_criteria = np.zeros(n_slots)
         # setting all values to NaN to avoid value confusion
         self.dwn_cap.fill(np.nan)
         self.dwn_snr.fill(np.nan)
         self.dwn_user_time.fill(np.nan)
-        self.dwn_user_bw.fill(np.nan)
-        self.dwn_meet_criteria.fill(np.nan)
+        # self.dwn_user_bw.fill(np.nan)
+        # self.dwn_meet_criteria.fill(np.nan)
         # initialize BS metrics matrices
         self.dwn_act_beams_nmb = np.zeros(shape=[n_bs, n_slots])
         self.dwn_user_per_bs = np.zeros(shape=[n_bs, n_slots])
@@ -166,7 +166,7 @@ class Metrics:
         # cap_sum = np.nansum(cap[self.ue.active_ue], axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         mean_act_beams = np.mean(self.up_act_beams_nmb, axis=1)
         mean_user_bs = np.mean(self.up_user_per_bs, axis=1)
-        user_time = np.nansum(self.up_user_time[active_ue], axis=1) / (self.up_time_slot/self.up_simulation_time)  # ME ARRUMA !!!
+        user_time = np.nansum(self.up_user_time[active_ue], axis=1) * (self.up_time_slot/self.up_simulation_time)  # ME ARRUMA !!!
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(cluster_centroids).astype(int)]  # todo ver o que fazer com o objecto cluster
 
@@ -241,17 +241,20 @@ class Metrics:
             # return raw_data_dict
             return {'raw_data_dict': raw_data_dict}
 
-    def create_downlink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos, ue_bs_table, scheduler_typ=None):
+    def create_downlink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos, ue_bs_table, dist_map,
+                                          scheduler_typ=None):
         if scheduler_typ == 'BCQI':  # todo ver aqui essa parada
             val_snr_line = np.nansum(self.dwn_snr, axis=1) != 0
             # todo definir mean snr
-            mean_snr = 10 * np.log10(np.nanmean(10 ** (self.dwn_snr[val_snr_line, :] / 10), axis=1))
+            # mean_snr = 10 * np.log10(np.nanmean(10 ** (self.dwn_snr[val_snr_line, :] / 10), axis=1))
+            mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[val_snr_line, :], axis=1))
         else:
-            mean_snr = 10 * np.log10(np.nansum(10 ** (self.dwn_snr[active_ue] / 10), axis=1))  # todo - WTF?????
+            # mean_snr = 10 * np.log10(np.nansum(10 ** (self.dwn_snr[active_ue] / 10), axis=1))  # todo - WTF?????
+            mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[active_ue], axis=1))
         cap_sum = np.nansum(self.dwn_cap[active_ue], axis=1)  # ME ARRUMA !!!
         mean_act_beams = np.mean(self.dwn_act_beams_nmb, axis=1)
         mean_user_bs = np.mean(self.dwn_user_per_bs, axis=1)
-        user_time = np.nansum(self.dwn_user_time[active_ue], axis=1) / (self.dwn_time_slot / self.dwn_simulation_time)  # ME ARRUMA !!!
+        user_time = np.nansum(self.dwn_user_time[active_ue], axis=1) * (self.dwn_time_slot / self.dwn_simulation_time)  # ME ARRUMA !!!
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(cluster_centroids).astype(int)]  # todo ver o que fazer com o objecto cluster
 
@@ -276,13 +279,14 @@ class Metrics:
         # FAZER AS OUTRAS MÉTRICAS !!!!
         # this part of the code is to check if one or multiple UEs have reached the criteria
         total_meet_criteria = None
+        ran_cap_per_time = np.nansum(self.dwn_cap, axis=0)
 
-        if self.up_criteria is not None:
+        if self.dwn_criteria is not None:
             total_meet_criteria = np.sum(cap_sum >= self.dwn_criteria) / ue_bs_table.shape[0]
             deficit = self.dwn_criteria - cap_sum
             mean_deficit = np.mean(deficit)
             std_deficit = np.std(deficit)
-            norm_deficit = 1 - cap_sum / self.up_criteria
+            norm_deficit = 1 - cap_sum / self.dwn_criteria
             mean_norm_deficit = np.mean(norm_deficit)
             std_norm_deficit = np.mean(norm_deficit)
 
@@ -312,12 +316,14 @@ class Metrics:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
                              'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
-                             'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
-                             'norm_deficit': norm_deficit, 'meet_criteria': self.up_meet_criteria}
+                             'user_bw': np.nanmean(self.dwn_user_bw[active_ue], axis=1), 'deficit': deficit,
+                             'norm_deficit': norm_deficit, 'meet_criteria': self.dwn_cnt_satisfied_ue,
+                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
-                             'user_time': user_time, 'user_bw': np.nanmean(self.up_user_bw, axis=1)}
+                             'user_time': user_time, 'user_bw': np.nanmean(self.dwn_user_bw, axis=1),
+                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
 
         if output_typ == 'simple':
             # return snr_cap_stats

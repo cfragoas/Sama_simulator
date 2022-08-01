@@ -41,10 +41,11 @@ class Macel:
 
         self.base_station_list = []
 
-        # calculated variables
+        # calculated variables # todo - rever o que manter aqui
         self.azi_map = None
         self.elev_map = None
         self.gain_map = None
+        self.dist_map =  None
         self.ch_gain_map = None
         self.sector_map = None
         self.path_loss_map = None
@@ -74,10 +75,12 @@ class Macel:
             #                                         'tx_power': self.ue.tx_power}}
             bs.initialize_dwn_up_scheduler(downlink_specs={**self.downlink_specs, **{'bs_index': bs_index,
                                                            'simulation_time':self.simulation_time,
-                                                           'tx_power': bs.tx_power}},
+                                                           'tx_power': bs.tx_power, 'bw': bs.bw,
+                                                           'time_slot': self.time_slot}},
                                            uplink_specs={**self.uplink_specs, **{'bs_index': bs_index,
                                                          'simulation_time': self.simulation_time,
-                                                         'tx_power': self.ue.tx_power}})
+                                                         'tx_power': self.ue.tx_power, 'bw': bs.bw,
+                                                         'time_slot': self.time_slot}})
             # bs.initialize_scheduler(scheduler_typ=scheduler_typ, time_slot=self.time_slot, t_min=self.t_min,
             #                         simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
             #                         bw_slot=self.bw_slot)
@@ -175,16 +178,16 @@ class Macel:
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
                                       samples=self.cluster.features)
-        dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
+        self.dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
                                                samples=self.cluster.features, plot=False)
-        elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=dist_map, cell_size=self.cell_size, samples=None)
+        elev_map = generate_elevation_map(htx=30, hrx=1.5, d_euclid=self.dist_map, cell_size=self.cell_size, samples=None)
         self.default_base_station.beam_configuration(
             az_map=self.default_base_station.beams_pointing)  # creating a beamforming configuration pointing to the the az_map points
 
         # =============================================================================================
 
         self.generate_base_station_list(n_centers=n_centers, scheduler_typ=self.scheduler_typ)
-        self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=dist_map)
+        self.generate_bf_gain_maps(az_map=az_map, elev_map=elev_map, dist_map=self.dist_map)
 
         self.ue.acquire_bs_and_beam(ch_gain_map=self.ch_gain_map,
                                      sector_map=self.sector_map,
@@ -205,9 +208,9 @@ class Macel:
                                             criteria=self.criteria)  # initializing the downlink variables
         self.tdd_mux = Master_scheduler()  # todo - instanciar esta puerra
         self.tdd_mux.create_tdd_scheduler(simulation_time=self.simulation_time, up_tdd_time=0)
-        snr_cap_stats = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)  # downlink channel simulation
+        output = self.simulate_ue_bs_comm(ch_gain_map=self.ch_gain_map, output_typ=output_typ)  # downlink channel simulation
 
-        return snr_cap_stats
+        return output
 
     def calc_uplink_interference(self, ch_gain_map, output_typ='raw'):
         ue_bs_table = pd.DataFrame(copy.copy(self.ue.ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
@@ -384,7 +387,7 @@ class Macel:
         # act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
         # user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
         # meet_citeria = np.zeros(shape=self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1])
-        # ue_bs_table = pd.DataFrame(copy.copy(self.ue.ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
+        ue_bs_table = pd.DataFrame(copy.copy(self.ue.ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
         #
         # snr[:] = np.nan
         # cap[:] = np.nan
@@ -403,7 +406,7 @@ class Macel:
         elapsed_time = 0
         count_satisfied_ue_old = 0
         # for time_index, _ in enumerate(self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.T):
-        for time_index, _ in enumerate(self.base_station_list[0].tdd_mux.scheduler.time_scheduler.beam_timing_sequence.T):
+        for time_index, _ in enumerate(self.base_station_list[0].tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence.T):
             v_time_index = time_index - elapsed_time  # virtual time index used after generating new beam timing sequence when needed
             # cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.shape[1]))
             snr = np.zeros(shape=self.ue.ue_bs.shape[0])
@@ -414,23 +417,23 @@ class Macel:
             for bs_index, base_station in enumerate(self.base_station_list):
                 # ue_in_active_beam = (self.ue.ue_bs[:, 0] == bs_index) & (self.ue.ue_bs[:, 1] == base_station.scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index])
                 ue_in_active_beam = (self.ue.ue_bs[:, 0] == bs_index) & \
-                                    (self.ue.ue_bs[:, 1] == base_station.scheduler.tdd_mux.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index])
-                active_ue_in_active_beam = np.where((base_station.scheduler.freq_scheduler.user_bw !=0) & ue_in_active_beam)
+                                    (self.ue.ue_bs[:, 1] == base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index])
+                active_ue_in_active_beam = np.where((base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw !=0) & ue_in_active_beam)
                 # ue_in_active_beam = np.where(active_ue_in_active_beam)
 
                 # updated_beams.append(base_station.scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])
-                updated_beams.append(base_station.tdd_mux.scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])
+                updated_beams.append(base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])
 
-                if base_station.scheduler.freq_scheduler.user_bw is None:  # uniform beam bw
+                if base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw is None:  # uniform beam bw
                     # bw = base_station.scheduler.freq_scheduler.beam_bw[base_station.scheduler.time_scheduler.beam_timing_sequence[
                     #                               self.sector_map[bs_index, active_ue_in_active_beam], v_time_index],   # AQUI OI
                     #                           self.sector_map[bs_index, active_ue_in_active_beam]]  # user BW
-                    bw = base_station.scheduler.freq_scheduler.beam_bw[base_station.tdd_mux.scheduler.time_scheduler.beam_timing_sequence[
+                    bw = base_station.dwn_scheduler.freq_scheduler.beam_bw[base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[
                             self.sector_map[bs_index, active_ue_in_active_beam], v_time_index],  # AQUI OI
                         self.sector_map[bs_index, active_ue_in_active_beam]]  # user BW
                 else:  # different bw for each user
                     # bw = base_station.scheduler.freq_scheduler.user_bw[active_ue_in_active_beam]
-                    bw = base_station.scheduler.tdd_mux.freq_scheduler.user_bw[active_ue_in_active_beam]
+                    bw = base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw[active_ue_in_active_beam]
 
                 # ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
                 #                              & (self.ue.ue_bs[:, 1] == base_station.scheduler.time_scheduler.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
@@ -446,7 +449,7 @@ class Macel:
                         #                                     v_time_index]]  # AQUI OI
                         interf = base_station2.tx_power + \
                                  ch_gain_map[bs_index2][active_ue_in_active_beam,
-                                                        base_station2.scheduler.time_scheduler.beam_timing_sequence[
+                                                        base_station2.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[
                                                             self.sector_map[bs_index2, active_ue_in_active_beam],
                                                             v_time_index]]  # AQUI OI
                         interf_in_active_ue += 10**(interf/10)
@@ -462,7 +465,7 @@ class Macel:
                 # act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
                 # user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
 
-                snr[active_ue_in_active_beam] = 10 ** (pw_in_active_ue / 10) / interf_in_active_ue
+                snr[active_ue_in_active_beam] = (10 ** (pw_in_active_ue / 10)) / interf_in_active_ue
                 cap[active_ue_in_active_beam] = bw * 10E6 * np.log2(1 + 10 ** (pw_in_active_ue / 10) / interf_in_active_ue) / (10E6)
 
             # storing metrics
@@ -480,6 +483,12 @@ class Macel:
             # this command will redo the beam allocations and scheduling, if necessary
             self.send_ue_to_bs(t_index=time_index + 1, cap_defict=self.metrics.dwn_cap_deficit, bs_2b_updt=bs_2b_updt,
                                updated_beams=updated_beams)
+
+        return(self.metrics.create_downlink_metrics_dataframe(output_typ='complete', active_ue=self.ue.active_ue,
+                                                       cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
+                                                       ue_pos=self.cluster.features, ue_bs_table=ue_bs_table,
+                                                       dist_map=self.dist_map * self.cell_size,
+                                                              scheduler_typ=self.scheduler_typ))
 
             # checking if one or multiple UEs have reached the target capacity and are to be removed from the ue_bs list
             # acc_ue_cap = np.nansum(cap, axis=1) / (self.simulation_time)  # accumulated capacity
