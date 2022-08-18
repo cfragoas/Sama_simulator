@@ -132,8 +132,8 @@ class Freq_Scheduler:
         while np.sum(less_zero) != 0:  # doing it until it falls in meq_zero
             [beam_index_list, sector_index_list] = np.where(less_zero)
             for [beam_index, sector_index] in zip(beam_index_list, sector_index_list):
-                ue_to_receibe_bw_min = (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index) & ue_in_bs
-                self.user_bw[ue_to_receibe_bw_min] += self.bw_slot
+                ue_to_receive_bw_min = (ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index) & ue_in_bs
+                self.user_bw[ue_to_receive_bw_min] += self.bw_slot
 
             n_bw_slots[less_zero] -= active_beams[less_zero]
             dummy_queue = active_beams - n_bw_slots
@@ -145,8 +145,8 @@ class Freq_Scheduler:
         [beam_index_list, sector_index_list] = np.where(meq_zero)
         while np.sum(meq_zero) != 0:
             for [beam_index, sector_index] in zip(beam_index_list, sector_index_list):
-                ue_to_receibe_bw_min = np.where((ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index) & ue_in_bs)[0]
-                self.user_bw[ue_to_receibe_bw_min[range(n_bw_slots[beam_index, sector_index].astype(int))]] += self.bw_slot
+                ue_to_receive_bw_min = np.where((ue_bs[:, 1] == beam_index) & (ue_bs[:, 2] == sector_index) & ue_in_bs)[0]
+                self.user_bw[ue_to_receive_bw_min[range(n_bw_slots[beam_index, sector_index].astype(int))]] += self.bw_slot
                 if active_beams[beam_index, sector_index] - n_bw_slots[beam_index, sector_index] > 0:
                     self.in_queue_ue[beam_index, sector_index] = n_bw_slots[beam_index, sector_index]
                 dummy_queue[beam_index, sector_index] = -1

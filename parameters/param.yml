@@ -5,7 +5,7 @@ exec_param:
   plot_surf: True
   plot_hist: True
   backup_data: True
-  output_type: 'complete'
+  output_type: 'complete'  # complete or simple or raw
 
 roi_param:
   grid: True
@@ -21,6 +21,8 @@ macel_param:
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
+  uplink: True  # if True: simulates downlink comm.
+  downlink: True  # if True: simulates uplink comm.
 #  scheduler_typ: 'prop-cmp'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
 #  bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
 #  t_min: 10  # minimum allocated time for an execution time = time_slots
@@ -30,7 +32,7 @@ macel_param:
 
 downlink_scheduler:  # scheduler specifications for the downlink side
   criteria: 30  # Mbps
-  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  scheduler_typ: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 

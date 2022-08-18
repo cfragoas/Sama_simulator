@@ -39,7 +39,8 @@ class BaseStation:
             self.generate_sector_pattern(plot)
         else:
             self.beam_sector_pattern = []
-            self.active_beams = None
+            self.dwn_active_beams = None
+            self.up_active_beams = None
             self.active_beams_index = None
             if hasattr(self.antenna, 'beams'):
                 self.beams = self.antenna.beams
@@ -68,16 +69,16 @@ class BaseStation:
                                            time_slot=uplink_specs['time_slot'],
                                            simulation_time=uplink_specs['simulation_time'],
                                            t_min=uplink_specs['t_min'],
-                                           bw_slot=uplink_specs['bw_slot'], c_target=downlink_specs['c_target'],
+                                           bw_slot=uplink_specs['bw_slot'], c_target=uplink_specs['criteria'],
                                            tx_power=uplink_specs['tx_power'])
             # else:
             #     raise ValueError('The uplink scheduler specifications are not found. Please check the .yml parameters file.')
 
-    def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None, bw_slot=None):
-        # initializing the scheduler with a bs_index to ease internal computations
-        self.scheduler = Scheduler(scheduler_typ=scheduler_typ, bs_index=bs_index, bw=self.bw, time_slot=time_slot,
-                                   simulation_time=simulation_time, tx_power=self.tx_power, t_min=t_min, c_target=c_target,
-                                   bw_slot=bw_slot)
+    # def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None, bw_slot=None):
+    #     # initializing the scheduler with a bs_index to ease internal computations
+    #     self.scheduler = Scheduler(scheduler_typ=scheduler_typ, bs_index=bs_index, bw=self.bw, time_slot=time_slot,
+    #                                simulation_time=simulation_time, tx_power=self.tx_power, t_min=t_min, c_target=c_target,
+    #                                bw_slot=bw_slot)
 
     def beam_configuration(self, az_map, elev_map=None): # change the beam configuration according to the grid if beamforing is used
         # always in sample list!!!
@@ -98,18 +99,29 @@ class BaseStation:
             # self.beams = self.antenna.beams  # NOT USING - FOR FUTURE CALCULATIONS
             lower_bound = higher_bound
 
-    def add_active_beam(self, sector, beams, n_users):
-        if hasattr(self, 'active_beams'):
-            if self.active_beams is None:
-                self.active_beams = np.zeros(shape=(self.antenna.beams, self.n_sectors))
+    def add_active_beam(self, sector, beams, n_users, uplink, downlink):
+        if hasattr(self, 'dwn_active_beams'):
+            if downlink:
+                if self.dwn_active_beams is None:
+                    self.dwn_active_beams = np.zeros(shape=(self.antenna.beams, self.n_sectors))
+        if hasattr(self, 'up_active_beams'):
+            if uplink:
+                if self.up_active_beams is None:
+                    self.up_active_beams = np.zeros(shape=(self.antenna.beams, self.n_sectors))
         else:
             print('Active beam list not found! Is the antenna object a beamforming one?')
             return
         for beam_index, beam in enumerate(beams):
-            self.active_beams[beam][sector] = n_users[beam_index]
+            if downlink:
+                self.dwn_active_beams[beam][sector] = n_users[beam_index]
+            elif uplink:
+                self.up_active_beams[beam][sector] = n_users[beam_index]
 
-    def clear_active_beams(self):
-        self.active_beams = None
+    def clear_active_beams(self, downlink=False, uplink=False):
+        if downlink:
+            self.dwn_active_beams = None
+        elif uplink:
+            self.up_active_beams = None
 
     def sector_beam_pointing_configuration(self, n_beams):
         # sectors_pointing = np.arange(360/(2*self.n_sectors), 360.1, 360/self.n_sectors)

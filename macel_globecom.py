@@ -94,17 +94,17 @@ class Macel:
                 # ue_in_sector = np.where(self.ue.sector_map[bs_index] == sector_index)
                 # ue_in_bs_and_sector = np.intersect1d(ue_in_bs, ue_in_sector)
                 # ue_in_bs_sector_and_beam = self.ue.ue_bs[ue_in_bs_and_sector, 1]
-                ue_in_bs_sector_and_beam = self.ue.ue_bs[np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                                    & (self.ue.ue_bs[:, 2] == sector_index)), 1]
+                ue_in_bs_sector_and_beam = self.ue.dw_ue_bs[np.where((self.ue.dw_ue_bs[:, 0] == bs_index)
+                                                                     & (self.ue.dw_ue_bs[:, 2] == sector_index)), 1]
                 [beams, users_per_beams] = np.unique(ue_in_bs_sector_and_beam, return_counts=True)
 
                 base_station.add_active_beam(beams=beams.astype(int), sector=sector_index, n_users=users_per_beams)
 
             if self.scheduling_opt:
-                t_beam = base_station.generate_utility_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                t_beam = base_station.generate_utility_weighted_beam_time(t_total=simulation_time, ue_bs=self.ue.dw_ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
 
                 base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot, weighted_act_beams=t_beam, uniform_time_dist=False)  # precalculating the beam activation timings
-                base_station.generate_weighted_bw(ue_bs=self.ue.ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
+                base_station.generate_weighted_bw(ue_bs=self.ue.dw_ue_bs, bs_index=bs_index, c_target=self.criteria)  # LISANDRO
             else:
                 base_station.generate_beam_timing(simulation_time=simulation_time, time_slot=time_slot)
                 base_station.generate_proportional_beam_bw()  # LISANDRO
@@ -158,10 +158,10 @@ class Macel:
         # ch_gain_map = ch_gain_map[:, self.ue.active_ue[0]]
         self.sector_map = self.sector_map.astype(int)
 
-        cap = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        snr = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        user_time = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
-        user_bw = np.zeros(shape=(self.ue.ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        cap = np.zeros(shape=(self.ue.dw_ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        snr = np.zeros(shape=(self.ue.dw_ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        user_time = np.zeros(shape=(self.ue.dw_ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
+        user_bw = np.zeros(shape=(self.ue.dw_ue_bs.shape[0], self.base_station_list[0].beam_timing_sequence.shape[1]))
         act_beams_nmb = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
         user_per_bs = np.zeros(shape=(self.base_station_list.__len__(), self.base_station_list[0].beam_timing_sequence.shape[1]))
         meet_citeria = np.zeros(shape=self.base_station_list[0].beam_timing_sequence.shape[1])
@@ -185,9 +185,9 @@ class Macel:
             #check the active Bs's in time_index
             for bs_index, base_station in enumerate(self.base_station_list):
                 # todo - concertar para usuário sem BS!!!
-                ue_in_active_beam = np.where((self.ue.ue_bs[:, 0] == bs_index)
-                                             & (self.ue.ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
-                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.ue_bs[ue_in_active_beam, 1]]
+                ue_in_active_beam = np.where((self.ue.dw_ue_bs[:, 0] == bs_index)
+                                             & (self.ue.dw_ue_bs[:, 1] == base_station.beam_timing_sequence[self.ue.dw_ue_bs[:, 2], v_time_index]))[0]  # AQUI OI
+                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][ue_in_active_beam, self.ue.dw_ue_bs[ue_in_active_beam, 1]]
 
                 interf_in_active_ue = 0
                 # interference calculation
@@ -213,8 +213,8 @@ class Macel:
                 cap[ue_in_active_beam, time_index] = bw * 10E6 * np.log2(1+10**(pw_in_active_ue/10)/interf_in_active_ue)/(10E6)
                 user_time[ue_in_active_beam, time_index] = 1
                 user_bw[ue_in_active_beam, time_index] = bw
-                act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.active_beams, axis=0))
-                user_per_bs[bs_index, time_index] = np.sum(base_station.active_beams)
+                act_beams_nmb[bs_index, time_index] = np.mean(np.count_nonzero(base_station.dwn_active_beams, axis=0))
+                user_per_bs[bs_index, time_index] = np.sum(base_station.dwn_active_beams)
 
             if self.scheduling_opt:
                 # checking if one or multiple UEs have reached the target capacity

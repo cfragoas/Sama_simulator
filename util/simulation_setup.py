@@ -16,9 +16,9 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
 
     macel.grid.make_points(dist_type='gaussian', samples=n_samples, n_centers=n_centers, random_centers=False,
                            plot=False)  # distributing points around centers in the grid
-    macel.set_ue(hrx=1.5, tx_power=0)
+    macel.set_ue()
     # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
-    output = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
+    output = macel.place_and_configure_bs(n_centers=n_bs, clustering=True)
     # snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs, output_typ='simple', clustering=False)
     return output
 
@@ -62,7 +62,17 @@ def create_enviroment(parameters):
 
     base_station.sector_beam_pointing_configuration(n_beams=parameters['bs_param']['n_beams'])
 
-    macel = Macel(grid=grid, prop_model='free space',
+    if parameters['macel_param']['uplink']:
+        downlink_specs = parameters['downlink_scheduler']
+    else:
+        downlink_specs = None
+    if parameters['macel_param']['downlink']:
+        uplink_specs = parameters['downlink_scheduler']
+    else:
+        uplink_specs = None
+
+    macel = Macel(grid=grid,
+                  prop_model='free space',
                   criteria=parameters['downlink_scheduler']['criteria'],
                   cell_size=parameters['roi_param']['cel_size'],  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,
@@ -70,9 +80,12 @@ def create_enviroment(parameters):
                   time_slot=parameters['macel_param']['time_slot_lngt'],
                   t_min=parameters['downlink_scheduler']['t_min'],
                   scheduler_typ=parameters['downlink_scheduler']['scheduler_typ'],
+                  output_type=parameters['exec_param']['output_type'],
                   bw_slot=parameters['downlink_scheduler']['bw_slot'],
-                  downlink_specs=parameters['downlink_scheduler'],
-                  uplink_specs=parameters['uplink_scheduler'])
+                  tdd_up_time=parameters['macel_param']['mux_tdd_up_time'],
+                  downlink_specs=downlink_specs,
+                  uplink_specs=uplink_specs)
+    macel.set_ue(hrx=parameters['ue_param']['hrx'], tx_power=parameters['ue_param']['tx_power'])
 
     return macel
 
@@ -94,6 +107,7 @@ def prep_multiproc(threads):
     p = multiprocessing.Pool(processes=threads)
 
     return p
+
 
 def get_additional_sim_param(global_parameters, param_path, process_pool):
     path, folder, name_file = save_data()  # storing the path used to save in all iterations
@@ -133,7 +147,6 @@ def start_simmulation(conf_file):
         steps = np.zeros(shape=div_floor, dtype='int') + 100
     last_step = len(steps)
 
-
     for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
         print('running with ', n_cells, ' BSs')
 
@@ -159,9 +172,6 @@ def start_simmulation(conf_file):
 
             data = data + data_
             data_ = None
-
-        snr_cap_stats = [x['snr_cap_stats'] for x in data]
-        raw_data = [x['raw_data_dict'] for x in data]
 
         data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
 
@@ -189,21 +199,4 @@ def start_simmulation(conf_file):
             plot_surfaces(name_file=name_file, global_parameters=global_parameters)
             print('saving surface plots .... [done]')
 
-        # plot_hist(raw_data=raw_data, path=folder, n_bs=n_cells, max_iter=max_iter,
-        #           criteria=global_parameters['macel_param']['criteria'])
-        #
-        # plot_surface(grid=macel.grid.grid, position=np.concatenate([x['bs_position'] for x in raw_data]),
-        #              parameter=np.array(snr_cap_stats)[:, 2], path=folder, n_bs=n_cells,
-        #              max_iter=max_iter)
-        #
-        # plot_curves(mean_snr=data_dict['mean_snr'], std_snr=data_dict['std_snr'], mean_cap=data_dict['mean_cap'],
-        #             std_cap=data_dict['std_cap'],
-        #             mean_user_time=data_dict['mean_user_time'], std_user_time=data_dict['std_user_time'],
-        #             mean_user_bw=data_dict['mean_user_bw'],
-        #             std_user_bw=data_dict['std_user_bw'], total_meet_criteria=data_dict['total_meet_criteria'],
-        #             max_iter=max_iter,
-        #             n_bs_vec=bs_vec, individual=False, path=folder,
-        #             criteria=global_parameters['macel_param']['criteria'])
-
-        # global_parameters['macel_param']['last_n_bs'] = n_cells
         data = None

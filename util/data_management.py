@@ -1,4 +1,4 @@
-import os, datetime, platform, logging
+import os, datetime, platform, logging, copy
 import numpy as np
 import pickle
 from itertools import product
@@ -20,50 +20,54 @@ def write_conf(folder, parameters, yml_file=None):
 
 def macel_data_dict(data_dict_=None, data_=None, n_cells=None):
     if not data_ or not data_dict_:
+        # creating the base simplified data dict
         data_dict_ = {'BSs': [], 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
                       'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'total_meet_criteria': [],
                       'mean_deficit': [], 'std_deficit': [], 'mean_norm_deficit': [], 'std_norm_deficit': []}
+        data_dict_ = {'downlink_data': copy.deepcopy(data_dict_), 'uplink_data': copy.deepcopy(data_dict_)}  # replicating for uplink and downlink
     else:
-        # snr_cap_stats = [x[0] for x in data_]
-        # raw_data = [x[1] for x in data_]
 
-        snr_cap_stats = [x['snr_cap_stats'] for x in data_]
-        raw_data = [x['raw_data_dict'] for x in data_]
+        if data_[0]['downlink_results'] is not None:
+            downlink_data = [x['downlink_results'] for x in data_]
+            data_dict_['downlink_data'] = organize_data_matrix(data_=downlink_data,
+                                                               data_dict_=data_dict_['downlink_data'], n_cells=n_cells)
+        # else:
+        #     data_dict_['downlink_data'] = None
 
-        # saving cumulative simple metrics
-        snr_cap_stats = np.array(snr_cap_stats)
+        if data_[0]['uplink_results'] is not None:
+            uplink_data = [x['uplink_results'] for x in data_]
+            data_dict_['uplink_data'] = organize_data_matrix(data_=uplink_data,
+                                                             data_dict_=data_dict_['uplink_data'], n_cells=n_cells)
+        # else:
+        #     data_dict_['uplink_data'] = None
 
-        data_dict_['BSs'].append(n_cells)
-        # data_dict_['mean_snr'].append(np.mean(snr_cap_stats[:, 0]))
-        # data_dict_['std_snr'].append(np.mean(snr_cap_stats[:, 1]))
-        # data_dict_['mean_cap'].append(np.mean(snr_cap_stats[:, 2]))
-        # data_dict_['std_cap'].append(np.mean(snr_cap_stats[:, 3]))
-        # data_dict_['mean_user_time'].append(np.mean(snr_cap_stats[:, 4]))
-        # data_dict_['std_user_time'].append(np.mean(snr_cap_stats[:, 5]))
-        # data_dict_['mean_user_bw'].append(np.mean(snr_cap_stats[:, 6]))
-        # data_dict_['std_user_bw'].append(np.mean(snr_cap_stats[:, 7]))
-        # data_dict_['total_meet_criteria'].append(np.mean(snr_cap_stats[:, 8]))
-        # data_dict_['mean_deficit'].append(np.mean(snr_cap_stats[:, 9]))
-        # data_dict_['std_deficit'].append(np.mean(snr_cap_stats[:, 10]))
-        # data_dict_['mean_norm_deficit'].append(np.mean(snr_cap_stats[:, 11]))
-        # data_dict_['std_norm_deficit'].append(np.mean(snr_cap_stats[:, 12]))
+    return data_dict_
 
-        data_dict_['mean_snr'].append(np.mean([x['mean_snr'] for x in snr_cap_stats]))
-        data_dict_['std_snr'].append(np.mean([x['std_snr'] for x in snr_cap_stats]))
-        data_dict_['mean_cap'].append(np.mean([x['mean_cap'] for x in snr_cap_stats]))
-        data_dict_['std_cap'].append(np.mean([x['std_cap'] for x in snr_cap_stats]))
-        data_dict_['mean_user_time'].append(np.mean([x['mean_user_time'] for x in snr_cap_stats]))
-        data_dict_['std_user_time'].append(np.mean([x['std_user_time'] for x in snr_cap_stats]))
-        data_dict_['mean_user_bw'].append(np.mean([x['mean_user_bw'] for x in snr_cap_stats]))
-        data_dict_['std_user_bw'].append(np.mean([x['std_user_bw'] for x in snr_cap_stats]))
-        data_dict_['total_meet_criteria'].append(np.mean([x['total_meet_criteria'] for x in snr_cap_stats]))
-        data_dict_['mean_deficit'].append(np.mean([x['mean_deficit'] for x in snr_cap_stats]))
-        data_dict_['std_deficit'].append(np.mean([x['std_deficit'] for x in snr_cap_stats]))
-        data_dict_['mean_norm_deficit'].append(np.mean([x['mean_norm_deficit'] for x in snr_cap_stats]))
-        data_dict_['std_norm_deficit'].append(np.mean([x['std_norm_deficit'] for x in snr_cap_stats]))
 
-        # saving the raw data
-        data_dict_['raw_data'].append(raw_data)
+def organize_data_matrix(data_, data_dict_, n_cells):
+    snr_cap_stats = [x['snr_cap_stats'] for x in data_]
+    raw_data = [x['raw_data_dict'] for x in data_]
+
+    # saving cumulative simple metrics
+    snr_cap_stats = np.array(snr_cap_stats)
+
+    data_dict_['BSs'].append(n_cells)
+    data_dict_['mean_snr'].append(np.mean([x['mean_snr'] for x in snr_cap_stats]))
+    data_dict_['std_snr'].append(np.mean([x['std_snr'] for x in snr_cap_stats]))
+    data_dict_['mean_cap'].append(np.mean([x['mean_cap'] for x in snr_cap_stats]))
+    data_dict_['std_cap'].append(np.mean([x['std_cap'] for x in snr_cap_stats]))
+    data_dict_['mean_user_time'].append(np.mean([x['mean_user_time'] for x in snr_cap_stats]))
+    data_dict_['std_user_time'].append(np.mean([x['std_user_time'] for x in snr_cap_stats]))
+    data_dict_['mean_user_bw'].append(np.mean([x['mean_user_bw'] for x in snr_cap_stats]))
+    data_dict_['std_user_bw'].append(np.mean([x['std_user_bw'] for x in snr_cap_stats]))
+    data_dict_['total_meet_criteria'].append(np.mean([x['total_meet_criteria'] for x in snr_cap_stats]))
+    data_dict_['mean_deficit'].append(np.mean([x['mean_deficit'] for x in snr_cap_stats]))
+    data_dict_['std_deficit'].append(np.mean([x['std_deficit'] for x in snr_cap_stats]))
+    data_dict_['mean_norm_deficit'].append(np.mean([x['mean_norm_deficit'] for x in snr_cap_stats]))
+    data_dict_['std_norm_deficit'].append(np.mean([x['std_norm_deficit'] for x in snr_cap_stats]))
+
+    # storing the raw data
+    data_dict_['raw_data'].append(raw_data)
 
     return data_dict_
 
