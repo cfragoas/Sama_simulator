@@ -10,8 +10,12 @@ from matplotlib import cm
 def plot_histograms(name_file, max_iter, global_parameters, n_bs=None):
     data_dict = load_data(name_file=name_file)
     if n_bs is None:
-        n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
-    bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+        if data_dict['downlink_data']['BSs']:
+            n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
+            bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+        elif data_dict['uplink_data']['BSs']:
+            n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
+            bs_data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
 
     # checking if a downlink or uplink processing
     # type = 'downlink'
@@ -24,9 +28,12 @@ def plot_histograms(name_file, max_iter, global_parameters, n_bs=None):
     path = create_subfolder(name_file=name_file, n_bs=n_bs)
 
     # grouping UEs to beams, sectors and BSs (its equal for uplink and downlink)
-    beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
-
-    rel_index_tables = ue_relative_index(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
+    if data_dict['downlink_data']['BSs']:
+        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
+        rel_index_tables = ue_relative_index(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
+    elif data_dict['uplink_data']['BSs']:
+        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index)[0]
+        rel_index_tables = ue_relative_index(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index)[0]
 
     # beam capacity histogram
     if data_dict['downlink_data']['BSs']:
@@ -169,29 +176,29 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     fig_curve, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, dpi=500)
     fig_curve.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
 
-    # downlink_data = None
-    # uplink_data = None
-    # if data_dict['downlink_data'] is not None:
-    #     downlink_data = data_dict['downlink_data']
-    # if data_dict['uplink_data'] is not None:
-    #     uplink_data = data_dict['uplink_data']
+
+    # setting the default uplink/downlink legend
+    if data_dict['downlink_data'] is not None and data_dict['uplink_data'] is not None:
+        legend = legend=['downlink', 'uplink']
+    else:
+        legend = None
 
     ax1 = default_curve_plt(subplot=ax1, n_bs_vec=bs_list,
                             data=[data_dict['downlink_data']['mean_snr'], data_dict['uplink_data']['mean_snr']],
                             std=[data_dict['downlink_data']['std_snr'], data_dict['uplink_data']['std_snr']],
-                            xlabel='Number of BSs', title='Average SNIR (dB)')
+                            xlabel='Number of BSs', title='Average SNIR (dB)', legend=legend)
     ax2 = default_curve_plt(subplot=ax2, n_bs_vec=bs_list,
                             data=[data_dict['downlink_data']['mean_cap'], data_dict['uplink_data']['mean_cap']],
                             std=[data_dict['downlink_data']['std_cap'], data_dict['uplink_data']['std_cap']],
-                            xlabel='Number of BSs', title='Average Capacity (Mbps)')
+                            xlabel='Number of BSs', title='Average Capacity (Mbps)', legend=legend)
     ax3 = default_curve_plt(subplot=ax3, n_bs_vec=bs_list,
                             data=[data_dict['downlink_data']['mean_user_time'], data_dict['uplink_data']['mean_user_time']],
                             std=[data_dict['downlink_data']['std_user_time'], data_dict['uplink_data']['std_user_time']],
-                            xlabel='Number of BSs', title='Average UE time (s)')
+                            xlabel='Number of BSs', title='Average UE time (s)', legend=legend)
     ax4 = default_curve_plt(subplot=ax4, n_bs_vec=bs_list,
                             data=[data_dict['downlink_data']['mean_user_bw'], data_dict['uplink_data']['mean_user_bw']],
                             std=[data_dict['downlink_data']['std_user_bw'], data_dict['uplink_data']['std_user_bw']],
-                            xlabel='Number of BSs', title='Average UE BW (MHz)')
+                            xlabel='Number of BSs', title='Average UE BW (MHz)', legend=legend)
 
     fig_curve.tight_layout()
     plt.savefig(path + 'perf_curves.png')
@@ -200,8 +207,7 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     title = '% of UE that meets the ' + str(global_parameters['downlink_scheduler']['criteria']) + ' Mbps criteria'
     default_curve_plt(n_bs_vec=bs_list,
                       data=[data_dict['downlink_data']['total_meet_criteria'], data_dict['uplink_data']['total_meet_criteria']],
-                      xlabel='Number of BSs', title=title,
-                      path=path, save=True, save_name='cap_defict')
+                      xlabel='Number of BSs', title=title, path=path, save=True, save_name='cap_defict', legend=legend)
 
     # special plots
     # avg UE that meet the criteria per time slot - need to separate downlink and uplink for this one
@@ -234,10 +240,13 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     # plt.close('all')
 
     # inactive UEs - this graphics is not different for uplink/downlink
-    title = 'UEs not connected to the RAN'
-    beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'])
+    if data_dict['downlink_data']['BSs']:
+        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'])
+    elif data_dict['uplink_data']['BSs']:
+        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'])
     avg_disconn_ues = [np.mean(x['nactive_ue_cnt']) for x in beam_sec_groupings]
     std_disconn_ues = [np.std(x['nactive_ue_cnt']) for x in beam_sec_groupings]
+    title = 'UEs not connected to the RAN'
     default_curve_plt(n_bs_vec=bs_list, data=avg_disconn_ues, std=std_disconn_ues, xlabel='Number of BSs', title=title,
                       path=path, save=True, save_name='not_connected_ues')
 
@@ -275,7 +284,7 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     thrpt_speceff_fairness_curve_plot(data_dict=[data_dict['downlink_data'], data_dict['uplink_data']],
                                               n_sectors=global_parameters['bs_param']['n_sectors'],
                                               bw=global_parameters['bs_param']['bw'], subname_plot='',
-                                              path=path)
+                                              path=path, legend=legend)
     # if data_dict['uplink_data']['BSs']:
     #     throughput_spectral_efficiency_curve_plot(data_dict=data_dict['uplink_data'],
     #                                               n_sectors=global_parameters['bs_param']['n_sectors'],
@@ -308,8 +317,14 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
 def plot_surfaces(name_file, global_parameters, n_bs=None):
     data_dict = load_data(name_file=name_file)
     if n_bs is None:
-        n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
-    bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+        if data_dict['downlink_data']['BSs']:
+            n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
+        elif data_dict['uplink_data']['BSs']:
+            n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
+    if data_dict['downlink_data']['BSs']:
+        bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+    elif data_dict['uplink_data']['BSs']:
+        bs_data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
 
     path = create_subfolder(name_file=name_file, n_bs=n_bs)
 
@@ -318,10 +333,17 @@ def plot_surfaces(name_file, global_parameters, n_bs=None):
                    columns=global_parameters['roi_param']['grid_columns'])
 
     # data coordinates - its is the same for downlink and uplink
-    bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
-                                                parameter_name='bs_position', bs_data_index=bs_data_index)
-    ue_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
-                                                parameter_name='ue_position', bs_data_index=bs_data_index)
+    if data_dict['downlink_data']['BSs']:
+        bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
+                                                    parameter_name='bs_position', bs_data_index=bs_data_index)
+        ue_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
+                                                    parameter_name='ue_position', bs_data_index=bs_data_index)
+    elif data_dict['uplink_data']['BSs']:
+        bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'],
+                                                    parameter_name='bs_position', bs_data_index=bs_data_index)
+        ue_coordinates = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'],
+                                                    parameter_name='ue_position', bs_data_index=bs_data_index)
+
 
     # capacity map
     if data_dict['downlink_data']['BSs']:
@@ -383,7 +405,7 @@ def default_surf_plt(data, grid, coordinates, n_bs, max_iter, title, path=None, 
 
 
 def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi=150, save=False, path=None,
-                      save_name=None, show=False):
+                      save_name=None, show=False, legend=None):
 
     if data.__len__() == 1 or not isinstance(data[0], list):
         # data = np.array(data)[np.newaxis, :]
@@ -414,6 +436,9 @@ def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi
                 subplot.fill_between(n_bs_vec, d + s, d - s, alpha=0.3)
     subplot.set_xlabel(xlabel)
     subplot.set_title(title)
+
+    if legend is not None:
+        plt.legend(legend, fontsize='x-large')
 
     if save:
         if path is not None:
@@ -537,7 +562,7 @@ def ran_capacity_time_slot_plot(data_dict, time_shape, subname, path):
                                                       parameter_name='ran_cap_per_time', bs_data_index=bs_data_index,
                                                       concatenate=False))
         avg_ran_cap = np.mean(ran_cap, axis=0)
-        std_ran_cap = np.std(ran_cap, axis=0)
+        # std_ran_cap = np.std(ran_cap, axis=0)
         plt_line[bs_data_index] = avg_ran_cap
 
     fig_ran_cap_it = plt.figure(figsize=(13, 10), dpi=100)
@@ -552,7 +577,7 @@ def ran_capacity_time_slot_plot(data_dict, time_shape, subname, path):
     plt.savefig(path + subname + '_RAN_capacity_time.png')
     plt.close('all')
 
-def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, path):
+def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, path, legend=None):
     if data_dict.__len__() == 1 or not isinstance(data_dict, list):
         data_dict = [data_dict, []]
 
@@ -604,15 +629,15 @@ def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, pa
 
     default_curve_plt(n_bs_vec=n_bs_vec, data=thgp_tot_avg_tot, std=thgp_tot_std_tot,
                       xlabel='Number of BSs', title='RAN total throughput (Gbps)', path=path, save=True,
-                      save_name=subname_plot + 'ran_throughput')
+                      save_name=subname_plot + 'ran_throughput', legend=legend)
 
     default_curve_plt(n_bs_vec=n_bs_vec, data=sp_eff_tot_avg_tot, std=sp_eff_tot_std_tot,
                       xlabel='Number of BSs', title='Spectral Efficiency (bits/Hz)', path=path, save=True,
-                      save_name=subname_plot + 'ran_efficiency')
+                      save_name=subname_plot + 'ran_efficiency', legend=legend)
 
     default_curve_plt(n_bs_vec=n_bs_vec, data=fairness_avg_tot, std=fairness_spd_tot,
                       xlabel='Number of BSs', title='Fairness Index', path=path, save=True,
-                      save_name=subname_plot + 'fairness_index')
+                      save_name=subname_plot + 'fairness_index', legend=legend)
 
 def sec_beam_capacity_hist(data_dict, bs_data_index, n_bs, path, beam_sec_groupings, rel_index_tables, subname_plot,
                            grouping_name):

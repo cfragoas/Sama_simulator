@@ -184,18 +184,6 @@ class Macel:
                                                              t_index=t_index, c_target=cap_defict, ue_updt=False,
                                                              updated_beams=updated_beams[bs_index])
 
-
-                # bs.tdd_mux.up_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
-                #                               t_index=t_index, c_target=cap_defict, ue_updt=False,
-                #                               updated_beams=updated_beams[bs_index])
-
-            #     bs.scheduler.update_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
-            #                                   t_index=t_index, c_target=cap_defict, ue_updt=True)
-            # else:
-            #     bs.scheduler.update_scheduler(active_beams=bs.active_beams, ue_bs=self.ue.ue_bs,
-            #                                   t_index=t_index, c_target=cap_defict, ue_updt=False,
-            #                                   updated_beams=updated_beams[bs_index])
-
     def place_and_configure_bs(self, n_centers, predetermined_centroids=None, clustering=True):
         if clustering:
             if predetermined_centroids is not None:
@@ -238,12 +226,12 @@ class Macel:
         if self.downlink_specs is not None and self.tdd_up_time != 1:
             self.metrics.store_downlink_metrics(n_ues=self.ue.dw_ue_bs.shape[0], n_bs=self.base_station_list.__len__(),
                                                 simulation_time=self.simulation_time, time_slot=self.time_slot,
-                                                criteria=self.criteria)  # initializing the downlink variables
+                                                criteria=self.downlink_specs['criteria'])  # initializing the downlink variables
             self.send_ue_to_bs(downlink=True)
         if self.uplink_specs is not None and self.tdd_up_time != 0:
             self.metrics.store_uplink_metrics(n_ues=self.ue.up_ue_bs.shape[0], n_bs=self.base_station_list.__len__(),
                                               simulation_time=self.simulation_time, time_slot=self.time_slot,
-                                              criteria=self.criteria)  # initializing the uplink variables
+                                              criteria=self.uplink_specs['criteria'])  # initializing the uplink variables
             self.send_ue_to_bs(uplink=True)
 
         output = self.tdd_dwn_up_sim(output_typ=self.output_type)  # tdd scheduling that cals uplink and downlink simulations
@@ -329,7 +317,7 @@ class Macel:
 
                 updated_beams.append(base_station.tdd_mux.up_scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])  # this stores the active beams in a time index to infor the scheduler
 
-                ue_tx_pw = base_station.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)  # TODO TROCAR AQUI PELA POT DA UE (tb trocar pela densidade de potencia)
+                ue_tx_pw = self.ue.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)  # TODO TROCAR AQUI PELA POT DA UE (tb trocar pela densidade de potencia)
 
                 pw_of_active_ue = ue_tx_pw + ch_gain_map[bs_index][active_ue_in_active_beam, self.ue.up_ue_bs[active_ue_in_active_beam, 1]][0]
                 pw_of_active_ue = 10 ** (pw_of_active_ue/10)
@@ -426,7 +414,8 @@ class Macel:
                     rx_spectrum = bs_rx_spectrum[bs_index][sector_index]
                     interf_spectrum = interf_ue_channels[bs_index][sector_index]
                     bs_snr_spectrum[bs_index, sector_index] = rx_spectrum / interf_spectrum  # SNR = RX_pw/Interf
-                    bs_cap_spectrum[bs_index, sector_index] = np.sum(rbw * np.log2(1 + bs_snr_spectrum[bs_index, sector_index]))  # the summed capacity for a UEs bw
+                    # bs_cap_spectrum[bs_index, sector_index] = np.sum(rbw * np.log2(1 + bs_snr_spectrum[bs_index, sector_index]))  # the summed capacity for a UEs bw
+                    bs_cap_spectrum[bs_index, sector_index] = rbw * np.log2(1 + bs_snr_spectrum[bs_index, sector_index])  # the summed capacity for a UEs bw
 
 
                 active_ue = np.unique(bs_occupied_spectrum[bs_index])
@@ -462,7 +451,7 @@ class Macel:
             if self.metrics.up_cnt_satisfied_ue[time_index] != count_satisfied_ue_old:
                 bs_2b_updt = np.unique(self.ue.up_ue_bs[self.metrics.up_satisfied_ue, 0])  # is the BSs of the UEs that meet c_target
                 bs_2b_updt = bs_2b_updt[bs_2b_updt >= 0]  # removing the all the UEs that already have been removed before
-                # count_satisfied_ue_old = copy.copy(self.metrics.up_cnt_satisfied_ue[time_index])
+                count_satisfied_ue_old = copy.copy(self.metrics.up_cnt_satisfied_ue[time_index])
                 self.ue.remove_ue(ue_index=self.metrics.up_satisfied_ue, uplink=True)  # removing selected UEs from the rest of simulation time
                 # elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                 self.up_elapsed_time = time_index + 1
@@ -472,7 +461,7 @@ class Macel:
 
         if time_index == base_station.tdd_mux.up_scheduler.time_scheduler.simulation_time - 1:
             return(self.metrics.create_uplink_metrics_dataframe(output_typ=output_typ, active_ue=self.ue.active_ue,
-                                                                cluster_centroids=self.cluster.centroids,
+                                                                cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                 ue_pos=self.cluster.features,
                                                                 ue_bs_table=self.ue_bs_table,
                                                                 dist_map=self.dist_map * self.cell_size,

@@ -51,6 +51,8 @@ class BaseStation:
         self.tdd_mux.create_tdd_scheduler(simulation_time=simulation_time, up_tdd_time=up_tdd_time)
 
     def initialize_dwn_up_scheduler(self, downlink_specs=None, uplink_specs=None):
+        # this function will instantiate the schedulers, downlink and uplink separately. It will instantiate using the
+        # configuration found in the downlink_specs and uplink_specs dictionaries create from the param.yml file
         if self.tdd_mux.dwn_tdd_time != 0:
             if downlink_specs is not None:
                 self.tdd_mux.create_downlink(scheduler_typ=downlink_specs['scheduler_typ'],
@@ -100,6 +102,7 @@ class BaseStation:
             lower_bound = higher_bound
 
     def add_active_beam(self, sector, beams, n_users, uplink, downlink):
+        # this function turns the beams in active position and indicates in a matrix (downlink and uplink are separated)
         if hasattr(self, 'dwn_active_beams'):
             if downlink:
                 if self.dwn_active_beams is None:
@@ -118,6 +121,7 @@ class BaseStation:
                 self.up_active_beams[beam][sector] = n_users[beam_index]
 
     def clear_active_beams(self, downlink=False, uplink=False):
+        # This function will erases the active beam matrices (uplink and downlink)
         if downlink:
             self.dwn_active_beams = None
         elif uplink:

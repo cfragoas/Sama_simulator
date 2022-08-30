@@ -67,7 +67,7 @@ def create_enviroment(parameters):
     else:
         downlink_specs = None
     if parameters['macel_param']['downlink']:
-        uplink_specs = parameters['downlink_scheduler']
+        uplink_specs = parameters['uplink_scheduler']
     else:
         uplink_specs = None
 
