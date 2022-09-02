@@ -1,6 +1,6 @@
 exec_param:
   threads: 0 # if 0 - uses the maximum number of threads - 1
-  max_iter: 50  # number of iterations (repetitions/batches)  todo - fix this in outside code
+  max_iter: 14  # number of iterations (repetitions/batches)  todo - fix this in outside code
   plot_curves: True
   plot_surf: True
   plot_hist: True
@@ -16,9 +16,11 @@ roi_param:
   name_map: ''
 
 macel_param:
-#  criteria: 30  # Mbps
-  n_samples: 200
+  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'random' sampling
+  n_samples: 200  # number of samples per distribution
+  # ==================================== if sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc)
+  # ===================================================================================================
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
   uplink: True  # if True: simulates downlink comm.

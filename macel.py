@@ -59,7 +59,7 @@ class Macel:
         self.cap_map = None
         self.cluster = None
 
-        self.dwn_rel_t_index = None # todo VER SE VAI USAR ISSO AQUI !!!!
+        # self.dwn_rel_t_index = None # todo VER SE VAI USAR ISSO AQUI !!!!
         self.dwn_elapsed_time = None
         self.up_elapsed_time = None
 
@@ -239,67 +239,76 @@ class Macel:
         return output
 
     def tdd_dwn_up_sim(self, output_typ='complete'):
+        # This function uses the tdd time matrix (witch as the uplink/downlink time info) and
+        # and call the uplink or downlink interference functions
+        # It is important to note that the uplink and downlink only has info and build theirs time amtrix and
+        # organize the schedulers for the total allocation for the simulation time and don't know when their allocated
+        # whe using tdd
+
         tdd_scheduler = self.base_station_list[0].tdd_mux.tdd_scheduler  # picking any tdd scheduler because all BSs are sync
         index_list = np.where(np.ones(shape=tdd_scheduler.shape))[0]
         dwn_indexes = np.where(tdd_scheduler == 0)[0]
         up_indexes = np.where(tdd_scheduler == 1)[0]
-        end_sim = False
+        end_sim = False  # this flag indicates that the tdd time matrix has ended
         t_index = 0
-        downlink_results = None
-        uplink_results = None
+        downlink_results = None  # this variable stores the downlink results of the metrics class
+        uplink_results = None  # this variable stores the uplink results of the metrics class
 
         while not end_sim:
-            boss = tdd_scheduler[t_index]
+            boss = tdd_scheduler[t_index]  # boss indicates if is uplink (1) or downlink (0) time
             # picking the next time to change between downlink and uplink
             next_boss_index = np.where((tdd_scheduler != boss) & (index_list > t_index))[0]
-            if next_boss_index.size == 0:
+            if next_boss_index.size == 0:  # this checks if the simulation is about to end
                 next_boss_index = tdd_scheduler.size
                 end_sim = True
             else:
                 next_boss_index = next_boss_index[0]
             scheduler_range = range(t_index, next_boss_index)
-            t_index = next_boss_index
+            t_index = next_boss_index  # to jumps from uplink to downlink or vice-versa
+            # below, the rel_index is the time index that the downlink/uplink schedulers sees in the simulation
+            # not the real ones of the tdd time matrix -  if only downlink or uplink is used, the rel_index is equal to
+            # the tdd time index
             if boss == 0:
                 rel_index = np.where(np.isin(dwn_indexes, scheduler_range))[0]
                 downlink_results = self.downlink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                               tdd_scheduler_range=scheduler_range,
                                                               rel_schdl_range=rel_index)  # downlink channel simulation
-                # print(scheduler_range)
-                # print('downlink')
             if boss == 1:
                 rel_index = np.where(np.isin(up_indexes, scheduler_range))[0]
                 uplink_results = self.uplink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                           tdd_scheduler_range=scheduler_range,
                                                           rel_schdl_range=rel_index)  # uplink channel simulation
-                # print(scheduler_range)
-                # print('uplink')
 
-        # if downlink_results is not None and uplink_results is not None:
+        # if the tdd not has downlink or uplink, it will return a correspondent empty dictionary
         return {'downlink_results': downlink_results, 'uplink_results': uplink_results}
 
     def uplink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range, output_typ='complete'):
-        if self.dwn_rel_t_index is None:
-            self.dwn_rel_t_index = 0
-        if self.ue_bs_table is None:  # this is a backup tab;e that stores the initial UE/BS association
+        # For the time, the uplink interference is fundamentally different of the downlink because every active UE
+        # transmits in a different frequency with a different bandwidth
+        # To solve that, a transmitted power spectrum, interference power spectrum (interference + noise),
+        # SNIR spectrum and capacity spectrum are constructed. For reference, a EU-mapping spectrum is also used.
+
+        # if self.dwn_rel_t_index is None:
+        #     self.dwn_rel_t_index = 0
+        if self.ue_bs_table is None:  # this is a backup table that stores the initial UE/BS association
             self.ue_bs_table = pd.DataFrame(copy.copy(self.ue.dw_ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
-        # ue_bs_table = pd.DataFrame(copy.copy(self.ue.up_ue_bs), columns=['bs_index', 'beam_index', 'sector_index', 'csi'])
-        # elapsed_time = 0
-        # count_satisfied_ue_old = 0
-        rbw = 0.1  # the badwidth resolution
+
+        rbw = 0.1  # the bandwidth resolution  - todo check how to make this more flexible
         n_ues = self.ue.up_ue_bs.shape[0]
-        t_slot_ratio = self.simulation_time/self.time_slot
+        t_slot_ratio = self.simulation_time/self.time_slot  # this ratio is used in some calculations
 
         # calculating the noise power for the selected rbw
         k = 1.380649E-23  # Boltzmann's constant (J/K)
         t = 290  # absolute temperature
-        noise_power = k * t * rbw * 10E6
+        noise_power = k * t * rbw * 10E6  # Nyqist noise power equation
 
         if self.up_elapsed_time is None:
-            self.up_elapsed_time = 0
+            self.up_elapsed_time = 0  # the elapsed time variable is to track the real time outside of
+            # the function and use it on the metrics allocation
 
         for tdd_t_index, time_index in enumerate(rel_schdl_range):
-        # for time_index, _ in enumerate(self.base_station_list[0].scheduler.time_scheduler.beam_timing_sequence.T):
-        #     v_time_index = time_index - elapsed_time  # virtual time index used after generating new beam timing sequence when needed
+            # the virtual time serves to adjust the time_index as the algorithm changes the resets the time_matrix of
+            # this function
             v_time_index = time_index - self.up_elapsed_time
 
             # firstly, store all uplink Tx channels
@@ -315,12 +324,15 @@ class Macel:
                 active_ue_in_active_beam = np.where((base_station.tdd_mux.up_scheduler.freq_scheduler.user_bw !=0) &
                                                     ue_in_active_beam)
 
-                updated_beams.append(base_station.tdd_mux.up_scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])  # this stores the active beams in a time index to infor the scheduler
+                updated_beams.append(base_station.tdd_mux.up_scheduler.time_scheduler.beam_timing_sequence[:,
+                                     v_time_index])  # this stores the active beams in a time index to inform the scheduler
 
-                ue_tx_pw = self.ue.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)  # TODO TROCAR AQUI PELA POT DA UE (tb trocar pela densidade de potencia)
+                # ue_tx_pw is the power density of the ue transmited power (for the rbw)
+                ue_tx_pw = self.ue.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)
 
+                # pw_of_active_ue = UE power density (dBW) + CSI (channel gain map - dB)
                 pw_of_active_ue = ue_tx_pw + ch_gain_map[bs_index][active_ue_in_active_beam, self.ue.up_ue_bs[active_ue_in_active_beam, 1]][0]
-                pw_of_active_ue = 10 ** (pw_of_active_ue/10)
+                pw_of_active_ue = 10 ** (pw_of_active_ue/10)  # converting from dBW to watt
                 # here, we need to set the base frequency response for all UEs
                 _bs_channels = np.zeros(shape=[base_station.n_sectors, int(base_station.bw // rbw)])
                 _bs_occupied_spectrum = copy.copy(_bs_channels) - 1  # the -1 is to initialize the matrix with a unindexed value
@@ -340,7 +352,7 @@ class Macel:
                 bs_rx_spectrum.append(_bs_channels)  # it is appended for the case that different BSs have different BWs
                 bs_occupied_spectrum.append(_bs_occupied_spectrum.astype(int))
 
-                # ========= PLOTTER !!!!!!! (TO TEST!) =========
+                # ========= PLOTTER !!!!!!! (TO TEST!!! DO NOT ERASE!!!) =========
                 # import matplotlib.pyplot as plt
                 # for sector_index in range(base_station.n_sectors):
                 #     ue_in_sector = active_ue_in_active_beam[0][self.ue.ue_bs[active_ue_in_active_beam[0], 2] == sector_index]
@@ -359,6 +371,7 @@ class Macel:
                 interf_ch_pbs = None
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
+                        # UEs in beam 2 is considered that they are interfering in beam1
                         active_ue_in_active_beam2 = (self.ue.up_ue_bs[:, 0] == bs_index2) & \
                                                     (self.ue.up_ue_bs[:, 1] ==
                                                      base_station2.tdd_mux.up_scheduler.time_scheduler.beam_timing_sequence[
@@ -366,9 +379,14 @@ class Macel:
                         active_ue_in_active_beam2 = np.where((base_station2.tdd_mux.up_scheduler.freq_scheduler.user_bw != 0) &
                                                              active_ue_in_active_beam2)
 
-                        bw_pw = self.ue.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)  # todo - arrumar aqui com a pot da UE
+                        # bw_pw is the power density of the ue transmited power (for the rbw). Here, this density is
+                        # to be allocated in all bandwidth slots of a UE
+                        # for now, it is admitted that all UES uses the same power
+                        bw_pw = self.ue.tx_power + 10 * np.log10(rbw/base_station.tdd_mux.up_scheduler.bw)
 
                         # interference channels calculated from the perspective of the active beams of the bs1
+                        # the interference is also calculted as a power spectral density
+                        # interference = bw_pw (dBW) + channel gain from interference UE to the interfered BS (dB)
                         interf = bw_pw + ch_gain_map[bs_index][active_ue_in_active_beam2[0],
                                                                base_station.tdd_mux.up_scheduler.time_scheduler.beam_timing_sequence[
                                                             self.sector_map[bs_index2, active_ue_in_active_beam2[0]].astype(int), v_time_index]]  # channels from bs2 UEs to bs1
@@ -376,7 +394,8 @@ class Macel:
                         # allocating the ues in bandwidth for each BS sector/antenna
                         interf_ch_pbs = np.zeros(shape=[base_station2.n_sectors, int(base_station.bw // rbw)])  # empty channel for all UEs from bs1 perspective
                         for sector_index in range(base_station.n_sectors):
-                            ue_in_sector = np.array(np.where((self.sector_map[bs_index] == sector_index) & (self.ue.up_ue_bs[:, 0] == bs_index2)))
+                            ue_in_sector = np.array(np.where((self.sector_map[bs_index] == sector_index) &
+                                                             (self.ue.up_ue_bs[:, 0] == bs_index2)))
                             ue_in_sector = ue_in_sector[np.isin(ue_in_sector, active_ue_in_active_beam2)]
 
                             for ue_index in ue_in_sector:
@@ -384,12 +403,12 @@ class Macel:
                                 _interf_channel = bs_occupied_spectrum[bs_index2][ue_sector] == ue_index  # mapping the occupied frequency for a UE in bs2
                                 interf_ch_pbs[sector_index, _interf_channel] += interf[ue_index == active_ue_in_active_beam2[0]]  # storing the interference power in the mapped frequency
 
-                if interf_ch_pbs is None:
-                    interf_ch_pbs = np.zeros(shape=[base_station.n_sectors, int(base_station.bw // rbw)])  # special case when theres is no one interfering in the Tx channel
+                if interf_ch_pbs is None:  # special case when theres is no one interfering in the Tx channel
+                    interf_ch_pbs = np.zeros(shape=[base_station.n_sectors, int(base_station.bw // rbw)])
                 interf_ch_pbs += noise_power  # adding the noise power
                 interf_ue_channels.append(interf_ch_pbs)  # it is appended for the case that different BSs have different BWs
 
-            # ========= PLOTTER 2  !!!!!!! (TO TEST!) =========
+            # ========= PLOTTER 2  !!!!!!! (TO TEST!!! DO NOT ERASE!!!) =========
             # import matplotlib.pyplot as plt
             # for sector_index in range(base_station.n_sectors):
             #     x = 10 * np.log10(interf_ue_channels[0][sector_index])
@@ -411,26 +430,19 @@ class Macel:
             cap.fill(np.nan)
             for bs_index, base_station in enumerate(self.base_station_list):
                 for sector_index in range(base_station.n_sectors):
+                    # calculating the SNIR for each BS's antenna/sector
                     rx_spectrum = bs_rx_spectrum[bs_index][sector_index]
                     interf_spectrum = interf_ue_channels[bs_index][sector_index]
-                    bs_snr_spectrum[bs_index, sector_index] = rx_spectrum / interf_spectrum  # SNR = RX_pw/Interf
-                    # bs_cap_spectrum[bs_index, sector_index] = np.sum(rbw * np.log2(1 + bs_snr_spectrum[bs_index, sector_index]))  # the summed capacity for a UEs bw
+                    bs_snr_spectrum[bs_index, sector_index] = rx_spectrum / interf_spectrum  # SNR = RX_pw/interf
                     bs_cap_spectrum[bs_index, sector_index] = rbw * np.log2(1 + bs_snr_spectrum[bs_index, sector_index])  # the summed capacity for a UEs bw
 
 
                 active_ue = np.unique(bs_occupied_spectrum[bs_index])
-                active_ue = np.delete(active_ue, active_ue == -1)  # removing unindexed bandwidth
+                active_ue = np.delete(active_ue, active_ue == -1)  # removing unnindexed bandwidth
                 for ue_index, ue in enumerate(active_ue):
                     active_beam_spectrum = bs_occupied_spectrum[self.ue.up_ue_bs[ue, 0]][self.ue.up_ue_bs[ue, 2]] == ue  # mapping the occupied frequency for a UE
                     snr[ue] = np.mean(bs_snr_spectrum[self.ue.up_ue_bs[ue, 0]][self.ue.up_ue_bs[ue, 2]][active_beam_spectrum])  # mean SNR for the mapped frequnecy
                     cap[ue] = np.sum(bs_cap_spectrum[self.ue.up_ue_bs[ue, 0]][self.ue.up_ue_bs[ue, 2]][active_beam_spectrum])  # summed capacity for all mapped frequencies
-                    # cap[ue, time_index] = np.sum(rbw * np.log2(1 + ue_snr))  # todo checar aqui se aqui é em megabit ou em bit por segundo
-                    # plt.plot(10 * np.log10(rx_spectrum))
-                    # plt.show()
-                    # plt.plot(10 * np.log10(interf_spectrum))
-                    # plt.show()
-                    # plt.plot(rbw * np.log2(1 + rx_spectrum/interf_spectrum))
-                    # plt.show()
 
             # storing metrics
             self.metrics.store_uplink_metrics(cap=cap/t_slot_ratio, snr=snr/t_slot_ratio,
@@ -438,27 +450,22 @@ class Macel:
                                               base_station_list=self.base_station_list,
                                               simulation_time=self.simulation_time, time_slot=self.time_slot)
 
-            # self.metrics.store_uplink_metrics(cap=cap / t_slot_ratio, snr=snr / t_slot_ratio, t_index=time_index,
-            #                                   base_station_list=self.base_station_list,
-            #                                   simulation_time=self.simulation_time, time_slot=self.time_slot)
-
-            bs_2b_updt = []
-            # if count_satisfied_ue_old != self.metrics.up_cnt_satisfied_ue[time_index]:
+            bs_2b_updt = []  # this vector will inform the BS updating function that a change has occurred
+            # that will need to recalculate some schedulers (a ue that achieved target capacity, for example)
             if time_index == 0:
                 count_satisfied_ue_old = 0
             else:
                 count_satisfied_ue_old = self.metrics.up_cnt_satisfied_ue[time_index - 1]
-            if self.metrics.up_cnt_satisfied_ue[time_index] != count_satisfied_ue_old:
+            if self.metrics.up_cnt_satisfied_ue[time_index] != count_satisfied_ue_old:  # if more UEs has been satisfied
                 bs_2b_updt = np.unique(self.ue.up_ue_bs[self.metrics.up_satisfied_ue, 0])  # is the BSs of the UEs that meet c_target
                 bs_2b_updt = bs_2b_updt[bs_2b_updt >= 0]  # removing the all the UEs that already have been removed before
-                count_satisfied_ue_old = copy.copy(self.metrics.up_cnt_satisfied_ue[time_index])
                 self.ue.remove_ue(ue_index=self.metrics.up_satisfied_ue, uplink=True)  # removing selected UEs from the rest of simulation time
-                # elapsed_time = time_index + 1  # VERIFICAR QUE AQUI TÁ ERRADO !!!!!!
                 self.up_elapsed_time = time_index + 1
             # this command will redo the beam allocations and scheduling, if necessary
             self.send_ue_to_bs(t_index=time_index+1, cap_defict=self.metrics.up_cap_deficit, bs_2b_updt=bs_2b_updt,
                                updated_beams=updated_beams, uplink=True)
 
+        # generate the output dicionaries if the uplink simulation has ended (last time uplink will receive a call)
         if time_index == base_station.tdd_mux.up_scheduler.time_scheduler.simulation_time - 1:
             return(self.metrics.create_uplink_metrics_dataframe(output_typ=output_typ, active_ue=self.ue.active_ue,
                                                                 cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
@@ -468,8 +475,12 @@ class Macel:
                                                                 scheduler_typ=self.scheduler_typ))
 
     def downlink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range, output_typ='raw'):
-        if self.dwn_rel_t_index is None:
-            self.dwn_rel_t_index = 0
+        # For the time, the downlink interference is fundamentally different of the uplink because, for simplicity and
+        # algorithm evolution, because downlink is made in a way that it always (+-) uses all bandwidth.
+        # To solve that, downlink is treated as a broadcast and all elements are calculated equal for all the BW.
+
+        # if self.dwn_rel_t_index is None:
+        #     self.dwn_rel_t_index = 0
         self.sector_map = self.sector_map.astype(int)
         t_slot_ratio = self.simulation_time/self.time_slot
         if self.ue_bs_table is None:  # this is a backup tab;e that stores the initial UE/BS association
@@ -480,53 +491,58 @@ class Macel:
         t = 290  # absolute temperature
 
         if self.dwn_elapsed_time is None:
-            self.dwn_elapsed_time = 0
+            self.dwn_elapsed_time = 0  # the elapsed time variable is to track the real time outside of
+            # the function and use it on the metrics allocation
         count_satisfied_ue_old = 0
-        # for time_index, _ in enumerate(self.base_station_list[0].tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence.T):
         for tdd_t_index, time_index in enumerate(rel_schdl_range):
             v_time_index = time_index - self.dwn_elapsed_time  # virtual time index used after generating new beam timing sequence when needed
-            # print(v_time_index)
             snr = np.zeros(shape=self.ue.dw_ue_bs.shape[0])
-            snr.fill(np.nan)
+            snr.fill(np.nan)  # filling with NaN to avoid value confusion
             cap = copy.copy(snr)
-            #check the active Bs's in time_index
+            # check the active Bs's in time_index
             updated_beams = []  # this vector stores the schedulled beams in the time scheduler to inform the scheduller controler
             for bs_index, base_station in enumerate(self.base_station_list):
+                # mapping the active UE for the active beams for each BS sector
                 ue_in_active_beam = (self.ue.dw_ue_bs[:, 0] == bs_index) & \
                                     (self.ue.dw_ue_bs[:, 1] == base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[self.ue.dw_ue_bs[:, 2], v_time_index])
                 active_ue_in_active_beam = np.where((base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw !=0) & ue_in_active_beam)
 
+                # to map the used beams in this particular time index and inform the scheduler controller
                 updated_beams.append(base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[:, v_time_index])
 
                 if base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw is None:  # uniform beam bw
-                    bw = base_station.dwn_scheduler.freq_scheduler.beam_bw[base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[
-                            self.sector_map[bs_index, active_ue_in_active_beam], v_time_index],  # AQUI OI
+                    bw = base_station.tdd_mux.dwn_scheduler.freq_scheduler.beam_bw[
+                        base_station.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[
+                            self.sector_map[bs_index, active_ue_in_active_beam], v_time_index],  # todo - REDO THIS TO BE AS THE ELSE STATEMENT EVERYTIME
                         self.sector_map[bs_index, active_ue_in_active_beam]]  # user BW
                 else:  # different bw for each user
                     bw = base_station.tdd_mux.dwn_scheduler.freq_scheduler.user_bw[active_ue_in_active_beam]
 
-                pw_in_active_ue = base_station.tx_power + ch_gain_map[bs_index][active_ue_in_active_beam, self.ue.dw_ue_bs[active_ue_in_active_beam, 1]]
+                # pw = BS power (dBW) + channel gain (from active UE to serving BS)
+                pw_in_active_ue = base_station.tx_power + \
+                                  ch_gain_map[bs_index][active_ue_in_active_beam,
+                                                        self.ue.dw_ue_bs[active_ue_in_active_beam, 1]]
                 interf_in_active_ue = 0
                 # interference calculation
+                # interf = summation interf of all active beams outside main BS + noise power
                 for bs_index2, base_station2 in enumerate(self.base_station_list):
                     if bs_index2 != bs_index:
                         interf = base_station2.tx_power + \
                                  ch_gain_map[bs_index2][active_ue_in_active_beam,
                                                         base_station2.tdd_mux.dwn_scheduler.time_scheduler.beam_timing_sequence[
                                                             self.sector_map[bs_index2, active_ue_in_active_beam],
-                                                            v_time_index]]  # AQUI OI
+                                                            v_time_index]]
                         interf_in_active_ue += 10**(interf/10)
 
                 noise_power = k * t * bw * 10E6
-                interf_in_active_ue += noise_power
+                interf_in_active_ue += noise_power  # summing the noise power
 
+                # snir = tx_pw/interf
+                # cap = BW log2 (1 + SNIR) - SHANON CAPACITY
                 snr[active_ue_in_active_beam] = (10 ** (pw_in_active_ue / 10)) / interf_in_active_ue
                 cap[active_ue_in_active_beam] = bw * 10E6 * np.log2(1 + 10 ** (pw_in_active_ue / 10) / interf_in_active_ue) / (10E6)
 
-            # self.dwn_rel_t_index += 1
-
             # storing metrics
-            # print(tdd_scheduler_range[tdd_t_index])
             self.metrics.store_downlink_metrics(cap=cap / t_slot_ratio, snr=snr,
                                                 t_index=tdd_scheduler_range[tdd_t_index],
                                                 base_station_list=self.base_station_list,
@@ -544,6 +560,7 @@ class Macel:
                                updated_beams=updated_beams, downlink=True)
 
         if time_index == base_station.tdd_mux.dwn_scheduler.time_scheduler.simulation_time-1:
+            # generate the output dicionaries if the uplink simulation has ended (last time uplink will receive a call)
             return(self.metrics.create_downlink_metrics_dataframe(output_typ='complete', active_ue=self.ue.active_ue,
                                                                   cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                   ue_pos=self.cluster.features,

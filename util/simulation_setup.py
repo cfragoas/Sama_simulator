@@ -13,6 +13,8 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
     macel = args[1]
     n_samples = args[2]
     n_centers = args[3]
+    # dist_type = args[4]
+    # random_centers = args[5]
 
     macel.grid.make_points(dist_type='gaussian', samples=n_samples, n_centers=n_centers, random_centers=False,
                            plot=False)  # distributing points around centers in the grid
