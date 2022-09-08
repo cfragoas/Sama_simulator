@@ -13,10 +13,10 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
     macel = args[1]
     n_samples = args[2]
     n_centers = args[3]
-    # dist_type = args[4]
-    # random_centers = args[5]
+    ue_dist_type = args[4]
+    random_centers = args[5]
 
-    macel.grid.make_points(dist_type='gaussian', samples=n_samples, n_centers=n_centers, random_centers=False,
+    macel.grid.make_points(dist_type=ue_dist_type, samples=n_samples, n_centers=n_centers, random_centers=random_centers,
                            plot=False)  # distributing points around centers in the grid
     macel.set_ue()
     # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
@@ -136,6 +136,15 @@ def start_simmulation(conf_file):
     n_samples = global_parameters['macel_param']['n_samples']
     n_centers = global_parameters['macel_param']['n_centers']
     max_iter = global_parameters['exec_param']['max_iter']
+    ue_dist_typ = global_parameters['macel_param']['ue_dist_typ']
+    center_dist_typ = global_parameters['macel_param']['center_distribution']
+
+    if center_dist_typ == 'uniform':
+        random_centers = True
+    elif center_dist_typ == 'cluster':
+        random_centers = False
+    else:
+        raise TypeError("not valid center_distribution option")
 
     bs_vec = []
     macel = create_enviroment(parameters=global_parameters)
@@ -166,10 +175,9 @@ def start_simmulation(conf_file):
 
             data_ = list(
                 tqdm.tqdm(
-                    process_pool.imap_unordered(simulate_macel_downlink,
-                                                   [(n_cells, macel, n_samples, n_centers) for i in
-                                                    range(sub_iter)]),
-                    total=round(sub_iter)
+                    process_pool.imap_unordered(
+                        simulate_macel_downlink, [(n_cells, macel, n_samples, n_centers, ue_dist_typ, random_centers)
+                                                  for i in range(sub_iter)]), total=round(sub_iter)
                 ))
 
             data = data + data_

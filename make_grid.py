@@ -81,6 +81,13 @@ class Grid:
                               self.centers_set[i][1] + round(gammavariate(alpha, beta))]
                     self.grid[x, y] += 1
 
+        elif dist_type == 'uniform':  # for this distribution, the n_centers is not used
+            xy_min = [0, 0]
+            xy_max = [self.lines, self.columns]
+            coord = np.random.default_rng().integers(low=xy_min, high=xy_max, size=(samples, 2))
+            for c in coord:
+                self.grid[c[0], c[1]] += 1
+
         if plot:
             plt.matshow(self.grid, origin='lower')
             plt.title('Grid with random points')

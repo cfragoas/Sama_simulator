@@ -1,6 +1,6 @@
 exec_param:
   threads: 0 # if 0 - uses the maximum number of threads - 1
-  max_iter: 14  # number of iterations (repetitions/batches)  todo - fix this in outside code
+  max_iter: 100  # number of iterations (repetitions/batches)  todo - fix this in outside code
   plot_curves: True
   plot_surf: True
   plot_hist: True
@@ -16,10 +16,11 @@ roi_param:
   name_map: ''
 
 macel_param:
-  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'random' sampling
-  n_samples: 200  # number of samples per distribution
-  # ==================================== if sampling is GAUSSIAN ====================================
-  n_centers: 4  # number of distributions to be summed (gaussian/etc)
+  ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling
+  n_samples: 800  # number of samples per distribution
+  # ==================================== if the distribution sampling is GAUSSIAN ====================================
+  n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
+  center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
   # ===================================================================================================
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
@@ -27,11 +28,11 @@ macel_param:
   downlink: True  # if True: simulates uplink comm.
   min_bs: 1  # minimum number of BSs to be simulated
   max_bs: 30  # maximum number of BSs to be simulated
-  mux_tdd_up_time: 0.3  # percentage (between 0 and 1) of time used for the uplink when using TDD
+  mux_tdd_up_time: 0  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
 downlink_scheduler:  # scheduler specifications for the downlink side
   criteria: 30  # Mbps
-  scheduler_typ: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  scheduler_typ: 'prop-smp'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 

@@ -84,17 +84,18 @@ class Cluster:
         if plot:
             self.plot()
 
-    def random(self, grid, n_clusters, plot=False):  # not clustering!!!
+    def random(self, grid, n_clusters, plot=False):  # not clustering!!! - todo make this piece of shit runs with a rectangular shape
         # self.features = np.where(grid != 0)
         self.scaling(grid=grid)
         x_size = grid.shape[0]
         y_size = grid.shape[1]
         self.centroids = np.ndarray(shape=(n_clusters, 2))
-        for i in range(n_clusters):
+        xy_min=[0,0]
+        xy_max = [x_size, y_size]
+        self.centroids = np.random.default_rng().integers(low=xy_min, high=xy_max, size=(n_clusters, 2))
+        # for i in range(n_clusters):
             # self.centroids[i] = [np.random.randint(0, x_size), np.random.randint(0, y_size)]
-            self.centroids[i] = np.random.uniform(0, x_size-1, 2)
-
-        print('')
+            # self.centroids[i] = np.random.uniform(0, x_size-1, 2)
 
     def plot(self):
         plt.scatter(self.features[:, 0], self.features[:, 1], c=self.labels)
