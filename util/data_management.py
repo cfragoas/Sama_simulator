@@ -205,3 +205,52 @@ def ue_relative_index(data_dict, bs_data_index=None):
         rel_index_tables.append(nbs_rel_index)
 
     return rel_index_tables
+
+def temp_data_save(zero_state=False, dict=None, batch_file=None):
+    path = 'temp'
+    if not os.path.isdir(path):
+        os.mkdir(path)
+    if zero_state:
+        for f in os.listdir(path):
+            os.remove(os.path.join(path, f))
+    if dict is not None:
+        pass
+    if batch_file is not None:
+        index = batch_file['index']
+        data = batch_file['data']
+        file_path = path + '/batch' + str(index) + '.pkl'
+        with open(file_path, 'wb') as f:
+            pickle.dump(data, f)
+            f.close()
+            logging.info('Saved/updated file ' + file_path)
+
+def temp_data_load():
+    path = 'temp'
+    data = []
+    if os.path.isdir(path):
+        for filename in os.listdir(path):
+            if filename.find('batch') != -1:
+                file_path = os.path.join(path, filename)
+                if os.path.isfile(file_path):
+                    with open(file_path, 'rb') as f:
+                        data_ = pickle.load(f)
+                    data = data + data_
+
+        return data
+
+    else:
+        print('temp folder not located!!!')
+
+def temp_data_delete(type):
+    path = 'temp'
+    if not (type == 'batch') or not (type == 'dict'):
+        # colocar erro aqui
+        pass
+
+    if os.path.isdir(path):
+        for filename in os.listdir(path):
+            if filename.find(type) != -1:
+                file_path = os.path.join(path, filename)
+                os.remove(file_path)
+
+        # os.rmdir('temp')

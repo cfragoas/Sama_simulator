@@ -1,6 +1,7 @@
 exec_param:
   threads: 0 # if 0 - uses the maximum number of threads - 1
-  max_iter: 100  # number of iterations (repetitions/batches)  todo - fix this in outside code
+  max_iter: 100  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
+  batch_size: 20 # number of iterations per batch - must be less than max_iter
   plot_curves: True
   plot_surf: True
   plot_hist: True
@@ -16,8 +17,8 @@ roi_param:
   name_map: ''
 
 macel_param:
-  ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling
-  n_samples: 800  # number of samples per distribution
+  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'uniform' sampling
+  n_samples: 200  # number of samples per distribution
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution

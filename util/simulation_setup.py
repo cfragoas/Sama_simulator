@@ -1,10 +1,12 @@
 import numpy as np
-from util.data_management import save_data, load_data, macel_data_dict, write_conf
+from util.data_management import save_data, load_data, macel_data_dict, write_conf, \
+    temp_data_save, temp_data_load, temp_data_delete
 # from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.load_parameters import load_param
 import multiprocessing, os, tqdm, time
 import socket
 from util.plot_data_new import plot_histograms, plot_curves, plot_surfaces
+from util.mann_whitney_u import compare_dist
 
 # Just a set of auxiliary functions to setup a simulation environment
 
@@ -128,14 +130,16 @@ def start_simmulation(conf_file):
     global_parameters, param_path = load_param(filename=conf_file, backup=True)
 
     process_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])
-
     global_parameters, path, folder, name_file, data_dict = get_additional_sim_param(global_parameters=global_parameters,
                                                                param_path=param_path, process_pool=process_pool)
+
+    temp_data_save(zero_state=True)  # creating or cleaning the temp folder
 
     # separating parameters to pass the minimum data to the pool
     n_samples = global_parameters['macel_param']['n_samples']
     n_centers = global_parameters['macel_param']['n_centers']
     max_iter = global_parameters['exec_param']['max_iter']
+    batch_size = global_parameters['exec_param']['batch_size']
     ue_dist_typ = global_parameters['macel_param']['ue_dist_typ']
     center_dist_typ = global_parameters['macel_param']['center_distribution']
 
@@ -149,17 +153,17 @@ def start_simmulation(conf_file):
     bs_vec = []
     macel = create_enviroment(parameters=global_parameters)
 
-    div_floor = max_iter//100
-    div_dec = max_iter%100
+    div_floor = max_iter//batch_size
+    div_dec = max_iter%batch_size
     if div_dec != 0:
-        steps = np.zeros(shape=div_floor + 1, dtype='int') + 100
+        steps = np.zeros(shape=div_floor + 1, dtype='int') + batch_size
         steps[-1] = div_dec
     else:
-        steps = np.zeros(shape=div_floor, dtype='int') + 100
-    last_step = len(steps)
+        steps = np.zeros(shape=div_floor, dtype='int') + batch_size
+    # last_step = len(steps)
 
     for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
-        print('running with ', n_cells, ' BSs')
+        print('\nrunning with ', n_cells, ' BSs and a batch size of', batch_size, 'iterations')
 
         initial_time = time.time()
 
@@ -167,23 +171,48 @@ def start_simmulation(conf_file):
 
         i = 0
         data = []
-        for sub_iter in steps:
+        # for sub_iter in steps:
+        end_sim = False
+        iter = 0
+        while end_sim is not True:
+            # starting and finishing the process pool in each iteration to save memory for the other functions
+            process_pool = prep_multiproc(threads=global_parameters['exec_param']['threads'])
             i += 1
+            iter += batch_size
 
             print(' ')
-            print('Running step ', i, ' of ', last_step, ':')
+            print('Running step ', i, ':')
 
             data_ = list(
                 tqdm.tqdm(
                     process_pool.imap_unordered(
                         simulate_macel_downlink, [(n_cells, macel, n_samples, n_centers, ue_dist_typ, random_centers)
-                                                  for i in range(sub_iter)]), total=round(sub_iter)
+                                                  for i in range(batch_size)]), total=round(batch_size)
                 ))
 
+            process_pool.terminate()  # to avoid memory overflow when processing the plots
+
+            data = temp_data_load()
+            if data:
+                end_sim = compare_dist(data, data + data_)
+
             data = data + data_
+            temp_data_save(batch_file={'data': data, 'index': i})
+
+            # data = data + data_
             data_ = None
+            data = None
+            if iter >= max_iter:
+                print('Achieved the max number of iterations')
+                break
+
+        data = temp_data_load()
+
+        # data_dict = load_data(name_file='VER_AQUI_O_NOME')
 
         data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
+
+        temp_data_delete(type='batch')
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
 

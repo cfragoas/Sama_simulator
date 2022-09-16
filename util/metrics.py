@@ -1,5 +1,5 @@
 import numpy as np
-
+import copy
 class Metrics:
     def __init__(self):
         self.up_simulation_time = None
@@ -180,6 +180,22 @@ class Metrics:
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(cluster_centroids).astype(int)]  # todo ver o que fazer com o objecto cluster
 
+        # # ---------------------- latency calculation ----------------------
+        ue_index, time_index = np.where(self.up_user_time == 1)
+        start_latency = np.zeros(shape=self.up_user_time.shape[0])
+        start_latency.fill(np.nan)  # filling with NaN to avoid problems
+        avg_latency = copy.copy(start_latency)
+        min_latency = copy.copy(start_latency)
+        max_latency = copy.copy(start_latency)
+        for ue in ue_index:
+            ue_times = time_index[ue_index == ue]
+            start_latency[ue] = np.min(ue_times)
+            bs_latency_group = np.ediff1d(ue_times)
+            bs_latency_group = np.array(bs_latency_group)
+            avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
+            min_latency[ue] = bs_latency_group.min()
+            max_latency[ue] = bs_latency_group.max()
+
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
@@ -258,6 +274,22 @@ class Metrics:
         # user_time = np.nansum(user_time[self.ue.active_ue], axis=1) / (self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         positions = [np.round(cluster_centroids).astype(int)]  # todo ver o que fazer com o objecto cluster
 
+        # # ---------------------- latency calculation ----------------------
+        ue_index, time_index = np.where(self.dwn_user_time == 1)
+        start_latency = np.zeros(shape=self.dwn_user_time.shape[0])
+        start_latency.fill(np.nan)  # filling with NaN to avoid problems
+        avg_latency = copy.copy(start_latency)
+        min_latency = copy.copy(start_latency)
+        max_latency = copy.copy(start_latency)
+        for ue in ue_index:
+            ue_times = time_index[ue_index == ue]
+            start_latency[ue] = np.min(ue_times)
+            bs_latency_group = np.ediff1d(ue_times)
+            bs_latency_group = np.array(bs_latency_group)
+            avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
+            min_latency[ue] = bs_latency_group.min()
+            max_latency[ue] = bs_latency_group.max()
+
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)
         std_snr = np.std(mean_snr)
@@ -303,12 +335,14 @@ class Metrics:
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
                              'user_bw': np.nanmean(self.dwn_user_bw[active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit, 'meet_criteria': self.dwn_cnt_satisfied_ue,
-                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.dwn_user_bw, axis=1),
-                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
 
         if output_typ == 'simple':
             return {'snr_cap_stats': snr_cap_stats}

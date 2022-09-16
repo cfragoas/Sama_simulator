@@ -14,6 +14,9 @@ from matplotlib import cm
 # There are 3 main functions: histogram plots, curve plots and surface plots. The other ones are special cases derived
 # from the main ones.
 
+def response_time():
+    pass
+
 def plot_histograms(name_file, max_iter, global_parameters, n_bs=None):
     # plotting the data on a histogram format - it calls the default histogram function and special ones
     # histograms are made for a specified number of BS
@@ -158,6 +161,12 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
                                               bw=global_parameters['bs_param']['bw'], subname_plot='',
                                               path=path, legend=legend)
 
+    # latency plots
+    if data_dict['downlink_data']['BSs']:
+        latency_plot(raw_data=data_dict['downlink_data']['raw_data'], bs_list=bs_list, path=path, subname_plot='downlink')
+    if data_dict['uplink_data']['BSs']:
+        latency_plot(raw_data=data_dict['uplink_data']['raw_data'], bs_list=bs_list, path=path, subname_plot='uplink')
+
 
 def plot_surfaces(name_file, global_parameters, n_bs=None):
     # plotting the data mapped by coordinate - it calls the default curve function and special ones
@@ -252,7 +261,7 @@ def default_surf_plt(data, grid, coordinates, n_bs, max_iter, title, path=None, 
 
 
 def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi=150, save=False, path=None,
-                      save_name=None, show=False, legend=None):
+                      save_name=None, show=False, legend=None, ymin=None, ymax=None):
 
     if data.__len__() == 1 or not isinstance(data[0], list):
         # data = np.array(data)[np.newaxis, :]
@@ -282,6 +291,11 @@ def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi
                 subplot.fill_between(n_bs_vec, d + s, d - s, alpha=0.3)
     subplot.set_xlabel(xlabel)
     subplot.set_title(title)
+
+    if ymin:
+        subplot.gca().set_xlim(left=ymin)
+    if ymax:
+        subplot.gca().set_xlim(right=ymax)
 
     if legend is not None:
         plt.legend(legend, fontsize='x-large')
@@ -590,6 +604,40 @@ def histogram_base_plots(data_dict, bs_data_index, n_bs, max_iter, global_parame
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.savefig(path + subname_plot + '_Metrics_' + str(n_bs) + ' BS.png')
 
+def latency_plot(raw_data, bs_list, path, subname_plot=''):
+    # -------------------------------------------- latency calculation --------------------------------------------
+    avg_avg_latency = np.zeros(shape=bs_list.__len__())
+    avg_avg_latency.fill(np.nan)
+    std_avg_latency = copy.copy(avg_avg_latency)
+    avg_start_latency = copy.copy(avg_avg_latency)
+    std_start_latency = copy.copy(avg_avg_latency)
+    avg_min_latency = copy.copy(avg_avg_latency)
+    std_min_latency = copy.copy(avg_avg_latency)
+    avg_max_latency = copy.copy(avg_avg_latency)
+    std_max_latency = copy.copy(avg_avg_latency)
+
+    for bs_index, _ in enumerate(bs_list):
+        avg_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='avg_latency', bs_data_index=bs_index)
+        start_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='start_latency', bs_data_index=bs_index)
+        min_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='min_latency', bs_data_index=bs_index)
+        max_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='max_latency', bs_data_index=bs_index)
+
+        avg_avg_latency[bs_index] = np.nanmean(avg_latency)
+        std_avg_latency[bs_index] = np.nanstd(avg_latency)
+        avg_start_latency[bs_index] = np.nanmean(start_latency)
+        std_start_latency[bs_index] = np.nanstd(start_latency)
+        avg_min_latency[bs_index] = np.nanmean(min_latency)
+        std_min_latency[bs_index] = np.nanstd(min_latency)
+        avg_max_latency[bs_index] = np.nanmean(max_latency)
+        std_max_latency[bs_index] = np.nanstd(max_latency)
+
+    legend = ['avg_latency', 'start_latency', 'min_latency', 'max_latency']
+
+    default_curve_plt(n_bs_vec=bs_list,
+                      data=[avg_avg_latency.tolist(), avg_start_latency.tolist(), avg_min_latency.tolist(), avg_max_latency.tolist()],
+                      std=[std_avg_latency.tolist(), std_start_latency.tolist(), std_min_latency.tolist(), std_max_latency.tolist()],
+                      xlabel='Number of BSs', title='latency (ms)', legend=legend, path=path, save=True, ymin=0,
+                      save_name=subname_plot + '_latency')
 
 def spectrum_aux_plot():  # todo - make a function to plot the interferece/SNIR/power spectrums
     pass
