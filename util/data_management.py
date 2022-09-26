@@ -4,6 +4,11 @@ import pickle
 from itertools import product
 import pandas as pd
 
+def convert_file_path_os(path):
+    import platform
+    if platform.system() == 'Darwin':
+        path = path.replace('\\', '/')
+    return path
 
 def write_conf(folder, parameters, yml_file=None):
     with open(folder + 'exec_stats.txt', 'w') as f:
@@ -99,9 +104,12 @@ def load_data(name_file, return_path=False):
     path = folder
     folder += name_file + '.pkl'
 
-    with open(folder, 'rb') as f:
-        data_dict = pickle.load(f)
-        f.close()
+    try:
+        with open(folder, 'rb') as f:
+            data_dict = pickle.load(f)
+            f.close()
+    except:
+        return False
 
     if return_path:
         return data_dict[0], path

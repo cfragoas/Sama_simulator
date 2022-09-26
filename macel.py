@@ -62,6 +62,11 @@ class Macel:
         # self.dwn_rel_t_index = None # todo VER SE VAI USAR ISSO AQUI !!!!
         self.dwn_elapsed_time = None
         self.up_elapsed_time = None
+    def set_map(self, map):
+        self.map = map
+
+    def del_map(self):
+        del self.map
 
     def set_base_station(self, base_station):  # simple function, but will include sectors and MIMO in the future
         self.default_base_station = base_station
@@ -95,12 +100,14 @@ class Macel:
             #                         bw_slot=self.bw_slot)
 
     def set_ue(self, hrx=None, tx_power=None):
-        if self.ue is not None:
+        # if self.ue is not None:
+        #     self.ue.positions = self.grid.grid
+        # else:
+        #     self.ue = User_eq(positions=self.grid.grid, height=None, tx_power=None)  # creating the user equipament object
+        if self.ue is None:
+            self.ue = User_eq()
+        if self.grid is not None:
             self.ue.positions = self.grid.grid
-        else:
-            ue = User_eq(positions=self.grid.grid, height=None, tx_power=None)  # creating the user equipament object
-            self.ue = ue
-
         if hrx is not None:
             self.ue.height = hrx
         if tx_power is not None:

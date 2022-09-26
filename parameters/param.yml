@@ -9,12 +9,19 @@ exec_param:
   output_type: 'complete'  # complete or simple or raw
 
 roi_param:
+  # ============================ if grid and map == True, the applications will use grid ===============================
+  # ==================================================== grid param ====================================================
   grid: True
   grid_lines: 1000
   grid_columns: 1000
   cel_size: 30
-  map: False
-  name_map: ''
+  # ================================================= end grid param  =================================================
+  # ==================================================================================================================
+  map: True
+  name_map: '30m.pkl'  # map format made for this application - options: 30m.pkl, 50m.pkl and 100m.pkl
+  filter_type: 'Nm_Bairro'
+  filter_name: 'Tijuca'
+  # ==================================================================================================================
 
 macel_param:
   ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'uniform' sampling
@@ -22,7 +29,7 @@ macel_param:
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
-  # ===================================================================================================
+  # ==================================================================================================================
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
   uplink: True  # if True: simulates downlink comm.

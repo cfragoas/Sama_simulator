@@ -1,6 +1,7 @@
 import numpy as np
 from util.data_management import save_data, load_data, macel_data_dict, write_conf, \
-    temp_data_save, temp_data_load, temp_data_delete
+    temp_data_save, temp_data_load, temp_data_delete, convert_file_path_os
+from map import Map
 # from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.load_parameters import load_param
 import multiprocessing, os, tqdm, time
@@ -18,8 +19,13 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
     ue_dist_type = args[4]
     random_centers = args[5]
 
-    macel.grid.make_points(dist_type=ue_dist_type, samples=n_samples, n_centers=n_centers, random_centers=random_centers,
-                           plot=False)  # distributing points around centers in the grid
+    if macel.map is not None:
+        macel.map.generate_samples(n_samples=n_samples)
+        macel.grid = macel.map.make_grid()
+        macel.del_map()
+    else:
+        macel.grid.make_points(dist_type=ue_dist_type, samples=n_samples, n_centers=n_centers, random_centers=random_centers,
+                               plot=False)  # distributing points around centers in the grid
     macel.set_ue()
     # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
     output = macel.place_and_configure_bs(n_centers=n_bs, clustering=True)
@@ -35,10 +41,35 @@ def create_enviroment(parameters):
     from base_station import BaseStation
     from macel import Macel
 
-
-    grid = Grid()  # grid object
-    grid.make_grid(lines=parameters['roi_param']['grid_lines'],
-                   columns=parameters['roi_param']['grid_columns'])
+    map_ = None
+    if parameters['roi_param']['grid']:
+        print('FOI O GRID')
+        grid = Grid()  # grid object
+        grid.make_grid(lines=parameters['roi_param']['grid_lines'],
+                       columns=parameters['roi_param']['grid_columns'])
+        cell_size = parameters['roi_param']['cel_size']
+    elif parameters['roi_param']['map']:
+        print('FOI O MAPA')
+        folder = 'map_data'
+        map_ = Map()
+        map_.load(path=convert_file_path_os(folder + '\\30m.pkl'))
+        map_.load_general_map_info(path=convert_file_path_os(folder + '\\Brasil_Sce_2010.csv'),
+                                   id_column='Cod_Setor', delimiter=';')
+        map_.clip_shape(shape=map_.idx_mtx, criteria=parameters['roi_param']['filter_name'],
+                       var=parameters['roi_param']['filter_type'], save=True, plot=False)
+        # idx_map, mask = map.clip_shape(shape=map.idx_mtx, criteria='Tijuca', var='Nm_Bairro',
+        #                                 save=True, plot=True)
+        # wgt_map = mapa.apply_mask(shape=mapa.wgt_mtx, mask=mask, plot=True)
+        # dst_map = mapa.apply_mask(shape=mapa.dst_mtx, mask=mask, plot=True)
+        # map.generate_samples(n_samples=1000)
+        # grid = map_.make_grid()
+        map_.clear_general_map_info()
+        map_.clear_shape_data()
+        cell_size = map_.resolution
+        grid = None
+    else:
+        pass
+        # MSG DE ERRO AQUI
 
     element = Element_ITU2101(max_gain=parameters['antenna_param']['max_element_gain'],
                               phi_3db=parameters['antenna_param']['phi_3db'],
@@ -78,7 +109,7 @@ def create_enviroment(parameters):
     macel = Macel(grid=grid,
                   prop_model='free space',
                   criteria=parameters['downlink_scheduler']['criteria'],
-                  cell_size=parameters['roi_param']['cel_size'],  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
+                  cell_size=cell_size,  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,
                   simulation_time=parameters['macel_param']['time_slots'],
                   time_slot=parameters['macel_param']['time_slot_lngt'],
@@ -90,6 +121,7 @@ def create_enviroment(parameters):
                   downlink_specs=downlink_specs,
                   uplink_specs=uplink_specs)
     macel.set_ue(hrx=parameters['ue_param']['hrx'], tx_power=parameters['ue_param']['tx_power'])
+    macel.set_map(map_)
 
     return macel
 
@@ -200,21 +232,25 @@ def start_simmulation(conf_file):
             temp_data_save(batch_file={'data': data, 'index': i})
 
             # data = data + data_
-            data_ = None
-            data = None
+            del data
+            del data_
             if iter >= max_iter:
                 print('Achieved the max number of iterations')
                 break
 
         data = temp_data_load()
-
-        # data_dict = load_data(name_file='VER_AQUI_O_NOME')
+        data_dummy = load_data(name_file=name_file)
+        if data_dummy:
+            data_dict = data_dummy
+            del data_dummy
 
         data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
 
         temp_data_delete(type='batch')
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
+        del data_dict
+        del data
 
         global_parameters['exec_param']['executed_n_bs'].append(n_cells)
         global_parameters['exec_param']['simulation_time'].append(
@@ -237,5 +273,3 @@ def start_simmulation(conf_file):
             print('saving surface plots ....')
             plot_surfaces(name_file=name_file, global_parameters=global_parameters)
             print('saving surface plots .... [done]')
-
-        data = None

@@ -357,7 +357,7 @@ class Map:
                 return
 
         if id_mtx.shape != weight_mtx.shape:
-            print('CENSITARY AND WWIGHT MATRIXES WITH DIFFERENT SHAPES !!!')
+            print('CENSITARY AND WEIGHT MATRICES WITH DIFFERENT SHAPES !!!')
             return
 
         if mask is None:
@@ -435,6 +435,17 @@ class Map:
         self.wgt_mtx = loaded_obj['wgt_mtx']  # matrix (from raster) with the point's weight
         self.dst_mtx = loaded_obj['dst_mtx']  # matrix (from raster) with the point's density probability
         self.centers = loaded_obj['centers']  # centers for each region of the original shapefile
+
+    def clear_shape_data(self):
+        # self.resolution = None
+        self.data = None
+        # self.df_ref = None
+        # self.spacial_ref = None
+        # self.idx_table = None
+        # self.idx_mtx = None
+        # self.wgt_mtx = None
+        # self.dst_mtx = None
+        # self.centers = None
 
     def plot_map(self, map, title=None):
         plt.matshow(map)
