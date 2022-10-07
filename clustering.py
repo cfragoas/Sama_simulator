@@ -3,7 +3,10 @@ from sklearn.cluster import KMeans  # kmeans sklearn library - https://realpytho
 from sklearn.cluster import AgglomerativeClustering  # Hierarchical clustering skleran library - https://www.analyticsvidhya.com/blog/2019/05/beginners-guide-hierarchical-clustering/
 from sklearn.neighbors import NearestCentroid  # to find centroids in methods that won't use then
 from sklearn.mixture import GaussianMixture
+from util.data_management import convert_file_path_os
+from pandas import read_csv
 import numpy as np
+import csv
 import matplotlib.pyplot as plt
 
 
@@ -17,7 +20,7 @@ class Cluster:
         self.labels = None
 
     def set_features(self, grid):
-        max_value = grid.max()  # finding the maximum value to loop
+        # max_value = grid.max()  # finding the maximum value to loop
         x = []
         y = []
         for value in range(1, grid.max().astype(int) + 1):
@@ -96,6 +99,27 @@ class Cluster:
         # for i in range(n_clusters):
             # self.centroids[i] = [np.random.randint(0, x_size), np.random.randint(0, y_size)]
             # self.centroids[i] = np.random.uniform(0, x_size-1, 2)
+
+        if plot:
+            self.plot()
+
+    def from_file(self, name_file, grid=None):
+        # this function will pick the bs coordinates from a csv file and return the cell number of BSs to the simulation
+        file_path = convert_file_path_os('inputs\\' + name_file)
+        try:
+            self.centroids = np.array(read_csv(file_path, delimiter=';')).astype('float64')
+        except:
+            raise TypeError('BS cvs format cannot be imported or converted to numpy matrix - please check ' + name_file +
+                            'file')
+        if np.sum(np.isnan(self.centroids)) != 0:
+            raise TypeError('csv BS data is inconsistent - please check ' + name_file + 'file')
+
+        n_cells = self.centroids.shape[0]
+
+        # if grid is not None:
+        #     self.scaling(grid)
+
+        return n_cells
 
     def plot(self):
         plt.scatter(self.features[:, 0], self.features[:, 1], c=self.labels)

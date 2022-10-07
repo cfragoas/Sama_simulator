@@ -360,6 +360,7 @@ def plot_func(map = None, sectors = 1, centroids=1, title=''):
 #
 #     return fspl
 
+# TODO - REFAZER COM AS VARIAVEIS ALFA BETA GAMA E VAR COMO ARGUMENTO !!!!!
 def fs_path_loss(d, f, var=6):  # simple free space path loss function with lognormal component
     if var:
         log_n = np.random.lognormal(mean=0, sigma=np.sqrt(var), size=d.shape)  # lognormal variance from the mediam path loss

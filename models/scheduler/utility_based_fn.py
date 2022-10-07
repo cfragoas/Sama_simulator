@@ -72,11 +72,11 @@ class Util_fn:
         self.beam_util[self.beam_util < 0] = 10E-12  # to prevent a negative utility value in log2
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
         beams_2calc = self.beam_util != 0  # active beams and beam_util not between 0~1
-        try:
-            self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
-        except:
-            print(np.where(self.slice_util<0))
-            print('ui')
+        # try:
+        self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+        # except:
+        #     print(np.where(self.slice_util<0))
+        #     print('ui')
         self.beam_util_log[self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
 
     def sector_utility(self):

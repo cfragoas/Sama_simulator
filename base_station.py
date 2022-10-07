@@ -53,34 +53,27 @@ class BaseStation:
     def initialize_dwn_up_scheduler(self, downlink_specs=None, uplink_specs=None):
         # this function will instantiate the schedulers, downlink and uplink separately. It will instantiate using the
         # configuration found in the downlink_specs and uplink_specs dictionaries create from the param.yml file
-        if self.tdd_mux.dwn_tdd_time != 0:
-            if downlink_specs is not None:
-                self.tdd_mux.create_downlink(scheduler_typ=downlink_specs['scheduler_typ'],
-                                             bs_index=downlink_specs['bs_index'], bw=downlink_specs['bw'],
-                                             time_slot=downlink_specs['time_slot'],
-                                             simulation_time=downlink_specs['simulation_time'],
-                                             t_min=downlink_specs['t_min'],
-                                             bw_slot=downlink_specs['bw_slot'],c_target=downlink_specs['criteria'],
-                                             tx_power=downlink_specs['tx_power'])
-            # else:
-            #     raise ValueError('The downlink scheduler specifications are not found. Please check the .yml parameters file.')
-        if self.tdd_mux.up_tdd_time != 0:
-            if uplink_specs is not None:
-                self.tdd_mux.create_uplink(scheduler_typ=uplink_specs['scheduler_typ'],
-                                           bs_index=uplink_specs['bs_index'], bw=uplink_specs['bw'],
-                                           time_slot=uplink_specs['time_slot'],
-                                           simulation_time=uplink_specs['simulation_time'],
-                                           t_min=uplink_specs['t_min'],
-                                           bw_slot=uplink_specs['bw_slot'], c_target=uplink_specs['criteria'],
-                                           tx_power=uplink_specs['tx_power'])
-            # else:
-            #     raise ValueError('The uplink scheduler specifications are not found. Please check the .yml parameters file.')
-
-    # def initialize_scheduler(self, scheduler_typ, simulation_time, time_slot, bs_index, c_target, t_min=None, bw_slot=None):
-    #     # initializing the scheduler with a bs_index to ease internal computations
-    #     self.scheduler = Scheduler(scheduler_typ=scheduler_typ, bs_index=bs_index, bw=self.bw, time_slot=time_slot,
-    #                                simulation_time=simulation_time, tx_power=self.tx_power, t_min=t_min, c_target=c_target,
-    #                                bw_slot=bw_slot)
+        if downlink_specs is not None or uplink_specs is not None:
+            if self.tdd_mux.dwn_tdd_time != 0:
+                if downlink_specs is not None:
+                    self.tdd_mux.create_downlink(scheduler_typ=downlink_specs['scheduler_typ'],
+                                                 bs_index=downlink_specs['bs_index'], bw=downlink_specs['bw'],
+                                                 time_slot=downlink_specs['time_slot'],
+                                                 simulation_time=downlink_specs['simulation_time'],
+                                                 t_min=downlink_specs['t_min'],
+                                                 bw_slot=downlink_specs['bw_slot'],c_target=downlink_specs['criteria'],
+                                                 tx_power=downlink_specs['tx_power'])
+            if self.tdd_mux.up_tdd_time != 0:
+                if uplink_specs is not None:
+                    self.tdd_mux.create_uplink(scheduler_typ=uplink_specs['scheduler_typ'],
+                                               bs_index=uplink_specs['bs_index'], bw=uplink_specs['bw'],
+                                               time_slot=uplink_specs['time_slot'],
+                                               simulation_time=uplink_specs['simulation_time'],
+                                               t_min=uplink_specs['t_min'],
+                                               bw_slot=uplink_specs['bw_slot'], c_target=uplink_specs['criteria'],
+                                               tx_power=uplink_specs['tx_power'])
+        else:
+            raise ValueError('downlink or uplink configurations are not found, please verify the parameter file')
 
     def beam_configuration(self, az_map, elev_map=None): # change the beam configuration according to the grid if beamforing is used
         # always in sample list!!!

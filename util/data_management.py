@@ -50,6 +50,7 @@ def macel_data_dict(data_dict_=None, data_=None, n_cells=None):
 
 
 def organize_data_matrix(data_, data_dict_, n_cells):
+    # this funciton will take the simulation matrix data and will fit into the standard dictionary simulation output
     snr_cap_stats = [x['snr_cap_stats'] for x in data_]
     raw_data = [x['raw_data_dict'] for x in data_]
 
@@ -78,6 +79,9 @@ def organize_data_matrix(data_, data_dict_, n_cells):
 
 
 def create_subfolder(name_file, n_bs):
+    # this function creates a folder inside the simulation one (name_file) to store data
+    if not os.path.isdir('output'):
+        os.mkdir('output')
     folder = os.path.dirname(__file__)
     folder = folder.replace('/', '\\')
     folder = '\\'.join(folder.split('\\')[:-1])
@@ -93,6 +97,7 @@ def create_subfolder(name_file, n_bs):
     return folder
 
 def load_data(name_file, return_path=False):
+    # this function will load a dictionary in a pickle file in the provided path folder
     folder = os.path.dirname(__file__)
     folder = folder.replace('/', '\\')
     folder = '\\'.join(folder.split('\\')[:-1])
@@ -117,6 +122,7 @@ def load_data(name_file, return_path=False):
         return data_dict[0]
 
 def save_data(path = None, data_dict = None):
+    # this function will save a dictionary in a pickle file in the provided path folder
     if not path:
         folder = os.path.dirname(__file__)
         folder = folder.replace('/', '\\')
@@ -145,6 +151,7 @@ def save_data(path = None, data_dict = None):
             logging.error('data_dictionary not provided!!!!')
 
 def extract_parameter_from_raw(raw_data, parameter_name, bs_data_index, calc=None, concatenate=True):
+    # this function will pick the dictionary data and will organize and return the data for a specific parameter
     if calc is None:
         if concatenate:
             extracted_data = np.concatenate([x[parameter_name] for x in raw_data[bs_data_index]])
@@ -158,6 +165,8 @@ def extract_parameter_from_raw(raw_data, parameter_name, bs_data_index, calc=Non
 
 
 def group_ue(data_dict, bs_data_index=None):
+    # this function will pick the output simulation data dict and will group the UEs by beam and sector and
+    # also indicates the UEs that was not connected to the network
     dict = []
     if bs_data_index is None:
         bs_list = range(data_dict['BSs'].__len__())
@@ -165,10 +174,10 @@ def group_ue(data_dict, bs_data_index=None):
         bs_list = [bs_data_index]
 
     for bs_data_index in bs_list:
-        nactive_ue_cnt = []
-        ue_per_beam = []
-        ue_per_sector = []
-        active_ues = []
+        nactive_ue_cnt = []  # UEs non-connected to the network
+        ue_per_beam = []  # ues grouped by beam
+        ue_per_sector = []  # ues grouped by sector
+        active_ues = []  # UEs connected to the network
 
         ue_bs_tables = [x['ue_bs_table'] for x in data_dict['raw_data'][bs_data_index]]
         for i, ue_bs_tb in enumerate(ue_bs_tables):
@@ -196,6 +205,7 @@ def group_ue(data_dict, bs_data_index=None):
 
 
 def ue_relative_index(data_dict, bs_data_index=None):
+    # this function will convert a bs number and will return the relative index inside the dictionary
     if bs_data_index is None:
         bs_list, _ = range(data_dict['BSs'].__len__())
     else:
@@ -215,6 +225,7 @@ def ue_relative_index(data_dict, bs_data_index=None):
     return rel_index_tables
 
 def temp_data_save(zero_state=False, dict=None, batch_file=None):
+    # to delete the temporary .pkl files inside the temp folder
     path = 'temp'
     if not os.path.isdir(path):
         os.mkdir(path)
@@ -233,6 +244,7 @@ def temp_data_save(zero_state=False, dict=None, batch_file=None):
             logging.info('Saved/updated file ' + file_path)
 
 def temp_data_load():
+    # to load the temporary .pkl files inside the temp folder
     path = 'temp'
     data = []
     if os.path.isdir(path):
@@ -243,22 +255,19 @@ def temp_data_load():
                     with open(file_path, 'rb') as f:
                         data_ = pickle.load(f)
                     data = data + data_
-
         return data
 
     else:
         print('temp folder not located!!!')
 
 def temp_data_delete(type):
+    # to delete the temporary .pkl files inside the temp folder
     path = 'temp'
     if not (type == 'batch') or not (type == 'dict'):
-        # colocar erro aqui
-        pass
+        raise NameError('type not defined in temp_data_delete')
 
     if os.path.isdir(path):
         for filename in os.listdir(path):
             if filename.find(type) != -1:
                 file_path = os.path.join(path, filename)
                 os.remove(file_path)
-
-        # os.rmdir('temp')

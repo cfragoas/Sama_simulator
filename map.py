@@ -28,7 +28,7 @@ class Map:
     def extract_data(self, folder, resolution=100, plot=False):
         import georasters as gr
         from simpledbf import Dbf5
-        self.resolution = resolution # resolution = 100 # it can bem 100, 50 or 30 m
+        self.resolution = resolution  # resolution = 100 # it can bem 100, 50 or 30 m
 
         # file folder
         # folder = 'shape_rj'

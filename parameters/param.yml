@@ -1,5 +1,5 @@
 exec_param:
-  threads: 0 # if 0 - uses the maximum number of threads - 1
+  threads: 1 # if 0 - uses the maximum number of threads - 1
   max_iter: 100  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   plot_curves: True
@@ -8,34 +8,58 @@ exec_param:
   backup_data: True
   output_type: 'complete'  # complete or simple or raw
 
+
+
+
+
+
+
 roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
+
   grid: True
   grid_lines: 1000
   grid_columns: 1000
   cel_size: 30
+
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
-  map: True
+
+  map: False
   name_map: '30m.pkl'  # map format made for this application - options: 30m.pkl, 50m.pkl and 100m.pkl
   filter_type: 'Nm_Bairro'
   filter_name: 'Tijuca'
+
   # ==================================================================================================================
 
+
+
+
+
+
+
 macel_param:
-  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'uniform' sampling
+  # ================================================ UE Distribution ================================================
+  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
   n_samples: 200  # number of samples per distribution
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
   # ==================================================================================================================
+
+  # ============================================== BS location allocation ==============================================
+  bs_allocation_typ: 'file'  # can be 'random', 'cluster' or 'file'
+  bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
+  # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
+  min_bs: 1  # minimum number of BSs to be simulated
+  max_bs: 30  # maximum number of BSs to be simulated
+  # ===================================================================================================================
+
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
   uplink: True  # if True: simulates downlink comm.
   downlink: True  # if True: simulates uplink comm.
-  min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 30  # maximum number of BSs to be simulated
   mux_tdd_up_time: 0  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
 downlink_scheduler:  # scheduler specifications for the downlink side
@@ -50,6 +74,11 @@ uplink_scheduler:  # scheduler specifications for the uplink side
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
+
+
+
+
+
 antenna_param:  # -- refer to ITU 2101 --
   # antenna element parameters
   max_element_gain: 5
@@ -63,6 +92,12 @@ antenna_param:  # -- refer to ITU 2101 --
   n_columns: 8
   horizontal_spacing: 0.5
   vertical_spacing: 0.5
+
+
+
+
+
+
 
 bs_param:
   freq: 3.5  # frequency (GHz)

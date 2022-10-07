@@ -13,9 +13,9 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, t_min=None, bw_slot=None,
-                 criteria=None, scheduler_typ=None, log=False, downlink_specs=None, uplink_specs=None,
-                 output_type="complete",tdd_up_time=0):
+    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
+                 t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, downlink_specs=None,
+                 uplink_specs=None, output_type="complete", tdd_up_time=0):
 
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
@@ -32,11 +32,8 @@ class Macel:
         self.metrics = Metrics  # metrics class - to store and process simullation data
         self.downlink_specs = downlink_specs
         self.uplink_specs = uplink_specs
-        if uplink_specs is not None:
-            self.tdd_up_time = tdd_up_time
-
-        # if self.scheduler_typ == 'prop-cmp' or self.scheduler_typ == 'prop-smp':
-        #     self.t_min = t_min  # minimum per beam allocated time if schdl opt is used
+        self.tdd_up_time = tdd_up_time
+        self.bs_allocation_typ = bs_allocation_typ
 
         self.t_min = t_min  # minimum per beam allocated time if schdl opt is used (prop smp or prop cmp)
         self.bw_slot = bw_slot # slot fixed bandwidth for scheduller with a queue (RR)
@@ -191,23 +188,32 @@ class Macel:
                                                              t_index=t_index, c_target=cap_defict, ue_updt=False,
                                                              updated_beams=updated_beams[bs_index])
 
-    def place_and_configure_bs(self, n_centers, predetermined_centroids=None, clustering=True):
-        if clustering:
+    def place_and_configure_bs(self, n_centers, predetermined_centroids=None):
+        # 'random', 'cluster' or 'file'
+        if self.bs_allocation_typ == 'cluster':
+        # if clustering:
             if predetermined_centroids is not None:
                 self.cluster = K_Means_XP(k=n_centers)
                 self.cluster.fit(data=self.grid.grid, predetermined_centroids=predetermined_centroids)
             else:
-                self.cluster = Cluster()
+                # self.cluster = Cluster()
                 self.cluster.k_means(grid=self.grid.grid, n_clusters=n_centers)
-        else:
+        elif self.bs_allocation_typ == 'random':
             if predetermined_centroids is not None:
-                self.cluster = Cluster()
+                # self.cluster = Cluster()
                 self.cluster.scaling(grid=self.grid.grid)
                 # self.cluster.features = self.cluster.set_features(grid=self.grid.grid)
                 self.cluster.centroids = np.array(predetermined_centroids)
             else:
-                self.cluster = Cluster()
+                # self.cluster = Cluster()
                 self.cluster.random(grid=self.grid.grid, n_clusters=n_centers)
+        elif self.bs_allocation_typ == 'file':
+            # remembering that, in this case, the centroids are from the bs_coord file and does not change
+            self.cluster.scaling(self.grid.grid)  # to create the cluster.features data
+        #     self.cluster = Cluster()
+        #     self.cluster.from_file(name_file=self.bs_allocation_typ)
+        else:
+            raise NameError('bs_allocation_typ must be random, cluster or file - please check the param file')
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,

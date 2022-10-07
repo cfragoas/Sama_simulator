@@ -2,12 +2,12 @@ import numpy as np
 from util.data_management import save_data, load_data, macel_data_dict, write_conf, \
     temp_data_save, temp_data_load, temp_data_delete, convert_file_path_os
 from map import Map
-# from util.plot_data import plot_hist, plot_surface, plot_curves
-from util.load_parameters import load_param
-import multiprocessing, os, tqdm, time
+from util.param_data_management import load_param, update_param
+import tqdm, time
 import socket
 from util.plot_data_new import plot_histograms, plot_curves, plot_surfaces
 from util.mann_whitney_u import compare_dist
+from clustering import Cluster
 
 # Just a set of auxiliary functions to setup a simulation environment
 
@@ -19,21 +19,21 @@ def simulate_macel_downlink(args):  # todo - fix the and check all the options h
     ue_dist_type = args[4]
     random_centers = args[5]
 
-    if macel.map is not None:
+    if macel.map is not None:  # checking if map data is to be used
         macel.map.generate_samples(n_samples=n_samples)
         macel.grid = macel.map.make_grid()
-        macel.del_map()
+        macel.del_map()  # deleting the map instance to save some memory
     else:
         macel.grid.make_points(dist_type=ue_dist_type, samples=n_samples, n_centers=n_centers, random_centers=random_centers,
                                plot=False)  # distributing points around centers in the grid
     macel.set_ue()
     # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
-    output = macel.place_and_configure_bs(n_centers=n_bs, clustering=True)
+    output = macel.place_and_configure_bs(n_centers=n_bs)
     # snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs, output_typ='simple', clustering=False)
     return output
 
 
-def create_enviroment(parameters):
+def create_enviroment(parameters, param_path):
     # this function creates the objects and the relationships necessary to run a simulation in simulate_macel_downlink
     from make_grid import Grid
     from antennas.ITU2101_Element import Element_ITU2101
@@ -41,14 +41,14 @@ def create_enviroment(parameters):
     from base_station import BaseStation
     from macel import Macel
 
-    map_ = None
-    if parameters['roi_param']['grid']:
+    map_ = None  # defining a empty variable to recieve a map class that also can be checked inside the pool
+    if parameters['roi_param']['grid']:  # the function checks first if a grid is defined
         print('FOI O GRID')
         grid = Grid()  # grid object
         grid.make_grid(lines=parameters['roi_param']['grid_lines'],
                        columns=parameters['roi_param']['grid_columns'])
         cell_size = parameters['roi_param']['cel_size']
-    elif parameters['roi_param']['map']:
+    elif parameters['roi_param']['map']:  # if a grid is not used, it checks if a map is selected
         print('FOI O MAPA')
         folder = 'map_data'
         map_ = Map()
@@ -57,20 +57,20 @@ def create_enviroment(parameters):
                                    id_column='Cod_Setor', delimiter=';')
         map_.clip_shape(shape=map_.idx_mtx, criteria=parameters['roi_param']['filter_name'],
                        var=parameters['roi_param']['filter_type'], save=True, plot=False)
-        # idx_map, mask = map.clip_shape(shape=map.idx_mtx, criteria='Tijuca', var='Nm_Bairro',
-        #                                 save=True, plot=True)
-        # wgt_map = mapa.apply_mask(shape=mapa.wgt_mtx, mask=mask, plot=True)
-        # dst_map = mapa.apply_mask(shape=mapa.dst_mtx, mask=mask, plot=True)
-        # map.generate_samples(n_samples=1000)
+        idx_map, mask = map_.clip_shape(shape=map_.idx_mtx, criteria='Tijuca', var='Nm_Bairro',
+                                        save=True, plot=True)
+        # wgt_map = map_.apply_mask(shape=map_.wgt_mtx, mask=mask, plot=True)
+        # dst_map = map_.apply_mask(shape=map_.dst_mtx, mask=mask, plot=True)
+        map_.generate_samples(n_samples=1000, plot=True)
         # grid = map_.make_grid()
         map_.clear_general_map_info()
         map_.clear_shape_data()
         cell_size = map_.resolution
         grid = None
-    else:
-        pass
-        # MSG DE ERRO AQUI
+    else:  # if neither map nor grid is used, raise an exception
+        raise NameError('To start a simulation, need to use a GRID or MAP in parameter file')
 
+    # instantiating an antenna element
     element = Element_ITU2101(max_gain=parameters['antenna_param']['max_element_gain'],
                               phi_3db=parameters['antenna_param']['phi_3db'],
                               theta_3db=parameters['antenna_param']['theta_3db'],
@@ -78,6 +78,7 @@ def create_enviroment(parameters):
                               sla_v=parameters['antenna_param']['sla_v'],
                               plot=False)
 
+    # instantiating a beamforming antenna
     beam_ant = Beamforming_Antenna(ant_element=element,
                                    frequency=None,
                                    n_rows=parameters['antenna_param']['n_rows'],
@@ -85,6 +86,7 @@ def create_enviroment(parameters):
                                    horizontal_spacing=parameters['antenna_param']['horizontal_spacing'],
                                    vertical_spacing=parameters['antenna_param']['vertical_spacing'])
 
+    # instantiating a basestation
     base_station = BaseStation(frequency=parameters['bs_param']['freq'],
                                tx_power=parameters['bs_param']['tx_power'],
                                tx_height=parameters['bs_param']['htx'],
@@ -97,6 +99,7 @@ def create_enviroment(parameters):
 
     base_station.sector_beam_pointing_configuration(n_beams=parameters['bs_param']['n_beams'])
 
+    # checking if downlink or uplink are to be used and picking the parameters
     if parameters['macel_param']['uplink']:
         downlink_specs = parameters['downlink_scheduler']
     else:
@@ -106,6 +109,7 @@ def create_enviroment(parameters):
     else:
         uplink_specs = None
 
+    # instantiating a macrocelular network
     macel = Macel(grid=grid,
                   prop_model='free space',
                   criteria=parameters['downlink_scheduler']['criteria'],
@@ -118,15 +122,25 @@ def create_enviroment(parameters):
                   output_type=parameters['exec_param']['output_type'],
                   bw_slot=parameters['downlink_scheduler']['bw_slot'],
                   tdd_up_time=parameters['macel_param']['mux_tdd_up_time'],
+                  bs_allocation_typ=parameters['macel_param']['bs_allocation_typ'],
                   downlink_specs=downlink_specs,
                   uplink_specs=uplink_specs)
     macel.set_ue(hrx=parameters['ue_param']['hrx'], tx_power=parameters['ue_param']['tx_power'])
     macel.set_map(map_)
+    macel.cluster = Cluster()
 
-    return macel
+    # if a BS file point is used, it sets the centers outside the main simulation to optimize the process inside the pool
+    if parameters['macel_param']['bs_allocation_typ'] == 'file':
+        n_bs = macel.cluster.from_file(name_file=parameters['macel_param']['bs_location_file_name'])
+        parameters['macel_param']['min_bs'] = n_bs
+        parameters['macel_param']['max_bs'] = n_bs
+        # update_param(param=parameters, param_path=param_path)
+
+    return macel, parameters
 
 
 def prep_multiproc(threads):
+    # this function is just to create a pool and avoid problems with the configuration of it
     import multiprocessing
     import os
 
@@ -146,8 +160,10 @@ def prep_multiproc(threads):
 
 
 def get_additional_sim_param(global_parameters, param_path, process_pool):
+    # this function gets addition information about the simulation and the environment to complement
+    # output execution parameters
     path, folder, name_file = save_data()  # storing the path used to save in all iterations
-    data_dict = macel_data_dict()  # creating the structure of the output dictonary
+    data_dict = macel_data_dict()  # creating the structure of the output dictionary
     write_conf(folder=folder, parameters=global_parameters, yml_file=param_path)  # saving the param/stats files
 
     global_parameters['exec_param']['simulation_time'] = []
@@ -183,16 +199,15 @@ def start_simmulation(conf_file):
         raise TypeError("not valid center_distribution option")
 
     bs_vec = []
-    macel = create_enviroment(parameters=global_parameters)
+    macel, global_parameters = create_enviroment(parameters=global_parameters, param_path=folder)
 
     div_floor = max_iter//batch_size
-    div_dec = max_iter%batch_size
+    div_dec = max_iter % batch_size
     if div_dec != 0:
         steps = np.zeros(shape=div_floor + 1, dtype='int') + batch_size
         steps[-1] = div_dec
     else:
         steps = np.zeros(shape=div_floor, dtype='int') + batch_size
-    # last_step = len(steps)
 
     for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
         print('\nrunning with ', n_cells, ' BSs and a batch size of', batch_size, 'iterations')

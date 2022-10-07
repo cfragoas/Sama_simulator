@@ -3,7 +3,7 @@ import socket
 from util.data_management import save_data, load_data, macel_data_dict, write_conf
 from util.plot_data import plot_hist, plot_surface, plot_curves
 from util.simulation_setup import simulate_macel_downlink, create_enviroment, prep_multiproc
-from util.load_parameters import load_param
+from util.param_data_management import load_param
 
 import multiprocessing, os, tqdm, time
 import numpy as np

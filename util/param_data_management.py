@@ -1,6 +1,5 @@
 import yaml
 
-
 def load_param(path=None, filename=None, backup=False):
     try:
         if filename is not None:
@@ -24,3 +23,8 @@ def load_param(path=None, filename=None, backup=False):
         return global_conf, param_path
     else:
         return global_conf
+
+
+def update_param(param, param_path):
+    with open(param_path, 'w') as yaml_file:
+        yaml.dump(param, yaml_file, default_flow_style=False)
