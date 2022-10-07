@@ -26,11 +26,11 @@ def compare_dist(data1, data2):
     print('statistic = %.3f, p = %.3f' % (stat, p))
     if p > 0.05:
         print('Probably the same distribution\n')
-        print('data1 [mean, std]: [' + data1.mean() + ', ' + data1.std() + ']' +
-              'data2 [mean, std]: [' + data2.mean() + ', ' + data2.std() + ']')
+        print('data1 [mean, std]: [' + str(data1.mean()) + ', ' + str(data1.std()) + ']' +
+              'data2 [mean, std]: [' + str(data2.mean()) + ', ' + str(data2.std()) + ']')
         return True
     else:
         print('Probably different distributions')
-        print('data1 [mean, std]: [' + data1.mean() + ', ' + data1.std() + ']' +
-              'data2 [mean, std]: [' + data2.mean() + ', ' + data2.std() + ']')
+        print('data1 [mean, std]: [' + str(data1.mean()) + ', ' + str(data1.std()) + ']' +
+              'data2 [mean, std]: [' + str(data2.mean()) + ', ' + str(data2.std()) + ']')
         return False
