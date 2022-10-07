@@ -210,6 +210,7 @@ class Macel:
         elif self.bs_allocation_typ == 'file':
             # remembering that, in this case, the centroids are from the bs_coord file and does not change
             self.cluster.scaling(self.grid.grid)  # to create the cluster.features data
+            self.cluster.check_centers(lines=self.grid.lines, columns= self.grid.columns)  # to check if the points are inside the matrix
         #     self.cluster = Cluster()
         #     self.cluster.from_file(name_file=self.bs_allocation_typ)
         else:

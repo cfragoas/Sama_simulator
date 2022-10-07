@@ -177,6 +177,7 @@ class Map:
         self.general_info = None
 
     def clip_shape(self, shape, min_x=0, min_y=0, max_x=0, max_y=0, criteria=None, var=None, map_info=None, save=False, plot=False):
+        # this function reduces the size of the matrix from the original one to the filtered mask/selection
         if min_x+min_y+max_x+max_y != 0:
             shape = shape[:, range(min_x, shape.shape[1])]
             shape = shape[range(min_y, shape.shape[0])]
@@ -219,6 +220,7 @@ class Map:
             return
 
     def apply_mask(self, shape, mask, save=False, plot=False):
+        # this function simpy filters an array by a mask but does not reshape it (clipshape function)
         new_shp = np.zeros(shape=shape.shape)
         new_shp[mask] = shape[mask]
 
@@ -242,6 +244,7 @@ class Map:
 
 
     def density_map(self, id_mtx=None, weight_mtx=None, idx_table=None):
+        # this function will return the density of a feature map related to sum of all of his values
         flag = False  # verifying if the function will use class or external variables
         if id_mtx is None or weight_mtx is None or idx_table is None:
             flag = True  # when flag is true, it will save the results in class variables
@@ -389,6 +392,7 @@ class Map:
 
 
     def make_grid(self):
+        # this function will create a grid object from the sample_mtx to be used in other functions
         from make_grid import Grid
         # converting to a Grid object
         map_grid = Grid()

@@ -107,7 +107,7 @@ class Cluster:
         # this function will pick the bs coordinates from a csv file and return the cell number of BSs to the simulation
         file_path = convert_file_path_os('inputs\\' + name_file)
         try:
-            self.centroids = np.array(read_csv(file_path, delimiter=';')).astype('float64')
+            self.centroids = np.array(read_csv(file_path, delimiter=';')).astype('float64')  # reading the csv file
         except:
             raise TypeError('BS cvs format cannot be imported or converted to numpy matrix - please check ' + name_file +
                             'file')
@@ -120,6 +120,17 @@ class Cluster:
         #     self.scaling(grid)
 
         return n_cells
+
+
+    def check_centers(self, lines, columns):
+        # simply checks if the centroids are inside the limits of other data (lines and columns size)
+        check_lines = self.centroids[:, 0] > lines
+        check_columns = self.centroids[:, 1] > columns
+
+        if np.sum(check_lines) != 0:
+            raise ValueError('BS center outside the X limit of the grid - please check the BS allocation configuration')
+        if np.sum(check_columns) != 0:
+            raise ValueError('BS center outside the Y limit of the grid - please check the BS allocation configuration')
 
     def plot(self):
         plt.scatter(self.features[:, 0], self.features[:, 1], c=self.labels)

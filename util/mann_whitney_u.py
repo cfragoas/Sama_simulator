@@ -2,6 +2,9 @@ from scipy.stats import mannwhitneyu
 import numpy as np
 
 def compare_dist(data1, data2):
+    # this function will compare two distributions using mann whitneya and returns if true if the distributions can be
+    # considered similar
+
     # data3 = np.concatenate([x['downlink_results']['raw_data_dict']['snr'] for x in data1])
     # data4 = np.concatenate([x['downlink_results']['raw_data_dict']['snr'] for x in data2])
 
@@ -23,7 +26,11 @@ def compare_dist(data1, data2):
     print('statistic = %.3f, p = %.3f' % (stat, p))
     if p > 0.05:
         print('Probably the same distribution\n')
+        print('data1 [mean, std]: [' + data1.mean() + ', ' + data1.std() + ']' +
+              'data2 [mean, std]: [' + data2.mean() + ', ' + data2.std() + ']')
         return True
     else:
         print('Probably different distributions')
+        print('data1 [mean, std]: [' + data1.mean() + ', ' + data1.std() + ']' +
+              'data2 [mean, std]: [' + data2.mean() + ', ' + data2.std() + ']')
         return False

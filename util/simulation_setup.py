@@ -57,8 +57,8 @@ def create_enviroment(parameters, param_path):
                                    id_column='Cod_Setor', delimiter=';')
         map_.clip_shape(shape=map_.idx_mtx, criteria=parameters['roi_param']['filter_name'],
                        var=parameters['roi_param']['filter_type'], save=True, plot=False)
-        idx_map, mask = map_.clip_shape(shape=map_.idx_mtx, criteria='Tijuca', var='Nm_Bairro',
-                                        save=True, plot=True)
+        # idx_map, mask = map_.clip_shape(shape=map_.idx_mtx, criteria='Tijuca', var='Nm_Bairro',
+        #                                 save=True, plot=True)
         # wgt_map = map_.apply_mask(shape=map_.wgt_mtx, mask=mask, plot=True)
         # dst_map = map_.apply_mask(shape=map_.dst_mtx, mask=mask, plot=True)
         map_.generate_samples(n_samples=1000, plot=True)
@@ -212,12 +212,12 @@ def start_simmulation(conf_file):
     for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
         print('\nrunning with ', n_cells, ' BSs and a batch size of', batch_size, 'iterations')
 
-        initial_time = time.time()
+        initial_time = time.time()  # this is used to write the simulation time on the exec_stats .txt file
 
         bs_vec.append(n_cells)
 
         i = 0
-        data = []
+        # data = []
         # for sub_iter in steps:
         end_sim = False
         iter = 0
@@ -244,9 +244,8 @@ def start_simmulation(conf_file):
                 end_sim = compare_dist(data, data + data_)
 
             data = data + data_
-            temp_data_save(batch_file={'data': data, 'index': i})
+            temp_data_save(batch_file={'data': data, 'index': i})  # this will store temporary files on disk and avoid memory consumption
 
-            # data = data + data_
             del data
             del data_
             if iter >= max_iter:
@@ -261,18 +260,20 @@ def start_simmulation(conf_file):
 
         data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
 
-        temp_data_delete(type='batch')
+        temp_data_delete(type='batch')  # deleting the temporary files because the output dictionary was already created
 
         save_data(path=path, data_dict=data_dict)  # saving/updating data
         del data_dict
         del data
 
+        # updating the parameters to be write on the exec_stats file
         global_parameters['exec_param']['executed_n_bs'].append(n_cells)
         global_parameters['exec_param']['simulation_time'].append(
             np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
 
         write_conf(folder=folder, parameters=global_parameters)
 
+        # plots
         if global_parameters['exec_param']['plot_curves']:
             print('saving curves ....')
             plot_curves(name_file=name_file, max_iter=max_iter, bs_list=global_parameters['exec_param']['executed_n_bs'],

@@ -5,12 +5,14 @@ from itertools import product
 import pandas as pd
 
 def convert_file_path_os(path):
+    # this function simply converts the file path to correspond to the machine OS system
     import platform
     if platform.system() == 'Darwin':
         path = path.replace('\\', '/')
     return path
 
 def write_conf(folder, parameters, yml_file=None):
+    # this function saves the execution data into a .txt file on the simulation folder
     with open(folder + 'exec_stats.txt', 'w') as f:
         for key, dict in parameters.items():
             f.writelines(str(key) + '\n \n')
@@ -24,6 +26,8 @@ def write_conf(folder, parameters, yml_file=None):
 
 
 def macel_data_dict(data_dict_=None, data_=None, n_cells=None):
+    # this functions creates a dictionary for the simulations results be stored
+    # the raw data is not affected by this organization
     if not data_ or not data_dict_:
         # creating the base simplified data dict
         data_dict_ = {'BSs': [], 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
