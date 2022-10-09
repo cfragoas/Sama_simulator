@@ -267,7 +267,7 @@ def temp_data_load():
 def temp_data_delete(type):
     # to delete the temporary .pkl files inside the temp folder
     path = 'temp'
-    if not (type == 'batch') or not (type == 'dict'):
+    if not ((type == 'batch') or (type == 'dict')):
         raise NameError('type not defined in temp_data_delete')
 
     if os.path.isdir(path):

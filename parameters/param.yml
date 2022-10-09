@@ -1,5 +1,5 @@
 exec_param:
-  threads: 1 # if 0 - uses the maximum number of threads - 1
+  threads: 0 # if 0 - uses the maximum number of threads - 1
   max_iter: 100  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   plot_curves: True
@@ -49,7 +49,7 @@ macel_param:
   # ==================================================================================================================
 
   # ============================================== BS location allocation ==============================================
-  bs_allocation_typ: 'file'  # can be 'random', 'cluster' or 'file'
+  bs_allocation_typ: 'cluster'  # can be 'random', 'cluster' or 'file'
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
