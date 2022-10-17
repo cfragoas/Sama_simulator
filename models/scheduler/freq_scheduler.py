@@ -24,6 +24,18 @@ class Freq_Scheduler:
             if self.tx_power is None:
                 raise ValueError('Need to set Tx power(dBW) to use the Best-CQI scheduler')
 
+        if scheduler_typ == 'PF':  # need to create both BCQI and RR variables
+            self.fake_user_bw = None  # to preserve the RR scheduller after execute BCQI function
+            self.last_updated_beams = None  # to preserve the updated beams on the last update for the RR function
+            # RR variables
+            self.in_queue_ue = None  # queue of UEs to be served, if necessary
+            self.bw_slot = bw_slot  # if necessary, the size of a bandwidth slot
+            if self.bw_slot is None:
+                raise ValueError('Need to set bw_slot(MHz) to use the Proportional Fair scheduler')
+            # BCQI variables
+            self.tx_power = tx_power  # tx_power in dBW
+            self.time_ratio = time_slot / simulation_time  # ratio in (ms/ms)
+
         # TODO - ALTERAR AQUI PARA SEMPRE USAR O USER_BW PARA TODOS OS CASOS
 
     def generate_proportional_beam_bw(self, active_beams):
@@ -55,11 +67,11 @@ class Freq_Scheduler:
                                                       beam_index, sector_index])
 
     def generate_RR_bw(self, ue_bs, active_beams, updated_beams=None):
-        # This function will generate the badwidth allocation for all users (self.user_bw) for all users for the BS
+        # This function will generate the bandwidth allocation for all users (self.user_bw) for all users for the BS
         # object. It will user the Round-Robin algorithm and will make a queue (self.in_queue_ue) that will iterate
         # within the simulations and store the next UE that will receive a bandwidth slot (bw_slot).
         # First, it resolves the queue (if possible) and next will allocate the bw_slots for the fist UE of a beam,
-        # updateing the queua in both cases when the available bw is not enough.
+        # updating the queue in both cases when the available bw is not enough.
         # The user_bw is generated in the first time index and is just updated for the last active users.
 
         ue_in_bs = ue_bs[:, 0] == self.bs_index
@@ -84,7 +96,10 @@ class Freq_Scheduler:
         # slot_bw is the bandwidth of the fixe frequency slot to be distributed
         if self.in_queue_ue is None:
             self.in_queue_ue = np.zeros(shape=active_beams.shape, dtype=int)
-        n_bw_slots = (np.ones(shape=active_beams.shape) * self.bw/self.bw_slot).astype(int)
+        try:
+            n_bw_slots = (np.ones(shape=active_beams.shape) * self.bw/self.bw_slot).astype(int)
+        except:
+            print('ui')
         non_zero_beams = (active_beams != 0) & beams_2b_updtd
 
         # =================  Dealing with the queue first ================
@@ -152,6 +167,7 @@ class Freq_Scheduler:
                 dummy_queue[beam_index, sector_index] = -1
                 n_bw_slots[beam_index, sector_index] = 0
             meq_zero = (dummy_queue >= 0) & beams_w_bw_slots
+        print('RR BW')
 
 
     def generate_best_CQI_bw(self, ue_bs, best_cqi_beams, active_beams=None, c_target=None):
@@ -199,3 +215,15 @@ class Freq_Scheduler:
             non_ended_list = np.array([index_controller[i] < beam_queue_size[i] for i, x in enumerate(sector_ues_by_cqi)])
             index_controller[~non_ended_list] = 0
             self.sector_bw[~non_ended_list] = 0
+
+        print('BCQI BW')
+
+    def backup_scheduler(self):
+        self.fake_user_bw = copy.deepcopy(self.user_bw)
+
+    def restore_scheduler(self):
+        self.user_bw = copy.deepcopy(self.fake_user_bw)
+        return self.last_updated_beams
+
+    def backup_updated_beams(self, updated_beams):
+        self.last_updated_beams = updated_beams

@@ -22,7 +22,8 @@ class Time_Scheduler:
                 self.t_min = t_min
             else:
                 raise ValueError('Need to set t_min when using schedulers prop-cmp or prop-smp.')
-        if scheduler_typ == 'BCQI':
+        if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':
+            self.fake_beam_timing_sequence = None
             self.best_cqi_beams = None
 
     def set_base_dimensions(self, n_sectors, n_beams):
@@ -75,7 +76,6 @@ class Time_Scheduler:
                 best_cqi_beam = ue_bs[active_ue_in_bs_sec][np.argmax(ue_bs[active_ue_in_bs_sec][:, 3]), 1]
                 self.best_cqi_beams[sector_index] = best_cqi_beam
                 self.beam_timing_sequence[sector_index, :] = best_cqi_beam
-        # print('ui')
         # self.beam_timing_sequence[range(self.n_sectors), :] = self.best_cqi_beams[range(self.n_sectors)]
 
     def generate_weighted_time_matrix(self, simulation_time):
@@ -124,6 +124,24 @@ class Time_Scheduler:
                                   * (t_total - np.count_nonzero(active_beams[:, sector_index], axis=0) * t_min))[non_zero]
 
         self.weighted_act_beams = np.round(t_beam).astype(int)
+
+    def generate_proportional_fair_timing(self, ue_bs, active_beams, t_index, ue_updt, status):
+        # self.fake_beam_timing = None
+        if status == 0:  # if it is BCQI allocation
+            self.generate_best_cqi_beam_timing(ue_bs=ue_bs)
+            print('bcqi')
+            print(self.beam_timing_sequence.shape)
+        else:  # if it is RR allocation
+            print('RR')
+            if ue_updt or self.fake_beam_timing_sequence is None:
+                self.generate_ue_qtd_proportional_beam_timing(t_index=t_index, active_beams=active_beams)
+                self.fake_beam_timing_sequence = copy.deepcopy(self.beam_timing_sequence)
+                print('RR - update')
+            try:
+                self.beam_timing_sequence = np.zeros(shape=self.fake_beam_timing_sequence.shape).astype(int)
+                self.beam_timing_sequence[:, 1::2] = self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, 1::2].shape[1])]
+            except:
+                print('ui')
 
     def next_active_beam(self):
         # like a queue, it returns the next beams that need to be allocated

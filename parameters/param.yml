@@ -1,6 +1,6 @@
 exec_param:
-  threads: 0 # if 0 - uses the maximum number of threads - 1
-  max_iter: 100  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
+  threads: 1 # if 0 - uses the maximum number of threads - 1
+  max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   plot_curves: True
   plot_surf: True
@@ -41,8 +41,8 @@ roi_param:
 
 macel_param:
   # ================================================ UE Distribution ================================================
-  ue_dist_typ: 'gaussian'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
-  n_samples: 200  # number of samples per distribution
+  ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
+  n_samples: 1000  # number of samples per distribution
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
@@ -53,7 +53,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 30  # maximum number of BSs to be simulated
+  max_bs: 20  # maximum number of BSs to be simulated
   # ===================================================================================================================
 
   time_slots: 1000  # number of time slots (1 ms)
@@ -64,7 +64,7 @@ macel_param:
 
 downlink_scheduler:  # scheduler specifications for the downlink side
   criteria: 30  # Mbps
-  scheduler_typ: 'prop-smp'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
+  scheduler_typ: 'PF'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
@@ -102,7 +102,7 @@ antenna_param:  # -- refer to ITU 2101 --
 bs_param:
   freq: 3.5  # frequency (GHz)
   htx: 30
-  tx_power: 20  # transmission power (dBW)
+  tx_power: 16  # transmission power (dBW) - 100W (20 dBW), 80W (19dBW), 60W (17.8 dBW), 40W (16 dBW)
   bw: 300  # bw for n sectors (to be fixed)
   n_sectors: 3
   gain: 10  # not used

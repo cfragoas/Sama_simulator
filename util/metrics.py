@@ -166,7 +166,7 @@ class Metrics:
         # and plot some data
         # this dictionary is divided in simple pre-calculated metrics and raw metrics
         # there are two separated functions for downlink and uplink
-        if scheduler_typ == 'BCQI':  # todo ver aqui essa parada
+        if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
             val_snr_line = np.nansum(self.up_snr, axis=1) != 0
             # todo definir mean snr
             mean_snr = 10 * np.log10(np.nanmean(self.up_snr[val_snr_line, :], axis=1))
@@ -262,7 +262,7 @@ class Metrics:
         # and plot some data
         # this dictionary is divided in simple pre-calculated metrics and raw metrics
         # there are two separated functions for downlink and uplink
-        if scheduler_typ == 'BCQI':  # todo ver aqui essa parada
+        if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
             val_snr_line = np.nansum(self.dwn_snr, axis=1) != 0
             mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[val_snr_line, :], axis=1))
         else:
@@ -278,17 +278,21 @@ class Metrics:
         ue_index, time_index = np.where(self.dwn_user_time == 1)
         start_latency = np.zeros(shape=self.dwn_user_time.shape[0])
         start_latency.fill(np.nan)  # filling with NaN to avoid problems
-        avg_latency = copy.copy(start_latency)
-        min_latency = copy.copy(start_latency)
-        max_latency = copy.copy(start_latency)
+        avg_latency = copy.deepcopy(start_latency)
+        min_latency = copy.deepcopy(start_latency)
+        max_latency = copy.deepcopy(start_latency)
         for ue in ue_index:
             ue_times = time_index[ue_index == ue]
             start_latency[ue] = np.min(ue_times)
             bs_latency_group = np.ediff1d(ue_times)
             bs_latency_group = np.array(bs_latency_group)
             avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
-            min_latency[ue] = bs_latency_group.min()
-            max_latency[ue] = bs_latency_group.max()
+            if bs_latency_group.shape[0] != 0:
+                min_latency[ue] = bs_latency_group.min()
+                max_latency[ue] = bs_latency_group.max()
+            else:
+                min_latency[ue] = np.nan
+                max_latency[ue] = np.nan
 
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)
