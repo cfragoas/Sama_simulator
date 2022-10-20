@@ -34,7 +34,10 @@ class Freq_Scheduler:
                 raise ValueError('Need to set bw_slot(MHz) to use the Proportional Fair scheduler')
             # BCQI variables
             self.tx_power = tx_power  # tx_power in dBW
+            if simulation_time == 0:
+                print('ui')
             self.time_ratio = time_slot / simulation_time  # ratio in (ms/ms)
+
 
         # TODO - ALTERAR AQUI PARA SEMPRE USAR O USER_BW PARA TODOS OS CASOS
 
@@ -167,7 +170,6 @@ class Freq_Scheduler:
                 dummy_queue[beam_index, sector_index] = -1
                 n_bw_slots[beam_index, sector_index] = 0
             meq_zero = (dummy_queue >= 0) & beams_w_bw_slots
-        print('RR BW')
 
 
     def generate_best_CQI_bw(self, ue_bs, best_cqi_beams, active_beams=None, c_target=None):
@@ -216,7 +218,7 @@ class Freq_Scheduler:
             index_controller[~non_ended_list] = 0
             self.sector_bw[~non_ended_list] = 0
 
-        print('BCQI BW')
+        # print('BCQI BW')
 
     def backup_scheduler(self):
         self.fake_user_bw = copy.deepcopy(self.user_bw)

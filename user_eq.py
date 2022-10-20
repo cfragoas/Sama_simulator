@@ -22,7 +22,6 @@ class User_eq:
         self.dw_ue_bs = None  # bs|beam|sector|ch_gain - linked UE and BS indexes for the downlink
         self.up_ue_bs = None  # bs|beam|sector|ch_gain - linked UE and BS indexes for the uplink
 
-
         self.active_ue = None  # list of UEs that are sensed in the network
         self.ue_bs_total = None  # bs|beam|sector|ch_gain - all UE and BS indexes + non linked
 

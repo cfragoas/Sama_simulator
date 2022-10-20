@@ -121,7 +121,7 @@ class Metrics:
         self.up_cap.fill(np.nan)
         self.up_snr.fill(np.nan)
         self.up_user_time.fill(np.nan)
-        self.up_user_bw.fill(np.nan)
+        # self.up_user_bw.fill(np.nan)
         # self.up_meet_criteria.fill(np.nan)
         # initialize BS metrics matrices
         self.up_act_beams_nmb = np.zeros(shape=[n_bs, n_slots])
@@ -193,8 +193,12 @@ class Metrics:
             bs_latency_group = np.ediff1d(ue_times)
             bs_latency_group = np.array(bs_latency_group)
             avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
-            min_latency[ue] = bs_latency_group.min()
-            max_latency[ue] = bs_latency_group.max()
+            if bs_latency_group.shape[0] != 0:
+                min_latency[ue] = bs_latency_group.min()
+                max_latency[ue] = bs_latency_group.max()
+            else:
+                min_latency[ue] = np.nan
+                max_latency[ue] = np.nan
 
         # simple stats data
         mean_mean_snr = np.mean(mean_snr)
@@ -219,32 +223,44 @@ class Metrics:
             mean_norm_deficit = np.mean(norm_deficit)
             std_norm_deficit = np.mean(norm_deficit)
 
+        import warnings
+        warnings.filterwarnings("error")
+
         if total_meet_criteria or total_meet_criteria == 0:
-            snr_cap_stats = {'mean_snr':mean_mean_snr, 'std_snr':std_snr, 'mean_cap':mean_cap, 'std_cap':std_cap,
-                             'mean_user_time':mean_user_time, 'std_user_time':std_user_time, 'mean_user_bw':mean_user_bw,
-                             'std_user_bw':std_user_bw, 'total_meet_criteria':total_meet_criteria,
-                             'mean_deficit':mean_deficit, 'std_deficit':std_deficit,
-                             'mean_norm_deficit':mean_norm_deficit,
-                             'std_norm_deficit':std_norm_deficit}
+            snr_cap_stats = {'mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap, 'std_cap': std_cap,
+                             'mean_user_time': mean_user_time, 'std_user_time': std_user_time, 'mean_user_bw': mean_user_bw,
+                             'std_user_bw': std_user_bw, 'total_meet_criteria': total_meet_criteria,
+                             'mean_deficit': mean_deficit, 'std_deficit': std_deficit,
+                             'mean_norm_deficit': mean_norm_deficit,
+                             'std_norm_deficit': std_norm_deficit}
         else:
-            snr_cap_stats = {'mean_mean_snr':mean_mean_snr, 'std_snr':std_snr, 'mean_cap':mean_cap, 'std_cap':std_cap,
-                             'mean_user_time':mean_user_time, 'std_user_time':std_user_time, 'mean_user_bw':mean_user_bw,
-                             'std_user_bw':std_user_bw}
+            snr_cap_stats = {'mean_mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap, 'std_cap': std_cap,
+                             'mean_user_time': mean_user_time, 'std_user_time': std_user_time, 'mean_user_bw': mean_user_bw,
+                             'std_user_bw': std_user_bw}
 
         # preparing 'raw' data to export
         # ue_pos = self.cluster.features
         if total_meet_criteria or total_meet_criteria == 0:
-            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
-                             'snr': mean_snr, 'cap': cap_sum,
-                             'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
-                             'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
-                             'norm_deficit': norm_deficit, 'meet_criteria': self.up_cnt_satisfied_ue,
-                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+            try:
+                raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
+                                 'snr': mean_snr, 'cap': cap_sum,
+                                 'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
+                                 'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
+                                 'norm_deficit': norm_deficit, 'meet_criteria': self.up_cnt_satisfied_ue,
+                                 'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
+                                 'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+            except RuntimeWarning:
+                x = self.up_user_bw
+                x[np.isnan(x)] = 0
+                z = np.sum(x[active_ue], axis=1)
+                z = np.nanmean(x[active_ue], axis=1)
+                print('ui')
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.up_user_bw, axis=1),
-                             'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
 
         if output_typ == 'simple':
             # return snr_cap_stats

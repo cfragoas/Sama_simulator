@@ -36,7 +36,7 @@ class Master_scheduler:
 
     def create_tdd_scheduler(self, simulation_time, t_index=0, up_tdd_time=0.3):
         self.up_tdd_time = up_tdd_time
-        self.dwm_tdd_time = 1 - up_tdd_time
+        self.dwn_tdd_time = 1 - up_tdd_time
         if self.tdd_scheduler is None:
             self.tdd_scheduler = np.zeros(shape=simulation_time, dtype=int)
 

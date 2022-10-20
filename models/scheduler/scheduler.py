@@ -47,7 +47,7 @@ class Scheduler:
     def update_scheduler(self, active_beams, ue_bs, t_index=0, c_target=None, ue_updt=False, updated_beams=None):
         # this is the function responsable to call the general time and frequency functions to update the schedullers,
         # if necessary
-        print(self.scheduler_status)
+        # print(self.scheduler_status)
         self.generate_beam_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs,
                               c_target=c_target, ue_updt=ue_updt, updated_beams=updated_beams)
         self.generate_beam_timing(ue_bs=ue_bs, active_beams=active_beams, t_index=t_index,

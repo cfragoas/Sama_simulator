@@ -129,14 +129,15 @@ class Time_Scheduler:
         # self.fake_beam_timing = None
         if status == 0:  # if it is BCQI allocation
             self.generate_best_cqi_beam_timing(ue_bs=ue_bs)
-            print('bcqi')
-            print(self.beam_timing_sequence.shape)
+            self.fake_ue_updt = ue_updt
+            # print('bcqi')
+            # print(self.beam_timing_sequence.shape)
         else:  # if it is RR allocation
-            print('RR')
-            if ue_updt or self.fake_beam_timing_sequence is None:
+            # print('RR')
+            if ue_updt or self.fake_ue_updt or self.fake_beam_timing_sequence is None:
                 self.generate_ue_qtd_proportional_beam_timing(t_index=t_index, active_beams=active_beams)
                 self.fake_beam_timing_sequence = copy.deepcopy(self.beam_timing_sequence)
-                print('RR - update')
+                # print('RR - update')
             try:
                 self.beam_timing_sequence = np.zeros(shape=self.fake_beam_timing_sequence.shape).astype(int)
                 self.beam_timing_sequence[:, 1::2] = self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, 1::2].shape[1])]

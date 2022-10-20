@@ -7,10 +7,20 @@ def compare_dist(data1, data2):
 
     # data3 = np.concatenate([x['downlink_results']['raw_data_dict']['snr'] for x in data1])
     # data4 = np.concatenate([x['downlink_results']['raw_data_dict']['snr'] for x in data2])
+    check1, check2 = True, True
 
-    data1 = np.concatenate([x['downlink_results']['raw_data_dict']['cap'] for x in data1])
-    data2 = np.concatenate([x['downlink_results']['raw_data_dict']['cap'] for x in data2])
-    stat, p = mannwhitneyu(data1, data2)
+    if data1[0]['downlink_results'] is not None:
+        data1_ = np.concatenate([x['downlink_results']['raw_data_dict']['cap'] for x in data1])
+        data2_ = np.concatenate([x['downlink_results']['raw_data_dict']['cap'] for x in data2])
+        stat, p = mannwhitneyu(data1_, data2_)
+        print('Checking similarity for downlink data:')
+        check1 = check_similarity(stat=stat, p=p, data1=data1_, data2=data2_)
+    if data1[0]['uplink_results'] is not None:
+        data1_ = np.concatenate([x['uplink_results']['raw_data_dict']['cap'] for x in data1])
+        data2_ = np.concatenate([x['uplink_results']['raw_data_dict']['cap'] for x in data2])
+        stat, p = mannwhitneyu(data1_, data2_)
+        print('Checking similarity for uplink data:')
+        check2 = check_similarity(stat=stat, p=p, data1=data1_, data2=data2_)
 
     # print('previous batch cap mean: ', str(data1.mean()), ' ---------   current batch cap mean: ', str(data2.mean()))
     # print('previous batch cap std: ', str(data1.std()), ' ---------   current batch cap std: ', str(data2.std()))
@@ -23,6 +33,24 @@ def compare_dist(data1, data2):
     # stat, p = mannwhitneyu(data3, data4)
     # print('statistic = %.3f, p = %.3f' % (stat, p))
 
+    # print('statistic = %.3f, p = %.3f' % (stat, p))
+    # if p > 0.05:
+    #     print('Probably the same distribution\n')
+    #     print('data1 [mean, std]: [' + str(data1.mean()) + ', ' + str(data1.std()) + ']' +
+    #           'data2 [mean, std]: [' + str(data2.mean()) + ', ' + str(data2.std()) + ']')
+    #     return True
+    # else:
+    #     print('Probably different distributions')
+    #     print('data1 [mean, std]: [' + str(data1.mean()) + ', ' + str(data1.std()) + ']' +
+    #           'data2 [mean, std]: [' + str(data2.mean()) + ', ' + str(data2.std()) + ']')
+    #     return False
+
+    if check1 & check2:
+        return True
+    else:
+        return False
+
+def check_similarity(stat, p, data1, data2):
     print('statistic = %.3f, p = %.3f' % (stat, p))
     if p > 0.05:
         print('Probably the same distribution\n')
