@@ -82,9 +82,6 @@ class Scheduler:
                 self.freq_scheduler.backup_updated_beams(updated_beams)
             else:  # it is next UE step (RR algorithm)
                 self.scheduler_status[1] = 0  # changing the status for the next step
-                # if t_index > 800:
-                #     print(t_index)
-                #     print(updated_beams)
                 updated_beams = self.freq_scheduler.restore_scheduler()  # because the bcqi scheduller will write over the RR one
                 self.freq_scheduler.generate_RR_bw(ue_bs=ue_bs, active_beams=active_beams,
                                                    updated_beams=updated_beams)

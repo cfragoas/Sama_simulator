@@ -34,8 +34,8 @@ class Freq_Scheduler:
                 raise ValueError('Need to set bw_slot(MHz) to use the Proportional Fair scheduler')
             # BCQI variables
             self.tx_power = tx_power  # tx_power in dBW
-            if simulation_time == 0:
-                print('ui')
+            # if simulation_time == 0:
+            #     print('ui')
             self.time_ratio = time_slot / simulation_time  # ratio in (ms/ms)
 
 
@@ -222,8 +222,6 @@ class Freq_Scheduler:
             non_ended_list = np.array([index_controller[i] < beam_queue_size[i] for i, x in enumerate(sector_ues_by_cqi)])
             index_controller[~non_ended_list] = 0
             self.sector_bw[~non_ended_list] = 0
-
-        # print('BCQI BW')
 
     def backup_scheduler(self):
         self.fake_user_bw = copy.deepcopy(self.user_bw)
