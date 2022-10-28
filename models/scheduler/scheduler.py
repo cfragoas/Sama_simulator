@@ -35,7 +35,6 @@ class Scheduler:
         elif self.scheduler_typ == 'PF':
             self.freq_scheduler = Freq_Scheduler(bw=bw, bs_index=bs_index, scheduler_typ=scheduler_typ, bw_slot=bw_slot,
                                                  tx_power=tx_power, simulation_time=simulation_time, time_slot=time_slot)
-            # it uses half of the time because it splits the scheduling between BCQI and RR
             self.time_scheduler = Time_Scheduler(simulation_time=simulation_time,
                                                  scheduler_typ=scheduler_typ, bs_index=bs_index, time_slot=time_slot)
             # 0 if is best cqi time or 1 if its next UE (like RR) -> [time, frequency]
@@ -45,7 +44,7 @@ class Scheduler:
             raise ValueError('Invalid scheduler type! Please check the param.yml file.')
 
     def update_scheduler(self, active_beams, ue_bs, t_index=0, c_target=None, ue_updt=False, updated_beams=None):
-        # this is the function responsable to call the general time and frequency functions to update the schedullers,
+        # this is the function responsible to call the general time and frequency functions to update the schedulers,
         # if necessary
         # print(self.scheduler_status)
         self.generate_beam_bw(active_beams=active_beams, t_index=t_index, ue_bs=ue_bs,
@@ -71,6 +70,9 @@ class Scheduler:
             self.freq_scheduler.generate_best_CQI_bw(ue_bs=ue_bs, best_cqi_beams=self.time_scheduler.best_cqi_beams,
                                                      c_target=c_target)
         elif self.scheduler_typ == 'PF':
+            if ue_updt:
+                # print('ue_updt ' + str(t_index))
+                self.freq_scheduler.clear_RR_var()
             if self.scheduler_status[1] == 0:  # if its BCQI step
                 if self.time_scheduler.best_cqi_beams is None or self.t_index != t_index:
                     self.generate_beam_timing(ue_bs=ue_bs, active_beams=active_beams, t_index=t_index)
@@ -80,8 +82,9 @@ class Scheduler:
                 self.freq_scheduler.backup_updated_beams(updated_beams)
             else:  # it is next UE step (RR algorithm)
                 self.scheduler_status[1] = 0  # changing the status for the next step
-                # if self.t_index != t_index:
-                #     self.t_index = t_index
+                # if t_index > 800:
+                #     print(t_index)
+                #     print(updated_beams)
                 updated_beams = self.freq_scheduler.restore_scheduler()  # because the bcqi scheduller will write over the RR one
                 self.freq_scheduler.generate_RR_bw(ue_bs=ue_bs, active_beams=active_beams,
                                                    updated_beams=updated_beams)

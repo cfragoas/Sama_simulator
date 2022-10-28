@@ -25,6 +25,7 @@ class Time_Scheduler:
         if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':
             self.fake_beam_timing_sequence = None
             self.best_cqi_beams = None
+            self.even_or_odd = None
 
     def set_base_dimensions(self, n_sectors, n_beams):
         self.n_sectors = n_sectors  # this variable is used to shape the dimensions of some matrices
@@ -126,23 +127,26 @@ class Time_Scheduler:
         self.weighted_act_beams = np.round(t_beam).astype(int)
 
     def generate_proportional_fair_timing(self, ue_bs, active_beams, t_index, ue_updt, status):
-        # self.fake_beam_timing = None
         if status == 0:  # if it is BCQI allocation
             self.generate_best_cqi_beam_timing(ue_bs=ue_bs)
             self.fake_ue_updt = ue_updt
-            # print('bcqi')
-            # print(self.beam_timing_sequence.shape)
         else:  # if it is RR allocation
-            # print('RR')
+
+            if self.even_or_odd is None:  # this is to adjust the sequence (RR or BCQI) when the beam_timing matrix changes size
+                self.even_or_odd = 1
             if ue_updt or self.fake_ue_updt or self.fake_beam_timing_sequence is None:
                 self.generate_ue_qtd_proportional_beam_timing(t_index=t_index, active_beams=active_beams)
                 self.fake_beam_timing_sequence = copy.deepcopy(self.beam_timing_sequence)
-                # print('RR - update')
+                if ue_updt:
+                    self.even_or_odd = 0  # RR comes first in the new time matrix (even) - create at the same it.
+                else:
+                    self.even_or_odd = 1  # RR comes second in the new time matrix (odd) - created on the last it.
             try:
                 self.beam_timing_sequence = np.zeros(shape=self.fake_beam_timing_sequence.shape).astype(int)
-                self.beam_timing_sequence[:, 1::2] = self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, 1::2].shape[1])]
+                self.beam_timing_sequence[:, self.even_or_odd::2] = \
+                    self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, self.even_or_odd::2].shape[1])]
             except:
-                print('ui')
+                print('erro no tempo')
 
     def next_active_beam(self):
         # like a queue, it returns the next beams that need to be allocated

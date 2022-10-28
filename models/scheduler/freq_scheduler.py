@@ -40,6 +40,11 @@ class Freq_Scheduler:
 
 
         # TODO - ALTERAR AQUI PARA SEMPRE USAR O USER_BW PARA TODOS OS CASOS
+    def clear_RR_var(self):
+        self.user_bw = None
+        self.fake_user_bw = None
+        self.in_queue_ue = None
+        self.last_updated_beams = None
 
     def generate_proportional_beam_bw(self, active_beams):
         self.beam_bw = np.zeros(shape=active_beams.shape)
