@@ -66,7 +66,7 @@ class Time_Scheduler:
                                                  t_min=t_min, beam_util=beam_util, beam_util_log=beam_util_log, sector_util=sector_util)  # T_MIN HERE IS THE MINIMUM RESERVED BEAM TIME !!!!! FIXFIXFIXFIX
 
         # self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
-        self.generate_weighted_time_matrix2(simulation_time=self.simulation_time - t_index)
+        self.generate_weighted_time_matrix2(simulation_time=self.simulation_time - t_index)  # testing
 
     def generate_best_cqi_beam_timing(self, ue_bs):
         self.beam_timing_sequence = np.zeros(shape=(self.n_sectors,
