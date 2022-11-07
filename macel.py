@@ -237,7 +237,7 @@ class Macel:
                                      sector_map=self.sector_map,
                                     pw_5mhz=self.default_base_station.tx_power + 10*np.log10(5/self.default_base_station.bw))  # calculating the best ch gain for each UE
 
-        self.metrics = Metrics()  # instancing the Metrics object
+        self.metrics = Metrics()  # instantiating the Metrics object
         if self.downlink_specs is not None and self.tdd_up_time != 1:
             self.metrics.store_downlink_metrics(n_ues=self.ue.dw_ue_bs.shape[0], n_bs=self.base_station_list.__len__(),
                                                 simulation_time=self.simulation_time, time_slot=self.time_slot,
@@ -285,11 +285,13 @@ class Macel:
             # the tdd time index
             if boss == 0:
                 rel_index = np.where(np.isin(dwn_indexes, scheduler_range))[0]
+                # print('downlink ', str(rel_index))
                 downlink_results = self.downlink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                               tdd_scheduler_range=scheduler_range,
                                                               rel_schdl_range=rel_index)  # downlink channel simulation
             if boss == 1:
                 rel_index = np.where(np.isin(up_indexes, scheduler_range))[0]
+                # print('uplink ', str(rel_index))
                 uplink_results = self.uplink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                           tdd_scheduler_range=scheduler_range,
                                                           rel_schdl_range=rel_index)  # uplink channel simulation

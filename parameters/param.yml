@@ -11,9 +11,6 @@ exec_param:
 
 
 
-
-
-
 roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
@@ -36,8 +33,6 @@ roi_param:
 
 
 
-
-
 macel_param:
   # ================================================ UE Distribution ================================================
   ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
@@ -52,7 +47,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 20  # maximum number of BSs to be simulated
+  max_bs: 25  # maximum number of BSs to be simulated
   # ===================================================================================================================
 
   time_slots: 1000  # number of time slots (1 ms)
@@ -108,4 +103,5 @@ bs_param:
 
 ue_param:
   hrx: 1.5
-  tx_power: -3 # dBW
+  tx_power: -4 # dBW
+# https://www.linkedin.com/pulse/nr-ue-power-classes-cesar-nunes/?originalSubdomain=pt

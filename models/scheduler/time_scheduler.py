@@ -65,7 +65,8 @@ class Time_Scheduler:
         self.generate_utility_weighted_beam_time(t_total=self.simulation_time - t_index, ue_bs=ue_bs, active_beams=active_beams,
                                                  t_min=t_min, beam_util=beam_util, beam_util_log=beam_util_log, sector_util=sector_util)  # T_MIN HERE IS THE MINIMUM RESERVED BEAM TIME !!!!! FIXFIXFIXFIX
 
-        self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
+        # self.generate_weighted_time_matrix(simulation_time=self.simulation_time - t_index)
+        self.generate_weighted_time_matrix2(simulation_time=self.simulation_time - t_index)
 
     def generate_best_cqi_beam_timing(self, ue_bs):
         self.beam_timing_sequence = np.zeros(shape=(self.n_sectors,
@@ -114,6 +115,16 @@ class Time_Scheduler:
 
         self.beam_timing_sequence = self.beam_timing_sequence.astype(int)
 
+    def generate_weighted_time_matrix2(self, simulation_time):
+        # self.beam_timing = [None] * self.n_sectors
+        self.beam_timing_sequence = np.zeros(shape=(self.n_sectors, np.round(
+            simulation_time / self.time_slot).astype(int)), dtype=int) + self.n_beams  # filling the initial beam_timing_sequence with beam_index that non exist
+        for sector_index in range(self.n_sectors):
+            if np.sum(self.weighted_act_beams[:, sector_index]) != 0:
+                p = self.weighted_act_beams[:, sector_index]/np.sum(self.weighted_act_beams[:, sector_index])
+                self.beam_timing_sequence[sector_index] = np.random.choice(a=range(self.weighted_act_beams[:, sector_index].size), p=p, size=simulation_time)
+
+
     def generate_utility_weighted_beam_time(self, t_total, ue_bs, t_min, active_beams, beam_util, beam_util_log, sector_util):
         # this function calculates the allocation time for each beam based on the bema and sector utilities
         t_beam = np.zeros(shape=beam_util.shape)
@@ -135,18 +146,15 @@ class Time_Scheduler:
             if self.even_or_odd is None:  # this is to adjust the sequence (RR or BCQI) when the beam_timing matrix changes size
                 self.even_or_odd = 1
             if ue_updt or self.fake_ue_updt or self.fake_beam_timing_sequence is None:
-                self.generate_ue_qtd_proportional_beam_timing(t_index=t_index, active_beams=active_beams)
+                self.generate_ue_qtd_proportional_beam_timing(t_index=0, active_beams=active_beams)
                 self.fake_beam_timing_sequence = copy.deepcopy(self.beam_timing_sequence)
                 if ue_updt:
                     self.even_or_odd = 0  # RR comes first in the new time matrix (even) - create at the same it.
                 else:
                     self.even_or_odd = 1  # RR comes second in the new time matrix (odd) - created on the last it.
-            try:
-                self.beam_timing_sequence = np.zeros(shape=self.fake_beam_timing_sequence.shape).astype(int)
-                self.beam_timing_sequence[:, self.even_or_odd::2] = \
-                    self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, self.even_or_odd::2].shape[1])]
-            except:
-                print('erro no tempo')
+            self.beam_timing_sequence = np.zeros(shape=self.fake_beam_timing_sequence.shape).astype(int)
+            self.beam_timing_sequence[:, self.even_or_odd::2] = \
+                self.fake_beam_timing_sequence[:, range(self.beam_timing_sequence[:, self.even_or_odd::2].shape[1])]
 
     def next_active_beam(self):
         # like a queue, it returns the next beams that need to be allocated

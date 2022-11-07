@@ -50,11 +50,9 @@ class Util_fn:
         bw_need[active_ue] = c_target[active_ue]/(np.log2(1 + snr[active_ue]))
         # bw_need[active_ue] = 2 ** (c_target[active_ue] / snr[active_ue]) - 1  # needed bw to achieve the capacity target
         snr[active_ue][snr[active_ue] < 0] = 10E-12  # to prevent a negative utility value in log2
-
-        self.slice_util[active_ue] = (bw_min[active_ue] / bw_need[active_ue]) * np.log2(snr[active_ue])
-        # if np.sum(self.slice_util[active_ue] < 0) > 0:
-        #     print('ui')
-
+        factor = 1
+        self.slice_util[active_ue] = (bw_min[active_ue] / bw_need[active_ue]) * np.log2(factor * snr[active_ue])
+        # self.slice_util[active_ue & (bw_need < bw_min)] = 10E-12  # TESTANDO ISSO AQUI
 
     def beam_utility(self, ue_bs, active_beams):
         # ue_bs -> bs|beam|sector|ch_gain
@@ -73,11 +71,12 @@ class Util_fn:
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
         beams_2calc = self.beam_util != 0  # active beams and beam_util not between 0~1
         # try:
-        self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+        # self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
+        self.beam_util_log[beams_2calc] = self.beam_util[beams_2calc]
         # except:
         #     print(np.where(self.slice_util<0))
         #     print('ui')
-        self.beam_util_log[self.beam_util_log < 0] = 0.1  # to avoid having allocated time < 0 beeing a detected as active beam
+        self.beam_util_log[self.beam_util_log < 0] = 0.0001  # to avoid having allocated time < 0 beeing a detected as active beam
 
     def sector_utility(self):
         self.sector_util = np.sum(self.beam_util_log, axis=0)  # sector util. is the sum of the beam util.

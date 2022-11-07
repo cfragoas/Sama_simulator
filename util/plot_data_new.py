@@ -124,8 +124,10 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     # UE that meets the uplink/downlink target capacity per BS number curve
     title = '% of UE that meets the ' + str(global_parameters['downlink_scheduler']['criteria']) + ' Mbps criteria'
     default_curve_plt(n_bs_vec=bs_list,
-                      data=[data_dict['downlink_data']['total_meet_criteria'], data_dict['uplink_data']['total_meet_criteria']],
-                      xlabel='Number of BSs', title=title, path=path, save=True, save_name='cap_defict', legend=legend)
+                      data=[data_dict['downlink_data']['total_meet_criteria'],
+                            data_dict['uplink_data']['total_meet_criteria']],
+                      xlabel='Number of BSs', title=title, path=path, save=True, save_name='cap_defict', legend=legend,
+                      ymax=1.01)
 
     # ================================ special plots ===============================
     # avg UE that meet the criteria per time slot - need to separate downlink and uplink for this one
@@ -293,9 +295,9 @@ def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi
     subplot.set_title(title)
 
     if ymin:
-        subplot.gca().set_xlim(left=ymin)
+        subplot.set_ylim(bottom=ymin)
     if ymax:
-        subplot.gca().set_xlim(right=ymax)
+        subplot.set_ylim(top=ymax)
 
     if legend is not None:
         plt.legend(legend, fontsize='x-large')
