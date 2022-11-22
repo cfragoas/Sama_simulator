@@ -70,11 +70,13 @@ def organize_data_matrix(data_, data_dict_, n_cells):
     data_dict_['std_user_time'].append(np.mean([x['std_user_time'] for x in snr_cap_stats]))
     data_dict_['mean_user_bw'].append(np.mean([x['mean_user_bw'] for x in snr_cap_stats]))
     data_dict_['std_user_bw'].append(np.mean([x['std_user_bw'] for x in snr_cap_stats]))
-    data_dict_['total_meet_criteria'].append(np.mean([x['total_meet_criteria'] for x in snr_cap_stats]))
-    data_dict_['mean_deficit'].append(np.mean([x['mean_deficit'] for x in snr_cap_stats]))
-    data_dict_['std_deficit'].append(np.mean([x['std_deficit'] for x in snr_cap_stats]))
-    data_dict_['mean_norm_deficit'].append(np.mean([x['mean_norm_deficit'] for x in snr_cap_stats]))
-    data_dict_['std_norm_deficit'].append(np.mean([x['std_norm_deficit'] for x in snr_cap_stats]))
+
+    if 'total_meet_criteria' in snr_cap_stats:  # in the case of not using the capacity criteria
+        data_dict_['total_meet_criteria'].append(np.mean([x['total_meet_criteria'] for x in snr_cap_stats]))
+        data_dict_['mean_deficit'].append(np.mean([x['mean_deficit'] for x in snr_cap_stats]))
+        data_dict_['std_deficit'].append(np.mean([x['std_deficit'] for x in snr_cap_stats]))
+        data_dict_['mean_norm_deficit'].append(np.mean([x['mean_norm_deficit'] for x in snr_cap_stats]))
+        data_dict_['std_norm_deficit'].append(np.mean([x['std_norm_deficit'] for x in snr_cap_stats]))
 
     # storing the raw data
     data_dict_['raw_data'].append(raw_data)

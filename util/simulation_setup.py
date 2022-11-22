@@ -11,7 +11,7 @@ from clustering import Cluster
 
 # Just a set of auxiliary functions to setup a simulation environment
 
-def simulate_macel_downlink(args):  # todo - fix the and check all the options here
+def simulate_macel(args):  # todo - fix the and check all the options here
     n_bs = args[0]
     macel = args[1]
     n_samples = args[2]
@@ -61,7 +61,7 @@ def create_enviroment(parameters, param_path):
         #                                 save=True, plot=True)
         # wgt_map = map_.apply_mask(shape=map_.wgt_mtx, mask=mask, plot=True)
         # dst_map = map_.apply_mask(shape=map_.dst_mtx, mask=mask, plot=True)
-        map_.generate_samples(n_samples=1000, plot=True)
+        map_.generate_samples(n_samples=1000, plot=False)
         # grid = map_.make_grid()
         map_.clear_general_map_info()
         map_.clear_shape_data()
@@ -233,7 +233,7 @@ def start_simmulation(conf_file):
             data_ = list(
                 tqdm.tqdm(
                     process_pool.imap_unordered(
-                        simulate_macel_downlink, [(n_cells, macel, n_samples, n_centers, ue_dist_typ, random_centers)
+                        simulate_macel, [(n_cells, macel, n_samples, n_centers, ue_dist_typ, random_centers)
                                                   for i in range(batch_size)]), total=round(batch_size)
                 ))
 

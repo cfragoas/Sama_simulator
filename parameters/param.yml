@@ -10,12 +10,11 @@ exec_param:
 
 
 
-
 roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
 
-  grid: True
+  grid: False
   grid_lines: 1000
   grid_columns: 1000
   cel_size: 30
@@ -23,7 +22,7 @@ roi_param:
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
 
-  map: False
+  map: True
   name_map: '30m.pkl'  # map format made for this application - options: 30m.pkl, 50m.pkl and 100m.pkl
   filter_type: 'Nm_Bairro'
   filter_name: 'Tijuca'
@@ -32,11 +31,10 @@ roi_param:
 
 
 
-
 macel_param:
   # ================================================ UE Distribution ================================================
   ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
-  n_samples: 1000  # number of samples per distribution
+  n_samples: 100  # number of samples per distribution
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
@@ -54,17 +52,17 @@ macel_param:
   time_slot_lngt: 1  # duration of a time slot (ms)
   uplink: True  # if True: simulates downlink comm.
   downlink: True  # if True: simulates uplink comm.
-  mux_tdd_up_time: 0  # percentage (between 0 and 1) of time used for the uplink when using TDD
+  mux_tdd_up_time: 0.3  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
 downlink_scheduler:  # scheduler specifications for the downlink side
-  criteria: 30  # Mbps
-  scheduler_typ: 'PF'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
+  criteria:  # Mbps - if empty, does not use the capacity criteria
+  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
 uplink_scheduler:  # scheduler specifications for the uplink side
-  criteria: 10  # Mbps
-  scheduler_typ: 'PF'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  criteria:  # Mbps - if empty, does not use the capacity criteria
+  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
@@ -84,10 +82,6 @@ antenna_param:  # -- refer to ITU 2101 --
   n_columns: 8
   horizontal_spacing: 0.5
   vertical_spacing: 0.5
-
-
-
-
 
 
 

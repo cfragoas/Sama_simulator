@@ -141,9 +141,9 @@ class Macel:
     def send_ue_to_bs(self, t_index=0, cap_defict=None, t_min=None, bs_2b_updt=None, updated_beams=None,
                       downlink=False, uplink=False):
         if cap_defict is None:
-            if downlink:
+            if self.downlink_specs['criteria'] is not None and downlink:
                 cap_defict = self.downlink_specs['criteria'] + np.zeros(shape=self.ue.dw_ue_bs.shape[0])
-            if uplink:
+            if self.uplink_specs['criteria'] is not None and uplink:
                 cap_defict = self.uplink_specs['criteria'] + np.zeros(shape=self.ue.dw_ue_bs.shape[0])
 
         if bs_2b_updt is None:
@@ -285,13 +285,11 @@ class Macel:
             # the tdd time index
             if boss == 0:
                 rel_index = np.where(np.isin(dwn_indexes, scheduler_range))[0]
-                # print('downlink ', str(rel_index))
                 downlink_results = self.downlink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                               tdd_scheduler_range=scheduler_range,
                                                               rel_schdl_range=rel_index)  # downlink channel simulation
             if boss == 1:
                 rel_index = np.where(np.isin(up_indexes, scheduler_range))[0]
-                # print('uplink ', str(rel_index))
                 uplink_results = self.uplink_interference(ch_gain_map=self.ch_gain_map, output_typ=output_typ,
                                                           tdd_scheduler_range=scheduler_range,
                                                           rel_schdl_range=rel_index)  # uplink channel simulation

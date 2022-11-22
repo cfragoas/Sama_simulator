@@ -91,6 +91,7 @@ class Grid:
         if plot:
             plt.matshow(self.grid, origin='lower')
             plt.title('Grid with random points')
+            plt.colorbar()
             plt.show()
 
     def distance_matrix(self, coordinates):

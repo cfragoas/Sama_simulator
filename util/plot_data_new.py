@@ -133,11 +133,13 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     # avg UE that meet the criteria per time slot - need to separate downlink and uplink for this one
     time_shape = global_parameters['macel_param']['time_slots'] // global_parameters['macel_param']['time_slot_lngt']
     if data_dict['downlink_data']['BSs']:
-        criteria_time_slot_plot(data_dict=data_dict['downlink_data'], time_shape=time_shape, path=path,
-                                subname_plot='downlink', criteria=global_parameters['downlink_scheduler']['criteria'])
+        if data_dict['downlink_data']['total_meet_criteria']:
+            criteria_time_slot_plot(data_dict=data_dict['downlink_data'], time_shape=time_shape, path=path,
+                                    subname_plot='downlink', criteria=global_parameters['downlink_scheduler']['criteria'])
     if data_dict['uplink_data']['BSs']:
-        criteria_time_slot_plot(data_dict=data_dict['uplink_data'], time_shape=time_shape, path=path,
-                                subname_plot='uplink', criteria=global_parameters['uplink_scheduler']['criteria'])
+        if data_dict['uplink_data']['total_meet_criteria']:
+            criteria_time_slot_plot(data_dict=data_dict['uplink_data'], time_shape=time_shape, path=path,
+                                    subname_plot='uplink', criteria=global_parameters['uplink_scheduler']['criteria'])
 
     # inactive UEs - this graphics is not different for uplink/downlink
     if data_dict['downlink_data']['BSs']:
@@ -553,10 +555,14 @@ def dist_x_cap_scatter_plot(data_dict, bs_data_index, n_bs, rel_index_tables, cr
     title = 'Capacity x Distance for ' + str(n_bs) + ' BSs'
     max_dist = (np.sqrt(global_parameters['roi_param']['grid_columns'] * global_parameters['roi_param']['grid_lines']) *
                 global_parameters['roi_param']['cel_size']) * 1.05/1000
-    default_scatter(x=raw_dist/1000, y=raw_cap, path=path, title=title, n_bs=n_bs, dpi=100, subplot=None,
-                    save_name=subname_plot + '_cap_x_dist', ylabel='Capacity (Mbps)', xlabel='Distance (km)',
-                    xlim=max_dist, ylim=criteria*1.2)
-
+    if criteria is not None:
+        default_scatter(x=raw_dist/1000, y=raw_cap, path=path, title=title, n_bs=n_bs, dpi=100, subplot=None,
+                        save_name=subname_plot + '_cap_x_dist', ylabel='Capacity (Mbps)', xlabel='Distance (km)',
+                        xlim=max_dist, ylim=criteria*1.2)
+    else:
+        default_scatter(x=raw_dist / 1000, y=raw_cap, path=path, title=title, n_bs=n_bs, dpi=100, subplot=None,
+                        save_name=subname_plot + '_cap_x_dist', ylabel='Capacity (Mbps)', xlabel='Distance (km)',
+                        xlim=max_dist)
 
 def histogram_base_plots(data_dict, bs_data_index, n_bs, max_iter, global_parameters, criteria, path, subname_plot):
     # default basic histogram plots
@@ -570,9 +576,13 @@ def histogram_base_plots(data_dict, bs_data_index, n_bs, max_iter, global_parame
 
     # Capacity plot
     cap = np.concatenate([x['cap'] for x in data_dict['raw_data'][bs_data_index]])
-    ax2 = default_histogram(data=cap, n_bs=n_bs, subplot=ax2, path=path, title='Throughput (Mbps)',
-                            save_name=subname_plot + '_cap_', bins=100,
-                            binrange=(0, np.ceil(criteria * 1.05).astype(int)))
+    if criteria is not None:
+        ax2 = default_histogram(data=cap, n_bs=n_bs, subplot=ax2, path=path, title='Throughput (Mbps)',
+                                save_name=subname_plot + '_cap_', bins=100,
+                                binrange=(0, np.ceil(criteria * 1.05).astype(int)))
+    else:
+        ax2 = default_histogram(data=cap, n_bs=n_bs, subplot=ax2, path=path, title='Throughput (Mbps)',
+                                save_name=subname_plot + '_cap_', bins=100)
 
     # UE per BS plot
     user_bs = np.concatenate([x['user_bs'] for x in data_dict['raw_data'][bs_data_index]])
@@ -598,10 +608,11 @@ def histogram_base_plots(data_dict, bs_data_index, n_bs, max_iter, global_parame
                             save_name=subname_plot + '_bw_user_', binrange=(0, max_bw))
 
     # Capacity deficit plot
-    norm_deficit = np.concatenate([x['norm_deficit'] for x in data_dict['raw_data'][bs_data_index]])
-    ax7 = default_histogram(data=norm_deficit, n_bs=n_bs, path=path,
-                            title='Normalized Capacity Deficit for ' + str(criteria) + ' Mbps',
-                            save_name=subname_plot + '_norm_deficit_', binrange=(-1, 1))
+    if criteria is not None:
+        norm_deficit = np.concatenate([x['norm_deficit'] for x in data_dict['raw_data'][bs_data_index]])
+        ax7 = default_histogram(data=norm_deficit, n_bs=n_bs, path=path,
+                                title='Normalized Capacity Deficit for ' + str(criteria) + ' Mbps',
+                                save_name=subname_plot + '_norm_deficit_', binrange=(-1, 1))
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.savefig(path + subname_plot + '_Metrics_' + str(n_bs) + ' BS.png')

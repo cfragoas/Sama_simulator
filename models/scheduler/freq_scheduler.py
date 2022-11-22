@@ -204,8 +204,11 @@ class Freq_Scheduler:
         while self.sector_bw.sum() != 0:
             best_cqi_ue = np.array([x[index_controller[i]] if x.size != 0 else 0 for i, x in enumerate(sector_ues_by_cqi)])  # select the one UE for each sector using the index_controller
             channels = ue_bs[best_cqi_ue, 3]
-            bw_need = np.ceil(shannon_bw(bw=self.bw, tx_power=self.tx_power, channel_state=channels,
-                                 c_target=c_target[best_cqi_ue]) / self.time_ratio)
+            if c_target is not None:  # this if is for the case when de target capacity is not defined
+                bw_need = np.ceil(shannon_bw(bw=self.bw, tx_power=self.tx_power, channel_state=channels,
+                                     c_target=c_target[best_cqi_ue]) / self.time_ratio)
+            else:
+                bw_need = np.zeros(shape=channels.shape) + self.bw
 
             non_zero_bw = (self.sector_bw >= 0) & non_ended_list & non_empty_sectors  # controls the beams that still have available bw to allocate
 

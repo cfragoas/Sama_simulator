@@ -18,7 +18,10 @@ class Util_fn:
     def update_c_target(self, shape, c_target=None):  # todo - arrumar o shape aqui e da função chamada
         # self.c_target = c_target + np.zeros(shape=ue_bs.shape[0])  # because c_target can be unique for each UE
         if c_target is None:
-            c_target = self.c_target
+            if self.c_target is not None:
+                c_target = self.c_target
+            else:
+                raise ValueError('Need to define the target capacity criteria to use the utility-based scheduler !!!!!')
         self.c_target = c_target + np.zeros(shape=shape)  # because c_target can be unique for each UE
 
 
@@ -70,12 +73,10 @@ class Util_fn:
         self.beam_util[self.beam_util < 0] = 10E-12  # to prevent a negative utility value in log2
         self.beam_util_log = np.zeros(shape=self.beam_util.shape)
         beams_2calc = self.beam_util != 0  # active beams and beam_util not between 0~1
-        # try:
-        # self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])
-        self.beam_util_log[beams_2calc] = self.beam_util[beams_2calc]
-        # except:
-        #     print(np.where(self.slice_util<0))
-        #     print('ui')
+
+        # self.beam_util_log[beams_2calc] = np.log2(self.beam_util[beams_2calc])  # with log
+        self.beam_util_log[beams_2calc] = self.beam_util[beams_2calc]  # without log
+
         self.beam_util_log[self.beam_util_log < 0] = 0.0001  # to avoid having allocated time < 0 beeing a detected as active beam
 
     def sector_utility(self):

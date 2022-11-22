@@ -32,7 +32,6 @@ def shannon_bw(bw, tx_power, channel_state, c_target):
     # it is important here that tx_pw been in dBW (not dBm!!!)
     tx_pw = 10 ** (tx_power / 10)  # converting from dBW to watt
     snr = (tx_pw * 10 ** (channel_state/10)) / pw_noise_bw  # signal to noise ratio (linear, not dB) todo - checar se precisa verser 10^x/10 no channel state
-    # bw_need = 2 ** (c_target[best_cqi_ue] / snr) - 1
-    bw_need = c_target / (np.log2(1 + snr)) # needed bw to achieve the capacity target
+    bw_need = c_target / (np.log2(1 + snr))  # needed bw to achieve the capacity target
 
     return bw_need

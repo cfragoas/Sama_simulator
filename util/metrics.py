@@ -76,7 +76,7 @@ class Metrics:
                 self.up_cap_deficit = np.where(self.up_cap_deficit < 0, 1E-6, self.up_cap_deficit)
 
     def store_downlink_metrics(self, cap=None, snr=None, t_index=None, base_station_list=None, n_bs=None, n_ues=None,
-                             simulation_time=None, time_slot=None, criteria=None):
+                               simulation_time=None, time_slot=None, criteria=None):
         # this function stores the downlink metrics during the simulation time and calculates some others
         # for the main execution
         if (self.dwn_cap is None) or (self.dwn_snr is None) or (self.dwn_user_time is None) or (self.dwn_user_bw is None) or (self.dwn_cnt_satisfied_ue is None):
@@ -234,29 +234,24 @@ class Metrics:
                              'mean_norm_deficit': mean_norm_deficit,
                              'std_norm_deficit': std_norm_deficit}
         else:
-            snr_cap_stats = {'mean_mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap, 'std_cap': std_cap,
+            snr_cap_stats = {'mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap, 'std_cap': std_cap,
                              'mean_user_time': mean_user_time, 'std_user_time': std_user_time, 'mean_user_bw': mean_user_bw,
                              'std_user_bw': std_user_bw}
 
         # preparing 'raw' data to export
         # ue_pos = self.cluster.features
         if total_meet_criteria or total_meet_criteria == 0:
-            try:
-                raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
-                                 'snr': mean_snr, 'cap': cap_sum,
-                                 'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
-                                 'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
-                                 'norm_deficit': norm_deficit, 'meet_criteria': self.up_cnt_satisfied_ue,
-                                 'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
-                                 'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
-            except RuntimeWarning:
-                x = self.up_user_bw
-                x[np.isnan(x)] = 0
-                z = np.sum(x[active_ue], axis=1)
-                z = np.nanmean(x[active_ue], axis=1)
-                print('ui')
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
+                             'snr': mean_snr, 'cap': cap_sum,
+                             'user_bs': mean_user_bs, 'act_beams': mean_act_beams, 'user_time': user_time,
+                             'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
+                             'norm_deficit': norm_deficit, 'meet_criteria': self.up_cnt_satisfied_ue,
+                             'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+
         else:
-            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
+                             'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.up_user_bw, axis=1),
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
@@ -292,8 +287,8 @@ class Metrics:
 
         # # ---------------------- latency calculation ----------------------
         ue_index, time_index = np.where(self.dwn_user_time == 1)
-        start_latency = np.zeros(shape=self.dwn_user_time.shape[0])
-        start_latency.fill(np.nan)  # filling with NaN to avoid problems
+        start_latency = np.zeros(shape=self.dwn_user_time.shape[0]) + 1000  # todo - adjust this to the time slot lenght and shape
+        # start_latency.fill(np.nan)  # filling with NaN to avoid problems
         avg_latency = copy.deepcopy(start_latency)
         min_latency = copy.deepcopy(start_latency)
         max_latency = copy.deepcopy(start_latency)
@@ -301,7 +296,7 @@ class Metrics:
             ue_times = time_index[ue_index == ue]
             start_latency[ue] = np.min(ue_times)
             bs_latency_group = np.ediff1d(ue_times)
-            bs_latency_group = np.array(bs_latency_group)
+            bs_latency_group = np.append(start_latency[ue], bs_latency_group)
             avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
             if bs_latency_group.shape[0] != 0:
                 min_latency[ue] = bs_latency_group.min()
@@ -341,7 +336,7 @@ class Metrics:
                              'mean_norm_deficit': mean_norm_deficit,
                              'std_norm_deficit': std_norm_deficit}
         else:
-            snr_cap_stats = {'mean_mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap,
+            snr_cap_stats = {'mean_snr': mean_mean_snr, 'std_snr': std_snr, 'mean_cap': mean_cap,
                              'std_cap': std_cap,
                              'mean_user_time': mean_user_time, 'std_user_time': std_user_time,
                              'mean_user_bw': mean_user_bw,
@@ -358,7 +353,8 @@ class Metrics:
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
                              'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
         else:
-            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'snr': mean_snr, 'cap': cap_sum,
+            raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
+                             'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.dwn_user_bw, axis=1),
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
