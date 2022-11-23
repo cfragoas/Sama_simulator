@@ -168,10 +168,59 @@ def get_additional_sim_param(global_parameters, param_path, process_pool):
 
     global_parameters['exec_param']['simulation_time'] = []
     global_parameters['exec_param']['executed_n_bs'] = []
+    global_parameters['exec_param']['executed_n_ue'] = []
     global_parameters['exec_param']['threads'] = process_pool._processes
     global_parameters['exec_param']['PC_ID'] = socket.gethostname()
 
     return global_parameters, path, folder, name_file, data_dict
+
+def update_sim_param(parameter, n_cells, n_samples, initial_time):
+    # updating the parameters to be write on the exec_stats file
+    parameter['exec_param']['executed_n_bs'].append(n_cells)
+    parameter['exec_param']['simulation_time'].append(
+        np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
+    if parameter['macel_param']['ue_dist_typ'] != 'uniform':  # to check if n_samples is used
+        parameter['exec_param']['executed_n_ue'].append(n_samples * parameter['macel_param']['n_centers'])
+    else:
+        parameter['exec_param']['executed_n_ue'].append(n_samples)
+
+    return parameter
+
+
+def check_iter_type(iter_params):
+    bs_range_chk = not(not iter_params['bs_step'] or iter_params['bs_step'] == 0)
+    ue_range_chk = not(not iter_params['samples_step'] or
+                   iter_params['samples_step'] == 0)
+    if bs_range_chk and ue_range_chk:
+        raise ValueError('The simulation can only iterate for different sample or BS values! Please check the bs_step and samples_step on the parameter file !!!')
+    elif not bs_range_chk and not ue_range_chk:  # treat as if iterating over a BS range
+        n_bs = iter_params['min_bs']
+        n_samples = None
+        iter_range = range(iter_params['min_bs'], iter_params['min_bs'])
+        iter_type = None
+    elif not bs_range_chk:
+        n_bs = iter_params['min_bs']
+        n_samples = None
+        if iter_params['samples_min'] and iter_params['samples_max']:
+            iter_range = range(iter_params['samples_min'],
+                               iter_params['samples_max'] + 1,
+                               iter_params['samples_step'])
+            iter_type = 'UE'
+        else:
+            raise ValueError('Need to set all range of values to iterate over UE samples: samples_min and samples_max')
+
+    else:
+        n_samples = iter_params['samples_min']
+        n_bs = None
+        if iter_params['min_bs'] and iter_params['max_bs']:
+            iter_range = range(iter_params['min_bs'],
+                               iter_params['max_bs'] + 1,
+                               iter_params['bs_step'])
+            iter_type = 'BS'
+        else:
+            raise ValueError('Need to set all range of values to iterate over BS numbers: min_bs and max_bs')
+
+    return iter_range, iter_type, n_bs, n_samples
 
 
 def start_simmulation(conf_file):
@@ -184,7 +233,7 @@ def start_simmulation(conf_file):
     temp_data_save(zero_state=True)  # creating or cleaning the temp folder
 
     # separating parameters to pass the minimum data to the pool
-    n_samples = global_parameters['macel_param']['n_samples']
+    # n_samples = global_parameters['macel_param']['n_samples']
     n_centers = global_parameters['macel_param']['n_centers']
     max_iter = global_parameters['exec_param']['max_iter']
     batch_size = global_parameters['exec_param']['batch_size']
@@ -209,8 +258,17 @@ def start_simmulation(conf_file):
     else:
         steps = np.zeros(shape=div_floor, dtype='int') + batch_size
 
-    for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
-        print('\nrunning with ', n_cells, ' BSs and a batch size of', batch_size, 'iterations')
+    iter_range, iter_type, n_cells, n_samples = check_iter_type(global_parameters['macel_param'])
+
+    for iter_var in iter_range:
+        if iter_type == 'BS':
+            n_cells = iter_var
+        elif iter_type == 'UE':
+            n_samples = iter_var
+
+
+    # for n_cells in range(global_parameters['macel_param']['min_bs'], global_parameters['macel_param']['max_bs'] + 1):
+        print('\nrunning with ', n_cells, ' BSs, ', n_samples, 'UEs and a batch size of', batch_size, 'iterations')
 
         initial_time = time.time()  # this is used to write the simulation time on the exec_stats .txt file
 
@@ -258,7 +316,9 @@ def start_simmulation(conf_file):
             data_dict = data_dummy
             del data_dummy
 
-        data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells)
+        data_dict = macel_data_dict(data_dict_=data_dict, data_=data, n_cells=n_cells,
+                                    n_samples=n_samples, n_centers=n_centers,
+                                    dist_typ=global_parameters['macel_param']['ue_dist_typ'])
 
         temp_data_delete(type='batch')  # deleting the temporary files because the output dictionary was already created
 
@@ -267,25 +327,31 @@ def start_simmulation(conf_file):
         del data
 
         # updating the parameters to be write on the exec_stats file
-        global_parameters['exec_param']['executed_n_bs'].append(n_cells)
-        global_parameters['exec_param']['simulation_time'].append(
-            np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
+        global_parameters = update_sim_param(parameter=global_parameters, n_cells=n_cells, n_samples=n_samples, initial_time=initial_time)
+
+        # global_parameters['exec_param']['executed_n_bs'].append(n_cells)
+        # global_parameters['exec_param']['executed_n_ue'].append(n_samples)
+        # global_parameters['exec_param']['simulation_time'].append(
+        #     np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
 
         write_conf(folder=folder, parameters=global_parameters)
 
         # plots
         if global_parameters['exec_param']['plot_curves']:
             print('saving curves ....')
-            plot_curves(name_file=name_file, max_iter=max_iter, bs_list=global_parameters['exec_param']['executed_n_bs'],
-                        global_parameters=global_parameters)
+            plot_curves(name_file=name_file, max_iter=max_iter,
+                        # iter_list=global_parameters['exec_param']['executed_n_bs'],
+                        global_parameters=global_parameters, list_typ=iter_type)
             print('saving curves .... [done]')
 
         if global_parameters['exec_param']['plot_hist']:
             print('saving histograms ....')
-            plot_histograms(name_file=name_file, max_iter=max_iter, global_parameters=global_parameters)  # testing !!!
+            plot_histograms(name_file=name_file, max_iter=max_iter,
+                            # iter_list=global_parameters['exec_param']['executed_n_bs'],
+                            global_parameters=global_parameters, list_typ=iter_type)
             print('saving histograms .... [done]')
 
         if global_parameters['exec_param']['plot_surf']:
             print('saving surface plots ....')
-            plot_surfaces(name_file=name_file, global_parameters=global_parameters)
+            plot_surfaces(name_file=name_file, global_parameters=global_parameters, list_typ=iter_type)
             print('saving surface plots .... [done]')

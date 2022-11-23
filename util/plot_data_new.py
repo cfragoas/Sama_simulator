@@ -17,71 +17,103 @@ from matplotlib import cm
 def response_time():
     pass
 
-def plot_histograms(name_file, max_iter, global_parameters, n_bs=None):
+def plot_histograms(name_file, max_iter, global_parameters, list_typ, n_index=None):
     # plotting the data on a histogram format - it calls the default histogram function and special ones
     # histograms are made for a specified number of BS
 
     data_dict = load_data(name_file=name_file)  # loading the data dictionaries
 
-    if n_bs is None:  # if the number of BSs has not been informed, it will pick the last one
-        if data_dict['downlink_data']['BSs']:
-            n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
-            bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
-        elif data_dict['uplink_data']['BSs']:
-            n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
-            bs_data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
+    # to navigate one the dictionary and plot with the correct names
+    if list_typ == 'BS':
+        xlabel = 'Number of BSs'
+        iter_dict_name = 'BSs'
+    elif list_typ == 'UE':
+        xlabel = 'Number of UEs'
+        iter_dict_name = 'UEs'
+    else:
+        raise ValueError('Wrong or empty list_typ set on plot_histograms')
 
-    path = create_subfolder(name_file=name_file, n_bs=n_bs)
+    if n_index is None:  # if the number of BSs has not been informed, it will pick the last one
+        if data_dict['downlink_data'][iter_dict_name]:
+        # if data_dict['downlink_data']['BSs']:
+        #     n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
+        #     bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+            n_index = data_dict['downlink_data'][iter_dict_name][-1]  # picking the last simulation
+            data_index = np.where(np.array(data_dict['downlink_data'][iter_dict_name]) == n_index)[0][0]
+        elif data_dict['uplink_data'][iter_dict_name]:
+            n_index = data_dict['uplink_data'][iter_dict_name][-1]  # picking the last simulation
+            data_index = np.where(np.array(data_dict['uplink_data'][iter_dict_name]) == n_index)[0][0]
+        # elif data_dict['uplink_data']['BSs']:
+        #     n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
+        #     bs_data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
+
+    path = create_subfolder(name_file=name_file, n_index=n_index, dict_name=iter_dict_name)
 
     # grouping UEs to beams, sectors and BSs (its equal for uplink and downlink)
-    if data_dict['downlink_data']['BSs']:
-        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
-        rel_index_tables = ue_relative_index(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index)[0]
-    elif data_dict['uplink_data']['BSs']:
-        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index)[0]
-        rel_index_tables = ue_relative_index(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index)[0]
+    # if data_dict['downlink_data']['BSs']:
+    if data_dict['downlink_data'][iter_dict_name]:
+        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'], data_index=data_index,
+                                      iter_dict_name=iter_dict_name)[0]
+        rel_index_tables = ue_relative_index(data_dict=data_dict['downlink_data'], data_index=data_index)[0]
+    # elif data_dict['uplink_data']['BSs']:
+    elif data_dict['uplink_data'][iter_dict_name]:
+        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'], data_index=data_index,
+                                      iter_dict_name=iter_dict_name)[0]
+        rel_index_tables = ue_relative_index(data_dict=data_dict['uplink_data'], data_index=data_index)[0]
 
     # beam capacity histogram (downlink and uplink)
-    if data_dict['downlink_data']['BSs']:
-        sec_beam_capacity_hist(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index, n_bs=n_bs, path=path,
+    # if data_dict['downlink_data']['BSs']:
+    if data_dict['downlink_data'][iter_dict_name]:
+        sec_beam_capacity_hist(data_dict=data_dict['downlink_data'], data_index=data_index, n_index=n_index, path=path,
                                beam_sec_groupings=beam_sec_groupings, grouping_name='ue_per_beam',
-                               rel_index_tables=rel_index_tables, subname_plot='downlink')
-    if data_dict['uplink_data']['BSs']:
-        sec_beam_capacity_hist(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index, n_bs=n_bs, path=path,
+                               rel_index_tables=rel_index_tables, subname_plot='downlink', dict_name=iter_dict_name)
+    # if data_dict['uplink_data']['BSs']:
+    if data_dict['uplink_data'][iter_dict_name]:
+        sec_beam_capacity_hist(data_dict=data_dict['uplink_data'], data_index=data_index, n_index=n_index, path=path,
                                beam_sec_groupings=beam_sec_groupings, grouping_name='ue_per_beam',
-                               rel_index_tables=rel_index_tables, subname_plot='uplink')
+                               rel_index_tables=rel_index_tables, subname_plot='uplink', dict_name=iter_dict_name)
 
     # sector capacity histogram (downlink and uplink)
-    if data_dict['downlink_data']['BSs']:
-        sec_beam_capacity_hist(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index, n_bs=n_bs, path=path,
+    # if data_dict['downlink_data']['BSs']:
+    if data_dict['downlink_data'][iter_dict_name]:
+        sec_beam_capacity_hist(data_dict=data_dict['downlink_data'], data_index=data_index, n_index=n_index, path=path,
                                beam_sec_groupings=beam_sec_groupings, grouping_name='ue_per_sector',
-                               rel_index_tables=rel_index_tables, subname_plot='downlink')
-    if data_dict['uplink_data']['BSs']:
-        sec_beam_capacity_hist(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index, n_bs=n_bs, path=path,
+                               rel_index_tables=rel_index_tables, subname_plot='downlink', dict_name=iter_dict_name)
+    # if data_dict['uplink_data']['BSs']:
+    if data_dict['uplink_data'][iter_dict_name]:
+        sec_beam_capacity_hist(data_dict=data_dict['uplink_data'], data_index=data_index, n_index=n_index, path=path,
                                beam_sec_groupings=beam_sec_groupings, grouping_name='ue_per_sector',
-                               rel_index_tables=rel_index_tables, subname_plot='uplink')
+                               rel_index_tables=rel_index_tables, subname_plot='uplink', dict_name=iter_dict_name)
 
     # capacity x distance (downlink and uplink)
-    if data_dict['downlink_data']['BSs']:
-        dist_x_cap_scatter_plot(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index, n_bs=n_bs,
+    # if data_dict['downlink_data']['BSs']:
+    if data_dict['downlink_data'][iter_dict_name]:
+        dist_x_cap_scatter_plot(data_dict=data_dict['downlink_data'], data_index=data_index, n_index=n_index,
                                 rel_index_tables=rel_index_tables, path=path, global_parameters=global_parameters,
-                                criteria=global_parameters['downlink_scheduler']['criteria'], subname_plot='downlink')
-    if data_dict['uplink_data']['BSs']:
-        dist_x_cap_scatter_plot(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index, n_bs=n_bs,
+                                criteria=global_parameters['downlink_scheduler']['criteria'], subname_plot='downlink',
+                                dict_name=iter_dict_name)
+    # if data_dict['uplink_data']['BSs']:
+    if data_dict['uplink_data'][iter_dict_name]:
+        dist_x_cap_scatter_plot(data_dict=data_dict['uplink_data'], data_index=data_index, n_index=n_index,
                                 rel_index_tables=rel_index_tables, path=path, global_parameters=global_parameters,
-                                criteria=global_parameters['uplink_scheduler']['criteria'], subname_plot='uplink')
+                                criteria=global_parameters['uplink_scheduler']['criteria'], subname_plot='uplink',
+                                dict_name=iter_dict_name)
 
     # multiple basic histogram plots  (downlink and uplink)
-    if data_dict['downlink_data']['BSs']:
-        histogram_base_plots(data_dict=data_dict['downlink_data'], bs_data_index=bs_data_index, n_bs=n_bs,
+    # if data_dict['downlink_data']['BSs']:
+    if data_dict['downlink_data'][iter_dict_name]:
+        histogram_base_plots(data_dict=data_dict['downlink_data'], data_index=data_index, n_index=n_index,
                              max_iter=max_iter, global_parameters=global_parameters, path=path,
-                             criteria=global_parameters['downlink_scheduler']['criteria'], subname_plot='downlink')
-    if data_dict['uplink_data']['BSs']:
-        histogram_base_plots(data_dict=data_dict['uplink_data'], bs_data_index=bs_data_index, n_bs=n_bs,
+                             criteria=global_parameters['downlink_scheduler']['criteria'], subname_plot='downlink',
+                             dict_name=iter_dict_name)
+    # if data_dict['uplink_data']['BSs']:
+    if data_dict['uplink_data'][iter_dict_name]:
+        histogram_base_plots(data_dict=data_dict['uplink_data'], data_index=data_index, n_index=n_index,
                              max_iter=max_iter, global_parameters=global_parameters, path=path,
-                             criteria=global_parameters['uplink_scheduler']['criteria'], subname_plot='uplink')
+                             criteria=global_parameters['uplink_scheduler']['criteria'], subname_plot='uplink',
+                             dict_name=iter_dict_name)
 
-def plot_curves(name_file, max_iter, bs_list, global_parameters):
+def plot_curves(name_file, max_iter, list_typ, global_parameters):
     # plotting the data on a curve format - it calls the default curve function and special ones
     # all curves uses the BS count as the x-axis
 
@@ -92,6 +124,18 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     else:
         legend = None
 
+    # to navigate one the dictionary and plot with the correct names
+    if list_typ == 'BS':
+        xlabel = 'Number of BSs'
+        iter_dict_name = 'BSs'
+        iter_list = global_parameters['exec_param']['executed_n_bs']
+    elif list_typ == 'UE':
+        xlabel = 'Number of UEs'
+        iter_dict_name = 'UEs'
+        iter_list = global_parameters['exec_param']['executed_n_ue']
+    else:
+        raise ValueError('Wrong or empty list_typ set on plot_curves')
+
     plt.rcParams['font.size'] = '4'
 
     # creating a figure for multiple basic plots
@@ -99,22 +143,22 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     fig_curve, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, dpi=500)
     fig_curve.suptitle('Metrics evolution by BS number - ' + str(max_iter) + ' iterations')
 
-    ax1 = default_curve_plt(subplot=ax1, n_bs_vec=bs_list,
+    ax1 = default_curve_plt(subplot=ax1, n_bs_vec=iter_list,
                             data=[data_dict['downlink_data']['mean_snr'], data_dict['uplink_data']['mean_snr']],
                             std=[data_dict['downlink_data']['std_snr'], data_dict['uplink_data']['std_snr']],
-                            xlabel='Number of BSs', title='Average SNIR (dB)', legend=legend)
-    ax2 = default_curve_plt(subplot=ax2, n_bs_vec=bs_list,
+                            xlabel=xlabel, title='Average SNIR (dB)', legend=legend)
+    ax2 = default_curve_plt(subplot=ax2, n_bs_vec=iter_list,
                             data=[data_dict['downlink_data']['mean_cap'], data_dict['uplink_data']['mean_cap']],
                             std=[data_dict['downlink_data']['std_cap'], data_dict['uplink_data']['std_cap']],
-                            xlabel='Number of BSs', title='Average Capacity (Mbps)', legend=legend)
-    ax3 = default_curve_plt(subplot=ax3, n_bs_vec=bs_list,
+                            xlabel=xlabel, title='Average Capacity (Mbps)', legend=legend)
+    ax3 = default_curve_plt(subplot=ax3, n_bs_vec=iter_list,
                             data=[data_dict['downlink_data']['mean_user_time'], data_dict['uplink_data']['mean_user_time']],
                             std=[data_dict['downlink_data']['std_user_time'], data_dict['uplink_data']['std_user_time']],
-                            xlabel='Number of BSs', title='Average UE time (s)', legend=legend)
-    ax4 = default_curve_plt(subplot=ax4, n_bs_vec=bs_list,
+                            xlabel=xlabel, title='Average UE time (s)', legend=legend)
+    ax4 = default_curve_plt(subplot=ax4, n_bs_vec=iter_list,
                             data=[data_dict['downlink_data']['mean_user_bw'], data_dict['uplink_data']['mean_user_bw']],
                             std=[data_dict['downlink_data']['std_user_bw'], data_dict['uplink_data']['std_user_bw']],
-                            xlabel='Number of BSs', title='Average UE BW (MHz)', legend=legend)
+                            xlabel=xlabel, title='Average UE BW (MHz)', legend=legend)
 
     fig_curve.tight_layout()
     plt.savefig(path + 'perf_curves.png')
@@ -123,10 +167,10 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
 
     # UE that meets the uplink/downlink target capacity per BS number curve
     title = '% of UE that meets the ' + str(global_parameters['downlink_scheduler']['criteria']) + ' Mbps criteria'
-    default_curve_plt(n_bs_vec=bs_list,
+    default_curve_plt(n_bs_vec=iter_list,
                       data=[data_dict['downlink_data']['total_meet_criteria'],
                             data_dict['uplink_data']['total_meet_criteria']],
-                      xlabel='Number of BSs', title=title, path=path, save=True, save_name='cap_defict', legend=legend,
+                      xlabel=xlabel, title=title, path=path, save=True, save_name='cap_defict', legend=legend,
                       ymax=1.01)
 
     # ================================ special plots ===============================
@@ -135,59 +179,81 @@ def plot_curves(name_file, max_iter, bs_list, global_parameters):
     if data_dict['downlink_data']['BSs']:
         if data_dict['downlink_data']['total_meet_criteria']:
             criteria_time_slot_plot(data_dict=data_dict['downlink_data'], time_shape=time_shape, path=path,
-                                    subname_plot='downlink', criteria=global_parameters['downlink_scheduler']['criteria'])
+                                    subname_plot='downlink', iter_dict_name=iter_dict_name,
+                                    criteria=global_parameters['downlink_scheduler']['criteria'])
     if data_dict['uplink_data']['BSs']:
         if data_dict['uplink_data']['total_meet_criteria']:
             criteria_time_slot_plot(data_dict=data_dict['uplink_data'], time_shape=time_shape, path=path,
-                                    subname_plot='uplink', criteria=global_parameters['uplink_scheduler']['criteria'])
+                                    subname_plot='uplink', iter_dict_name=iter_dict_name,
+                                    criteria=global_parameters['uplink_scheduler']['criteria'])
 
     # inactive UEs - this graphics is not different for uplink/downlink
     if data_dict['downlink_data']['BSs']:
-        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'])
+        beam_sec_groupings = group_ue(data_dict=data_dict['downlink_data'], iter_dict_name=iter_dict_name)
     elif data_dict['uplink_data']['BSs']:
-        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'])
+        beam_sec_groupings = group_ue(data_dict=data_dict['uplink_data'], iter_dict_name=iter_dict_name)
     avg_disconn_ues = [np.mean(x['nactive_ue_cnt']) for x in beam_sec_groupings]
     std_disconn_ues = [np.std(x['nactive_ue_cnt']) for x in beam_sec_groupings]
     title = 'UEs not connected to the RAN'
-    default_curve_plt(n_bs_vec=bs_list, data=avg_disconn_ues, std=std_disconn_ues, xlabel='Number of BSs', title=title,
+    default_curve_plt(n_bs_vec=iter_list, data=avg_disconn_ues, std=std_disconn_ues, xlabel=xlabel, title=title,
                       path=path, save=True, save_name='not_connected_ues')
 
     # RAN Capacity per time_slot
     if data_dict['downlink_data']['BSs']:
         ran_capacity_time_slot_plot(data_dict=data_dict['downlink_data'], time_shape=time_shape, subname='downlink',
-                                    path=path)
+                                    path=path, iter_dict_name=iter_dict_name)
     if data_dict['uplink_data']['BSs']:
         ran_capacity_time_slot_plot(data_dict=data_dict['uplink_data'], time_shape=time_shape, subname='uplink',
-                                    path=path)
+                                    path=path, iter_dict_name=iter_dict_name)
 
     thrpt_speceff_fairness_curve_plot(data_dict=[data_dict['downlink_data'], data_dict['uplink_data']],
                                               n_sectors=global_parameters['bs_param']['n_sectors'],
                                               bw=global_parameters['bs_param']['bw'], subname_plot='',
-                                              path=path, legend=legend)
+                                              path=path, legend=legend, iter_dict_name=iter_dict_name, xlabel=xlabel )
 
     # latency plots
     if data_dict['downlink_data']['BSs']:
-        latency_plot(raw_data=data_dict['downlink_data']['raw_data'], bs_list=bs_list, path=path, subname_plot='downlink')
+        latency_plot(raw_data=data_dict['downlink_data']['raw_data'], iter_list=iter_list, path=path,
+                     subname_plot='downlink', xlabel=xlabel)
     if data_dict['uplink_data']['BSs']:
-        latency_plot(raw_data=data_dict['uplink_data']['raw_data'], bs_list=bs_list, path=path, subname_plot='uplink')
+        latency_plot(raw_data=data_dict['uplink_data']['raw_data'], iter_list=iter_list, path=path,
+                     subname_plot='uplink', xlabel=xlabel)
 
 
-def plot_surfaces(name_file, global_parameters, n_bs=None):
+def plot_surfaces(name_file, global_parameters, list_typ, n_index=None):
     # plotting the data mapped by coordinate - it calls the default curve function and special ones
     # all maps are plotted for a BS number
 
-    data_dict = load_data(name_file=name_file)  # loading the data to be ploted
-    if n_bs is None:  # if the number of BSs has not been informed, it will pick the last one
-        if data_dict['downlink_data']['BSs']:
-            n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
-        elif data_dict['uplink_data']['BSs']:
-            n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
-    if data_dict['downlink_data']['BSs']: # finding the index for the chosen n_bs
-        bs_data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
-    elif data_dict['uplink_data']['BSs']:
-        bs_data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
+    # to navigate one the dictionary and plot with the correct names
+    if list_typ == 'BS':
+        xlabel = 'Number of BSs'
+        iter_dict_name = 'BSs'
+    elif list_typ == 'UE':
+        xlabel = 'Number of UEs'
+        iter_dict_name = 'UEs'
+    else:
+        raise ValueError('Wrong or empty list_typ set on plot_surfaces')
 
-    path = create_subfolder(name_file=name_file, n_bs=n_bs)
+    data_dict = load_data(name_file=name_file)  # loading the data to be ploted
+    if n_index is None:  # if the number of BSs has not been informed, it will pick the last one
+        # if data_dict['downlink_data']['BSs']:
+        if data_dict['downlink_data'][iter_dict_name]:
+            n_index = data_dict['downlink_data'][iter_dict_name][-1]  # picking the last simulation
+            # n_bs = data_dict['downlink_data']['BSs'][-1]  # picking the last simulation
+        elif data_dict['uplink_data'][iter_dict_name]:
+        # elif data_dict['uplink_data']['BSs']:
+        #     n_bs = data_dict['uplink_data']['BSs'][-1]  # picking the last simulation
+            n_index = data_dict['uplink_data'][iter_dict_name][-1]  # picking the last simulation
+    # if data_dict['downlink_data']['BSs']: # finding the index for the chosen n_bs
+    #     data_index = np.where(np.array(data_dict['downlink_data']['BSs']) == n_bs)[0][0]
+    # elif data_dict['uplink_data']['BSs']:
+    #     data_index = np.where(np.array(data_dict['uplink_data']['BSs']) == n_bs)[0][0]
+    if data_dict['downlink_data'][iter_dict_name]:  # finding the index for the chosen n_bs
+        data_index = np.where(np.array(data_dict['downlink_data'][iter_dict_name]) == n_index)[0][0]
+    elif data_dict['uplink_data'][iter_dict_name]:
+        data_index = np.where(np.array(data_dict['uplink_data'][iter_dict_name]) == n_index)[0][0]
+
+    path = create_subfolder(name_file=name_file, n_index=n_index, dict_name=iter_dict_name)
 
     grid = Grid()
     grid.make_grid(lines=global_parameters['roi_param']['grid_lines'],
@@ -196,45 +262,45 @@ def plot_surfaces(name_file, global_parameters, n_bs=None):
     # data coordinates - its is the same for downlink and uplink
     if data_dict['downlink_data']['BSs']:
         bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
-                                                    parameter_name='bs_position', bs_data_index=bs_data_index)
+                                                    parameter_name='bs_position', data_index=data_index)
         ue_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],
-                                                    parameter_name='ue_position', bs_data_index=bs_data_index)
+                                                    parameter_name='ue_position', data_index=data_index)
     elif data_dict['uplink_data']['BSs']:
         bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'],
-                                                    parameter_name='bs_position', bs_data_index=bs_data_index)
+                                                    parameter_name='bs_position', data_index=data_index)
         ue_coordinates = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'],
-                                                    parameter_name='ue_position', bs_data_index=bs_data_index)
+                                                    parameter_name='ue_position', data_index=data_index)
 
     # capacity map
     if data_dict['downlink_data']['BSs']:
         cap = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'], parameter_name='cap',
-                                         bs_data_index=bs_data_index, calc='avg')
-        default_surf_plt(data=cap, grid=grid.grid, coordinates=bs_coordinates, n_bs=n_bs, title='Capacity (Mbps)',
+                                         data_index=data_index, calc='avg')
+        default_surf_plt(data=cap, grid=grid.grid, coordinates=bs_coordinates, n_index=n_index, title='Capacity (Mbps)',
                          max_iter=global_parameters['exec_param']['max_iter'], path=path,
-                         save_name='downlink_cap_bs_points', save=True)
+                         save_name='downlink_cap_bs_points', save=True, list_typ=list_typ)
     if data_dict['uplink_data']['BSs']:
         cap = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'], parameter_name='cap',
-                                         bs_data_index=bs_data_index, calc='avg')
-        default_surf_plt(data=cap, grid=grid.grid, coordinates=bs_coordinates, n_bs=n_bs, title='Capacity (Mbps)',
+                                         data_index=data_index, calc='avg')
+        default_surf_plt(data=cap, grid=grid.grid, coordinates=bs_coordinates, n_index=n_index, title='Capacity (Mbps)',
                          max_iter=global_parameters['exec_param']['max_iter'], path=path,
-                         save_name='uplink_cap_bs_points', save=True)
+                         save_name='uplink_cap_bs_points', save=True, list_typ=list_typ)
 
     # SNIR map
     if data_dict['downlink_data']['BSs']:
         snr = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'], parameter_name='snr',
-                                         bs_data_index=bs_data_index, calc='avg')
-        default_surf_plt(data=snr, grid=grid.grid, coordinates=bs_coordinates, n_bs=n_bs, title='SNIR (dB)',
+                                         data_index=data_index, calc='avg')
+        default_surf_plt(data=snr, grid=grid.grid, coordinates=bs_coordinates, n_index=n_index, title='SNIR (dB)',
                          max_iter=global_parameters['exec_param']['max_iter'], path=path,
-                         save_name='downlink_snr_bs_points', save=True)
+                         save_name='downlink_snr_bs_points', save=True, list_typ=list_typ)
     if data_dict['uplink_data']['BSs']:
         snr = extract_parameter_from_raw(raw_data=data_dict['uplink_data']['raw_data'], parameter_name='snr',
-                                         bs_data_index=bs_data_index, calc='avg')
-        default_surf_plt(data=snr, grid=grid.grid, coordinates=bs_coordinates, n_bs=n_bs, title='SNIR (dB)',
+                                         data_index=data_index, calc='avg')
+        default_surf_plt(data=snr, grid=grid.grid, coordinates=bs_coordinates, n_index=n_index, title='SNIR (dB)',
                          max_iter=global_parameters['exec_param']['max_iter'], path=path,
-                         save_name='uplink_snr_bs_points', save=True)
+                         save_name='uplink_snr_bs_points', save=True, list_typ=list_typ)
 
 
-def default_surf_plt(data, grid, coordinates, n_bs, max_iter, title, path=None, save_name=False, save=False):
+def default_surf_plt(data, grid, coordinates, n_index, max_iter, title, list_typ, path=None, save_name=False, save=False):
     X = coordinates[:, :, :, 0]
     Y = coordinates[:, :, :, 1]
     counter = copy.copy(grid)
@@ -248,7 +314,7 @@ def default_surf_plt(data, grid, coordinates, n_bs, max_iter, title, path=None, 
 
     norm[counter != 0] = grid[counter != 0]/counter[counter != 0]
     fig, ax1 = plt.subplots(1, dpi=300)
-    fig.suptitle(title + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
+    fig.suptitle(title + str(n_index) + ' BSs and ' + str(max_iter) + ' iterations')
     z = ax1.matshow(norm, origin='lower', cmap=cm.Spectral_r)
     fig.colorbar(z, ax=ax1)
     ax1.set(facecolor="black")
@@ -257,7 +323,7 @@ def default_surf_plt(data, grid, coordinates, n_bs, max_iter, title, path=None, 
         if path is not None:
             if save_name is None:
                 save_name = title
-            fig.savefig(path + save_name + str(n_bs) + ' BS.png')
+            fig.savefig(path + save_name + str(n_index) + ' ' + list_typ + '.png')
         else:
             'EXCEPTION HERE'
 
@@ -318,7 +384,7 @@ def default_curve_plt(n_bs_vec, data, xlabel, title, subplot=None, std=None, dpi
     return subplot
 
 
-def default_histogram(data, n_bs, path, title,  subplot=None, save_name=None, bins=100, binrange=(0, 140), alpha=0.3,
+def default_histogram(data, n_index, path, title,  dict_name, subplot=None, save_name=None, bins=100, binrange=(0, 140), alpha=0.3,
                       dpi=100, ylim=1, show_plot=False):
     if save_name is None:
         save_name = title
@@ -336,7 +402,7 @@ def default_histogram(data, n_bs, path, title,  subplot=None, save_name=None, bi
     plt.ylim(0, ylim)
     if show_plot:
         plt.show()
-    plt.savefig(path + save_name + str(n_bs) + ' BS.png')
+    plt.savefig(path + save_name + str(n_index) + ' ' + dict_name + '.png')
     plt.close()
 
     # subplot
@@ -351,7 +417,7 @@ def default_histogram(data, n_bs, path, title,  subplot=None, save_name=None, bi
     return subplot
 
 
-def default_scatter(x, y, path, title, n_bs, dpi=100, subplot=None, alpha=0.35, s=2, color='purple',
+def default_scatter(x, y, path, title, n_index, dict_name, dpi=100, subplot=None, alpha=0.35, s=2, color='purple',
                     save_name=None, show_plot=False, xlabel=None, ylabel=None, xlim=None, ylim=None):
     if save_name is None:
         save_name = title
@@ -377,7 +443,7 @@ def default_scatter(x, y, path, title, n_bs, dpi=100, subplot=None, alpha=0.35, 
         plt.xlim(0, xlim)
     if show_plot:
         plt.show()
-    plt.savefig(path + save_name + str(n_bs) + ' BS.png')
+    plt.savefig(path + save_name + str(n_index) + ' ' + dict_name + '.png')
     plt.close()
 
     # subplot
@@ -389,11 +455,13 @@ def default_scatter(x, y, path, title, n_bs, dpi=100, subplot=None, alpha=0.35, 
     return subplot
 
 
-def criteria_time_slot_plot(data_dict, time_shape, path,  subname_plot, criteria):
-    plt_line = np.zeros(shape=(data_dict['BSs'].__len__(), time_shape))
-    for i, bs_data_index in enumerate(data_dict['BSs']):
+def criteria_time_slot_plot(data_dict, time_shape, path,  subname_plot, iter_dict_name, criteria):
+    # plt_line = np.zeros(shape=(data_dict['BSs'].__len__(), time_shape))
+    plt_line = np.zeros(shape=(data_dict[iter_dict_name].__len__(), time_shape))
+
+    for i, data_index in enumerate(data_dict[iter_dict_name]):
         ue_achieve_ctarg = np.array(extract_parameter_from_raw(raw_data=data_dict['raw_data'],
-                                                         parameter_name='meet_criteria', bs_data_index=i,
+                                                         parameter_name='meet_criteria', data_index=i,
                                                          concatenate=False))
         # # correcting this metric because of the TDD
         max_reference = ue_achieve_ctarg.max(axis=0)
@@ -405,7 +473,7 @@ def criteria_time_slot_plot(data_dict, time_shape, path,  subname_plot, criteria
                 last_max = max_ref
 
         ue_bs_table = extract_parameter_from_raw(raw_data=data_dict['raw_data'],
-                                                   parameter_name='ue_bs_table', bs_data_index=i,
+                                                   parameter_name='ue_bs_table', data_index=i,
                                                    concatenate=False)
         n_ues = np.array([x.shape[0] for x in ue_bs_table])
         y = [x/n_ues[j] for j, x in enumerate(ue_achieve_ctarg)]
@@ -416,7 +484,7 @@ def criteria_time_slot_plot(data_dict, time_shape, path,  subname_plot, criteria
     plt.title('Average number of UEs that meet the criteria of ' +
               str(criteria) + 'Mbps per time slot').set_size(19)
     plt.ylim([0, 100])
-    plt.legend(iter(line_objects), data_dict['BSs'], title='nBS', fontsize='x-large')
+    plt.legend(iter(line_objects), data_dict[iter_dict_name], title='n' + str(iter_dict_name), fontsize='x-large')
     plt.xlabel('time slot').set_size(15)
 
     plt.yticks(fontsize=14)
@@ -425,20 +493,24 @@ def criteria_time_slot_plot(data_dict, time_shape, path,  subname_plot, criteria
     plt.close('all')
 
 
-def ran_capacity_time_slot_plot(data_dict, time_shape, subname, path):
-    plt_line = np.zeros(shape=(data_dict['BSs'].__len__(), time_shape))
-    for bs_data_index, _ in enumerate(data_dict['BSs']):
+def ran_capacity_time_slot_plot(data_dict, time_shape, subname, path, iter_dict_name):
+    # plt_line = np.zeros(shape=(data_dict['BSs'].__len__(), time_shape))
+    plt_line = np.zeros(shape=(data_dict[iter_dict_name].__len__(), time_shape))
+
+    # for bs_data_index, _ in enumerate(data_dict['BSs']):
+    for data_index, _ in enumerate(data_dict[iter_dict_name]):
         ran_cap = np.array(extract_parameter_from_raw(raw_data=data_dict['raw_data'],
-                                                      parameter_name='ran_cap_per_time', bs_data_index=bs_data_index,
+                                                      parameter_name='ran_cap_per_time', data_index=data_index,
                                                       concatenate=False))
         avg_ran_cap = np.mean(ran_cap, axis=0)
-        plt_line[bs_data_index] = avg_ran_cap
+        plt_line[data_index] = avg_ran_cap
 
     fig_ran_cap_it = plt.figure(figsize=(13, 10), dpi=100)
     line_objects = plt.plot(np.array(plt_line.T))
     plt.title('Average RAN Capacity per Time Slot (Mbps)').set_size(19)
     plt.ylim([0, 100])
-    plt.legend(iter(line_objects), data_dict['BSs'], title='nBS', fontsize='x-large')
+    # plt.legend(iter(line_objects), data_dict['BSs'], title='nBS', fontsize='x-large')
+    plt.legend(iter(line_objects), data_dict[iter_dict_name], title='n' + iter_dict_name, fontsize='x-large')
     plt.xlabel('time slot').set_size(15)
 
     plt.yticks(fontsize=14)
@@ -447,10 +519,10 @@ def ran_capacity_time_slot_plot(data_dict, time_shape, subname, path):
     plt.close('all')
 
 
-def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, path, legend=None):
+def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, path, iter_dict_name, xlabel, legend=None):
     if data_dict.__len__() == 1 or not isinstance(data_dict, list):
         data_dict = [data_dict, []]
-
+    iter_dict_name
     thgp_tot_avg_tot = []
     thgp_tot_std_tot = []
     sp_eff_tot_avg_tot = []
@@ -459,17 +531,19 @@ def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, pa
     fairness_spd_tot = []
 
     for d in data_dict:
-        if d['BSs']:
-            n_bs_vec = d['BSs']
+        if d[iter_dict_name]:
+        # if d['BSs']:
+            n_vec = d[iter_dict_name]
             thgp_tot_avg = []
             thgp_tot_std = []
             sp_eff_tot_avg = []
             sp_eff_tot_std = []
             fairness_avg = []
             fairness_spd = []
-            for bs_index, n_bs in enumerate(d['BSs']):
+            for index, n_bs in enumerate(d[iter_dict_name]):
+            # for bs_index, n_bs in enumerate(d['BSs']):
                 raw_cap = extract_parameter_from_raw(raw_data=d['raw_data'], parameter_name='cap',
-                                                     bs_data_index=bs_index, concatenate=False)
+                                                     data_index=index, concatenate=False)
                 bw_tot = n_bs * n_sectors * bw  # TODO - ARRUMAR A PORRA DO BW NO ARQUIVO PARAM QUE ESTÁ MULTIPLICADO PELO N_SEC
                 ran_cap = np.array([np.sum(x) for x in raw_cap]) / 1000  # capacity in Gbps
                 spc_eff = ran_cap / bw_tot
@@ -497,23 +571,23 @@ def thrpt_speceff_fairness_curve_plot(data_dict, n_sectors, bw, subname_plot, pa
             fairness_avg_tot.append([])
             fairness_spd_tot.append([])
 
-    default_curve_plt(n_bs_vec=n_bs_vec, data=thgp_tot_avg_tot, std=thgp_tot_std_tot,
-                      xlabel='Number of BSs', title='RAN total throughput (Gbps)', path=path, save=True,
+    default_curve_plt(n_bs_vec=n_vec, data=thgp_tot_avg_tot, std=thgp_tot_std_tot,
+                      xlabel=xlabel, title='RAN total throughput (Gbps)', path=path, save=True,
                       save_name=subname_plot + 'ran_throughput', legend=legend)
 
-    default_curve_plt(n_bs_vec=n_bs_vec, data=sp_eff_tot_avg_tot, std=sp_eff_tot_std_tot,
-                      xlabel='Number of BSs', title='Spectral Efficiency (bits/Hz)', path=path, save=True,
+    default_curve_plt(n_bs_vec=n_vec, data=sp_eff_tot_avg_tot, std=sp_eff_tot_std_tot,
+                      xlabel=xlabel, title='Spectral Efficiency (bits/Hz)', path=path, save=True,
                       save_name=subname_plot + 'ran_efficiency', legend=legend)
 
-    default_curve_plt(n_bs_vec=n_bs_vec, data=fairness_avg_tot, std=fairness_spd_tot,
-                      xlabel='Number of BSs', title='Fairness Index', path=path, save=True,
+    default_curve_plt(n_bs_vec=n_vec, data=fairness_avg_tot, std=fairness_spd_tot,
+                      xlabel=xlabel, title='Fairness Index', path=path, save=True,
                       save_name=subname_plot + 'fairness_index', legend=legend)
 
 
-def sec_beam_capacity_hist(data_dict, bs_data_index, n_bs, path, beam_sec_groupings, rel_index_tables, subname_plot,
-                           grouping_name):
+def sec_beam_capacity_hist(data_dict, data_index, n_index, path, beam_sec_groupings, rel_index_tables, subname_plot,
+                           grouping_name, dict_name):
     beam_cap = extract_parameter_from_raw(raw_data=data_dict['raw_data'], parameter_name='cap',
-                                          bs_data_index=bs_data_index, concatenate=False)
+                                          data_index=data_index, concatenate=False)
     # beam capacity calculation
     acc_beam_cap = []
     # for index in range(max_iter):
@@ -530,17 +604,17 @@ def sec_beam_capacity_hist(data_dict, bs_data_index, n_bs, path, beam_sec_groupi
     else:
         title = 'TITLE ERROR'
 
-    default_histogram(data=acc_beam_cap, n_bs=n_bs, path=path, title=title,
-                      save_name=subname_plot + '_beam_cap', bins=100, binrange=(0, 100))
+    default_histogram(data=acc_beam_cap, n_index=n_index, path=path, title=title,
+                      save_name=subname_plot + '_beam_cap', bins=100, binrange=(0, 100), dict_name=dict_name)
     plt.close('all')
 
 
-def dist_x_cap_scatter_plot(data_dict, bs_data_index, n_bs, rel_index_tables, criteria, path, global_parameters,
-                            subname_plot):
+def dist_x_cap_scatter_plot(data_dict, data_index, n_index, rel_index_tables, criteria, path, global_parameters,
+                            subname_plot, dict_name):
     raw_dist = extract_parameter_from_raw(raw_data=data_dict['raw_data'], parameter_name='dist_map',
-                                          bs_data_index=bs_data_index, concatenate=False)
+                                          data_index=data_index, concatenate=False)
     ue_bs_indexes = extract_parameter_from_raw(raw_data=data_dict['raw_data'],
-                                               parameter_name='ue_bs_table', bs_data_index=bs_data_index,
+                                               parameter_name='ue_bs_table', data_index=data_index,
                                                concatenate=False)
     ue_bs_indexes = [np.array(x['bs_index'][x['bs_index'] != -1]) for x in ue_bs_indexes]
 
@@ -549,77 +623,80 @@ def dist_x_cap_scatter_plot(data_dict, bs_data_index, n_bs, rel_index_tables, cr
     # raw_dist = np.concatenate([raw_dist[i][ue_bs_indexes[i], np.array(x['ue_bs_index'])] for i, x in enumerate(rel_index_tables)])
     raw_dist = np.concatenate([raw_dist[i][ue_bs_indexes[i], np.array(x['ue_bs_index'])] for i, x in enumerate(rel_index_tables)])
     raw_cap = np.concatenate(extract_parameter_from_raw(raw_data=data_dict['raw_data'],
-                                                        parameter_name='cap', bs_data_index=bs_data_index,
+                                                        parameter_name='cap', data_index=data_index,
                                                         concatenate=False))
 
-    title = 'Capacity x Distance for ' + str(n_bs) + ' BSs'
+    title = 'Capacity x Distance for ' + str(n_index) + dict_name
     max_dist = (np.sqrt(global_parameters['roi_param']['grid_columns'] * global_parameters['roi_param']['grid_lines']) *
                 global_parameters['roi_param']['cel_size']) * 1.05/1000
     if criteria is not None:
-        default_scatter(x=raw_dist/1000, y=raw_cap, path=path, title=title, n_bs=n_bs, dpi=100, subplot=None,
+        default_scatter(x=raw_dist/1000, y=raw_cap, path=path, title=title, n_index=n_index, dpi=100, subplot=None,
                         save_name=subname_plot + '_cap_x_dist', ylabel='Capacity (Mbps)', xlabel='Distance (km)',
-                        xlim=max_dist, ylim=criteria*1.2)
+                        xlim=max_dist, ylim=criteria*1.2, dict_name=dict_name)
     else:
-        default_scatter(x=raw_dist / 1000, y=raw_cap, path=path, title=title, n_bs=n_bs, dpi=100, subplot=None,
+        default_scatter(x=raw_dist / 1000, y=raw_cap, path=path, title=title, n_index=n_index, dpi=100, subplot=None,
                         save_name=subname_plot + '_cap_x_dist', ylabel='Capacity (Mbps)', xlabel='Distance (km)',
-                        xlim=max_dist)
+                        xlim=max_dist, dict_name=dict_name)
 
-def histogram_base_plots(data_dict, bs_data_index, n_bs, max_iter, global_parameters, criteria, path, subname_plot):
+def histogram_base_plots(data_dict, data_index, n_index, max_iter, global_parameters, criteria, path, subname_plot,
+                         dict_name):
     # default basic histogram plots
     fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, dpi=100, figsize=(40, 30))
-    fig.suptitle('Metrics using ' + str(n_bs) + ' BSs and ' + str(max_iter) + ' iterations')
+    fig.suptitle('Metrics using ' + str(n_index) + ' BSs and ' + str(max_iter) + ' iterations')
 
     # SINR plot
-    snr = np.concatenate([x['snr'] for x in data_dict['raw_data'][bs_data_index]])
-    ax1 = default_histogram(data=snr, n_bs=n_bs, subplot=ax1, path=path, title='SNIR (dB)',
-                            save_name=subname_plot + '_snr_', bins=100, binrange=(-20, 20))
+    snr = np.concatenate([x['snr'] for x in data_dict['raw_data'][data_index]])
+    ax1 = default_histogram(data=snr, n_index=n_index, subplot=ax1, path=path, title='SNIR (dB)',
+                            save_name=subname_plot + '_snr_', bins=100, binrange=(-20, 20), dict_name=dict_name)
 
     # Capacity plot
-    cap = np.concatenate([x['cap'] for x in data_dict['raw_data'][bs_data_index]])
+    cap = np.concatenate([x['cap'] for x in data_dict['raw_data'][data_index]])
     if criteria is not None:
-        ax2 = default_histogram(data=cap, n_bs=n_bs, subplot=ax2, path=path, title='Throughput (Mbps)',
+        ax2 = default_histogram(data=cap, n_index=n_index, subplot=ax2, path=path, title='Throughput (Mbps)',
                                 save_name=subname_plot + '_cap_', bins=100,
-                                binrange=(0, np.ceil(criteria * 1.05).astype(int)))
+                                binrange=(0, np.ceil(criteria * 1.05).astype(int)), dict_name=dict_name)
     else:
-        ax2 = default_histogram(data=cap, n_bs=n_bs, subplot=ax2, path=path, title='Throughput (Mbps)',
-                                save_name=subname_plot + '_cap_', bins=100)
+        ax2 = default_histogram(data=cap, n_index=n_index, subplot=ax2, path=path, title='Throughput (Mbps)',
+                                save_name=subname_plot + '_cap_', bins=100, dict_name=dict_name)
 
     # UE per BS plot
-    user_bs = np.concatenate([x['user_bs'] for x in data_dict['raw_data'][bs_data_index]])
-    n_ue = global_parameters['macel_param']['n_samples'] * global_parameters['macel_param']['n_centers']
-    ax3 = default_histogram(data=user_bs, n_bs=n_bs, subplot=ax3, path=path, title='Number of UEs per BS',
-                            save_name=subname_plot + '_user_bs_', bins=100, binrange=(0, n_ue))
+    user_bs = np.concatenate([x['user_bs'] for x in data_dict['raw_data'][data_index]])
+    # n_ue = global_parameters['macel_param']['n_samples'] * global_parameters['macel_param']['n_centers']
+    n_ue = data_dict['UEs'][data_index]
+    ax3 = default_histogram(data=user_bs, n_index=n_index, subplot=ax3, path=path, title='Number of UEs per BS',
+                            save_name=subname_plot + '_user_bs_', bins=100, binrange=(0, n_ue), dict_name=dict_name)
 
     # Number of active beams plot
-    act_beams = np.concatenate([x['act_beams'] for x in data_dict['raw_data'][bs_data_index]])
+    act_beams = np.concatenate([x['act_beams'] for x in data_dict['raw_data'][data_index]])
     n_beams = global_parameters['bs_param']['n_beams']
-    ax4 = default_histogram(data=act_beams, n_bs=n_bs, subplot=ax4, path=path, title='Number of Active beams per BS',
-                            save_name=subname_plot + '_act_beams_', bins=n_beams, binrange=(0, n_beams))
+    ax4 = default_histogram(data=act_beams, n_index=n_index, subplot=ax4, path=path, title='Number of Active beams per BS',
+                            save_name=subname_plot + '_act_beams_', bins=n_beams, binrange=(0, n_beams),
+                            dict_name=dict_name)
 
     # Active UE time plot
-    user_time = np.concatenate([x['user_time'] for x in data_dict['raw_data'][bs_data_index]])
-    ax5 = default_histogram(data=user_time, n_bs=n_bs, subplot=ax5, path=path, title='UE time in 1s',
-                            save_name=subname_plot + '_user_time_', binrange=(0, 1))
+    user_time = np.concatenate([x['user_time'] for x in data_dict['raw_data'][data_index]])
+    ax5 = default_histogram(data=user_time, n_index=n_index, subplot=ax5, path=path, title='UE time in 1s',
+                            save_name=subname_plot + '_user_time_', binrange=(0, 1), dict_name=dict_name)
 
     # UE bandwidth plot
-    user_bw = np.concatenate([x['user_bw'] for x in data_dict['raw_data'][bs_data_index]])
+    user_bw = np.concatenate([x['user_bw'] for x in data_dict['raw_data'][data_index]])
     max_bw = np.round(global_parameters['bs_param']['bw'] / global_parameters['bs_param']['n_sectors']).astype(int)
-    ax6 = default_histogram(data=user_bw, n_bs=n_bs, subplot=ax6, path=path, title='Bandwidth per UE (MHz)',
-                            save_name=subname_plot + '_bw_user_', binrange=(0, max_bw))
+    ax6 = default_histogram(data=user_bw, n_index=n_index, subplot=ax6, path=path, title='Bandwidth per UE (MHz)',
+                            save_name=subname_plot + '_bw_user_', binrange=(0, max_bw), dict_name=dict_name)
 
     # Capacity deficit plot
     if criteria is not None:
-        norm_deficit = np.concatenate([x['norm_deficit'] for x in data_dict['raw_data'][bs_data_index]])
-        ax7 = default_histogram(data=norm_deficit, n_bs=n_bs, path=path,
+        norm_deficit = np.concatenate([x['norm_deficit'] for x in data_dict['raw_data'][data_index]])
+        ax7 = default_histogram(data=norm_deficit, n_index=n_index, path=path,
                                 title='Normalized Capacity Deficit for ' + str(criteria) + ' Mbps',
-                                save_name=subname_plot + '_norm_deficit_', binrange=(-1, 1))
+                                save_name=subname_plot + '_norm_deficit_', binrange=(-1, 1), dict_name=dict_name)
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.savefig(path + subname_plot + '_Metrics_' + str(n_bs) + ' BS.png')
+    fig.savefig(path + subname_plot + '_Metrics_' + str(n_index) + ' BS.png')
 
-def latency_plot(raw_data, bs_list, path, subname_plot=''):
+def latency_plot(raw_data, iter_list, path, xlabel, subname_plot=''):
     # -------------------------------------------- latency calculation --------------------------------------------
-    avg_avg_latency = np.zeros(shape=bs_list.__len__())
+    avg_avg_latency = np.zeros(shape=iter_list.__len__())
     avg_avg_latency.fill(np.nan)
     std_avg_latency = copy.copy(avg_avg_latency)
     avg_start_latency = copy.copy(avg_avg_latency)
@@ -629,27 +706,27 @@ def latency_plot(raw_data, bs_list, path, subname_plot=''):
     avg_max_latency = copy.copy(avg_avg_latency)
     std_max_latency = copy.copy(avg_avg_latency)
 
-    for bs_index, _ in enumerate(bs_list):
-        avg_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='avg_latency', bs_data_index=bs_index)
-        start_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='start_latency', bs_data_index=bs_index)
-        min_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='min_latency', bs_data_index=bs_index)
-        max_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='max_latency', bs_data_index=bs_index)
+    for index, _ in enumerate(iter_list):
+        avg_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='avg_latency', data_index=index)
+        start_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='start_latency', data_index=index)
+        min_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='min_latency', data_index=index)
+        max_latency = extract_parameter_from_raw(raw_data=raw_data, parameter_name='max_latency', data_index=index)
 
-        avg_avg_latency[bs_index] = np.nanmean(avg_latency)
-        std_avg_latency[bs_index] = np.nanstd(avg_latency)
-        avg_start_latency[bs_index] = np.nanmean(start_latency)
-        std_start_latency[bs_index] = np.nanstd(start_latency)
-        avg_min_latency[bs_index] = np.nanmean(min_latency)
-        std_min_latency[bs_index] = np.nanstd(min_latency)
-        avg_max_latency[bs_index] = np.nanmean(max_latency)
-        std_max_latency[bs_index] = np.nanstd(max_latency)
+        avg_avg_latency[index] = np.nanmean(avg_latency)
+        std_avg_latency[index] = np.nanstd(avg_latency)
+        avg_start_latency[index] = np.nanmean(start_latency)
+        std_start_latency[index] = np.nanstd(start_latency)
+        avg_min_latency[index] = np.nanmean(min_latency)
+        std_min_latency[index] = np.nanstd(min_latency)
+        avg_max_latency[index] = np.nanmean(max_latency)
+        std_max_latency[index] = np.nanstd(max_latency)
 
     legend = ['avg_latency', 'start_latency', 'min_latency', 'max_latency']
 
-    default_curve_plt(n_bs_vec=bs_list,
+    default_curve_plt(n_bs_vec=iter_list,
                       data=[avg_avg_latency.tolist(), avg_start_latency.tolist(), avg_min_latency.tolist(), avg_max_latency.tolist()],
                       std=[std_avg_latency.tolist(), std_start_latency.tolist(), std_min_latency.tolist(), std_max_latency.tolist()],
-                      xlabel='Number of BSs', title='latency (ms)', legend=legend, path=path, save=True, ymin=0,
+                      xlabel=xlabel, title='latency (ms)', legend=legend, path=path, save=True, ymin=0,
                       save_name=subname_plot + '_latency')
 
 def spectrum_aux_plot():  # todo - make a function to plot the interferece/SNIR/power spectrums

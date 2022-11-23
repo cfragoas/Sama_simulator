@@ -14,7 +14,7 @@ roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
 
-  grid: False
+  grid: True
   grid_lines: 1000
   grid_columns: 1000
   cel_size: 30
@@ -22,19 +22,22 @@ roi_param:
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
 
-  map: True
+  map: False
   name_map: '30m.pkl'  # map format made for this application - options: 30m.pkl, 50m.pkl and 100m.pkl
   filter_type: 'Nm_Bairro'
   filter_name: 'Tijuca'
 
   # ==================================================================================================================
 
-
+  # WARNING - below, you can only iterate for a range of samples or a range of BS number
+  # if you want to iterate over one, leave the other with the step equals 0 to use only the minimum number !!!
 
 macel_param:
   # ================================================ UE Distribution ================================================
   ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
-  n_samples: 100  # number of samples per distribution
+  samples_min: 500  # minimum number of samples per distribution
+  samples_max: 10000  # maximum number of samples per distribution
+  samples_step: 500  # the step to iterate between samples_min and samples_max -> leave with 0 or empty to not iterate (will use the minium vale)
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
@@ -44,26 +47,27 @@ macel_param:
   bs_allocation_typ: 'cluster'  # can be 'random', 'cluster' or 'file'
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
-  min_bs: 1  # minimum number of BSs to be simulated
+  min_bs: 10  # minimum number of BSs to be simulated
   max_bs: 25  # maximum number of BSs to be simulated
+  bs_step: 0  # the step to iterate between min_bs and max_bs -> leave with empty or 0 to not iterate (will use the minium vale)
   # ===================================================================================================================
 
   time_slots: 1000  # number of time slots (1 ms)
   time_slot_lngt: 1  # duration of a time slot (ms)
   uplink: True  # if True: simulates downlink comm.
   downlink: True  # if True: simulates uplink comm.
-  mux_tdd_up_time: 0.3  # percentage (between 0 and 1) of time used for the uplink when using TDD
+  mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
 downlink_scheduler:  # scheduler specifications for the downlink side
-  criteria:  # Mbps - if empty, does not use the capacity criteria
-  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
-  bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
+  criteria: 0.1 # Mbps - if empty, does not use the capacity criteria
+  scheduler_typ: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
+  bw_slot: 1  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
 uplink_scheduler:  # scheduler specifications for the uplink side
-  criteria:  # Mbps - if empty, does not use the capacity criteria
-  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
-  bw_slot: 10  # slot fixed bandwidth for scheduler with a queue (RR)
+  criteria: 0.1 # Mbps - if empty, does not use the capacity criteria
+  scheduler_typ: 'RR'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  bw_slot: 1  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
 
@@ -88,7 +92,7 @@ antenna_param:  # -- refer to ITU 2101 --
 bs_param:
   freq: 3.5  # frequency (GHz)
   htx: 30
-  tx_power: 20  # transmission power (dBW) - 100W (20 dBW), 80W (19dBW), 60W (17.8 dBW), 40W (16 dBW)
+  tx_power: 17  # transmission power (dBW) - 100W (20 dBW), 80W (19dBW), 60W (17.8 dBW), 40W (16 dBW)
   bw: 300  # bw for n sectors (to be fixed)
   n_sectors: 3
   gain: 10  # not used
@@ -97,5 +101,5 @@ bs_param:
 
 ue_param:
   hrx: 1.5
-  tx_power: -4 # dBW
+  tx_power: -7 # dBW
 # https://www.linkedin.com/pulse/nr-ue-power-classes-cesar-nunes/?originalSubdomain=pt

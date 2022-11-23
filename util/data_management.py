@@ -25,12 +25,12 @@ def write_conf(folder, parameters, yml_file=None):
         shutil.copy(yml_file, folder)
 
 
-def macel_data_dict(data_dict_=None, data_=None, n_cells=None):
+def macel_data_dict(data_dict_=None, data_=None, n_cells=None, n_samples=None, n_centers=None, dist_typ=None):
     # this functions creates a dictionary for the simulations results be stored
     # the raw data is not affected by this organization
     if not data_ or not data_dict_:
         # creating the base simplified data dict
-        data_dict_ = {'BSs': [], 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
+        data_dict_ = {'BSs': [], 'UEs': [], 'mean_snr': [], 'std_snr': [], 'mean_cap': [], 'std_cap': [], 'mean_user_time': [],
                       'std_user_time': [], 'mean_user_bw': [], 'std_user_bw': [], 'raw_data': [], 'total_meet_criteria': [],
                       'mean_deficit': [], 'std_deficit': [], 'mean_norm_deficit': [], 'std_norm_deficit': []}
         data_dict_ = {'downlink_data': copy.deepcopy(data_dict_), 'uplink_data': copy.deepcopy(data_dict_)}  # replicating for uplink and downlink
@@ -39,29 +39,34 @@ def macel_data_dict(data_dict_=None, data_=None, n_cells=None):
         if data_[0]['downlink_results'] is not None:
             downlink_data = [x['downlink_results'] for x in data_]
             data_dict_['downlink_data'] = organize_data_matrix(data_=downlink_data,
-                                                               data_dict_=data_dict_['downlink_data'], n_cells=n_cells)
-        # else:
-        #     data_dict_['downlink_data'] = None
+                                                               data_dict_=data_dict_['downlink_data'], n_cells=n_cells,
+                                                               n_samples=n_samples, n_centers=n_centers,
+                                                               dist_typ=dist_typ)
+
 
         if data_[0]['uplink_results'] is not None:
             uplink_data = [x['uplink_results'] for x in data_]
             data_dict_['uplink_data'] = organize_data_matrix(data_=uplink_data,
-                                                             data_dict_=data_dict_['uplink_data'], n_cells=n_cells)
-        # else:
-        #     data_dict_['uplink_data'] = None
+                                                             data_dict_=data_dict_['uplink_data'], n_cells=n_cells,
+                                                             n_samples=n_samples, n_centers=n_centers,
+                                                             dist_typ=dist_typ)
+
 
     return data_dict_
 
 
-def organize_data_matrix(data_, data_dict_, n_cells):
+def organize_data_matrix(data_, data_dict_, n_cells, n_samples, n_centers, dist_typ):
     # this funciton will take the simulation matrix data and will fit into the standard dictionary simulation output
     snr_cap_stats = [x['snr_cap_stats'] for x in data_]
     raw_data = [x['raw_data_dict'] for x in data_]
+    if dist_typ == 'uniform':
+        n_centers=1
 
     # saving cumulative simple metrics
     snr_cap_stats = np.array(snr_cap_stats)
 
     data_dict_['BSs'].append(n_cells)
+    data_dict_['UEs'].append(n_samples * n_centers)
     data_dict_['mean_snr'].append(np.mean([x['mean_snr'] for x in snr_cap_stats]))
     data_dict_['std_snr'].append(np.mean([x['std_snr'] for x in snr_cap_stats]))
     data_dict_['mean_cap'].append(np.mean([x['mean_cap'] for x in snr_cap_stats]))
@@ -71,7 +76,7 @@ def organize_data_matrix(data_, data_dict_, n_cells):
     data_dict_['mean_user_bw'].append(np.mean([x['mean_user_bw'] for x in snr_cap_stats]))
     data_dict_['std_user_bw'].append(np.mean([x['std_user_bw'] for x in snr_cap_stats]))
 
-    if 'total_meet_criteria' in snr_cap_stats:  # in the case of not using the capacity criteria
+    if 'total_meet_criteria' in snr_cap_stats[0]:  # in the case of not using the capacity criteria
         data_dict_['total_meet_criteria'].append(np.mean([x['total_meet_criteria'] for x in snr_cap_stats]))
         data_dict_['mean_deficit'].append(np.mean([x['mean_deficit'] for x in snr_cap_stats]))
         data_dict_['std_deficit'].append(np.mean([x['std_deficit'] for x in snr_cap_stats]))
@@ -84,7 +89,7 @@ def organize_data_matrix(data_, data_dict_, n_cells):
     return data_dict_
 
 
-def create_subfolder(name_file, n_bs):
+def create_subfolder(name_file, n_index, dict_name):
     # this function creates a folder inside the simulation one (name_file) to store data
     if not os.path.isdir('output'):
         os.mkdir('output')
@@ -94,7 +99,7 @@ def create_subfolder(name_file, n_bs):
     folder += '\\output\\' + name_file + '\\'
 
     # creating subfolder
-    folder = folder + '\\' + str(n_bs) + 'BSs\\'
+    folder = folder + '\\' + str(n_index) + ' ' + dict_name + '\\'
     if platform.system() == 'Darwin':
         folder = folder.replace('\\', '/')
     if not os.path.exists(folder):
@@ -156,30 +161,31 @@ def save_data(path = None, data_dict = None):
         else:
             logging.error('data_dictionary not provided!!!!')
 
-def extract_parameter_from_raw(raw_data, parameter_name, bs_data_index, calc=None, concatenate=True):
+def extract_parameter_from_raw(raw_data, parameter_name, data_index, calc=None, concatenate=True):
     # this function will pick the dictionary data and will organize and return the data for a specific parameter
     if calc is None:
         if concatenate:
-            extracted_data = np.concatenate([x[parameter_name] for x in raw_data[bs_data_index]])
+            extracted_data = np.concatenate([x[parameter_name] for x in raw_data[data_index]])
         else:
-            extracted_data = [x[parameter_name] for x in raw_data[bs_data_index]]
+            extracted_data = [x[parameter_name] for x in raw_data[data_index]]
     if calc == 'avg':
-        extracted_data = [x[parameter_name].mean() for x in raw_data[bs_data_index]]
+        extracted_data = [x[parameter_name].mean() for x in raw_data[data_index]]
     if calc == 'std':
-        extracted_data = [x[parameter_name].std() for x in raw_data[bs_data_index]]
+        extracted_data = [x[parameter_name].std() for x in raw_data[data_index]]
     return extracted_data
 
 
-def group_ue(data_dict, bs_data_index=None):
+def group_ue(data_dict, iter_dict_name, data_index=None):
     # this function will pick the output simulation data dict and will group the UEs by beam and sector and
     # also indicates the UEs that was not connected to the network
     dict = []
-    if bs_data_index is None:
-        bs_list = range(data_dict['BSs'].__len__())
+    if data_index is None:
+        # bs_list = range(data_dict['BSs'].__len__())
+        iter_list = range(data_dict[iter_dict_name].__len__())
     else:
-        bs_list = [bs_data_index]
+        iter_list = [data_index]
 
-    for bs_data_index in bs_list:
+    for bs_data_index in iter_list:
         nactive_ue_cnt = []  # UEs non-connected to the network
         ue_per_beam = []  # ues grouped by beam
         ue_per_sector = []  # ues grouped by sector
@@ -210,17 +216,17 @@ def group_ue(data_dict, bs_data_index=None):
     return dict
 
 
-def ue_relative_index(data_dict, bs_data_index=None):
-    # this function will convert a bs number and will return the relative index inside the dictionary
-    if bs_data_index is None:
-        bs_list, _ = range(data_dict['BSs'].__len__())
+def ue_relative_index(data_dict, data_index=None):
+    # this function will convert a output reference and return the relative index inside the dictionary
+    if data_index is None:
+        iter_list, _ = range(data_dict['BSs'].__len__())
     else:
-        bs_list = [bs_data_index]
+        iter_list = [data_index]
 
     rel_index_tables = []
 
-    for bs_data_index in bs_list:
-        ue_bs_tables = [x['ue_bs_table'] for x in data_dict['raw_data'][bs_data_index]]
+    for data_index in iter_list:
+        ue_bs_tables = [x['ue_bs_table'] for x in data_dict['raw_data'][data_index]]
         nbs_rel_index = []
         for i, ue_bs_tb in enumerate(ue_bs_tables):
             a = np.where(ue_bs_tb['bs_index'] != -1)[0]
