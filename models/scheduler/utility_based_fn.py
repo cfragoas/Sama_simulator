@@ -52,9 +52,8 @@ class Util_fn:
         snr[active_ue] = (tx_pw * 10 ** (ue_bs[active_ue, 3] / 10)) / pw_noise_bw  # signal to noise ratio (linear)
         bw_need[active_ue] = c_target[active_ue]/(np.log2(1 + snr[active_ue]))
         # bw_need[active_ue] = 2 ** (c_target[active_ue] / snr[active_ue]) - 1  # needed bw to achieve the capacity target
-        snr[active_ue][snr[active_ue] < 0] = 10E-12  # to prevent a negative utility value in log2
-        factor = 1
-        self.slice_util[active_ue] = (bw_min[active_ue] / bw_need[active_ue]) * np.log2(factor * snr[active_ue])
+        # snr[active_ue][snr[active_ue] < 0] = 1.01  # to prevent a negative utility value in log2
+        self.slice_util[active_ue] = (bw_min[active_ue] / bw_need[active_ue]) * np.log2(1 + snr[active_ue])
         # self.slice_util[active_ue & (bw_need < bw_min)] = 10E-12  # TESTANDO ISSO AQUI
 
     def beam_utility(self, ue_bs, active_beams):

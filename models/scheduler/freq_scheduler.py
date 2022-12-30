@@ -73,6 +73,8 @@ class Freq_Scheduler:
                                                beam_util[beam_index, sector_index]) * (
                                                           self.bw - ue_bs[ue_in_beam_bs].shape[0] * bw_min[
                                                       beam_index, sector_index])
+        if np.sum(self.user_bw > 100) != 0:
+            print('ui')
 
     def generate_RR_bw(self, ue_bs, active_beams, updated_beams=None):
         # This function will generate the bandwidth allocation for all users (self.user_bw) for all users for the BS
