@@ -166,12 +166,15 @@ class Metrics:
         # and plot some data
         # this dictionary is divided in simple pre-calculated metrics and raw metrics
         # there are two separated functions for downlink and uplink
-        if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
-            val_snr_line = np.nansum(self.up_snr, axis=1) != 0
-            # todo definir mean snr
-            mean_snr = 10 * np.log10(np.nanmean(self.up_snr[val_snr_line, :], axis=1))
-        else:
-            mean_snr = 10 * np.log10(np.nanmean(self.up_snr[active_ue], axis=1))
+        # if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
+        val_snr_line = np.nansum(self.up_snr, axis=1) != 0
+        # todo definir mean snr
+        mean_snr = 10 * np.log10(np.nanmean(self.up_snr[val_snr_line, :], axis=1))
+        # else:
+        #     try:
+        #         mean_snr = 10 * np.log10(np.nanmean(self.up_snr[active_ue], axis=1))
+        #     except:
+        #         print('veja')
         cap_sum = np.nansum(self.up_cap[active_ue], axis=1)  # ME ARRUMA !!!
         # cap_sum = np.nansum(cap[self.ue.active_ue], axis=1)/(self.base_station_list[0].beam_timing_sequence.shape[1])  # ME ARRUMA !!!
         mean_act_beams = np.mean(self.up_act_beams_nmb, axis=1)
@@ -182,8 +185,9 @@ class Metrics:
 
         # # ---------------------- latency calculation ----------------------
         ue_index, time_index = np.where(self.up_user_time == 1)
-        start_latency = np.zeros(shape=self.up_user_time.shape[0])
-        start_latency.fill(np.nan)  # filling with NaN to avoid problems
+        # start_latency = np.zeros(shape=self.up_user_time.shape[0])
+        start_latency = np.zeros(shape=self.dwn_user_time.shape[0]) + 1000  # todo - adjust this to the time slot lenght and shape
+        # start_latency.fill(np.nan)  # filling with NaN to avoid problems
         avg_latency = copy.copy(start_latency)
         min_latency = copy.copy(start_latency)
         max_latency = copy.copy(start_latency)
@@ -191,7 +195,8 @@ class Metrics:
             ue_times = time_index[ue_index == ue]
             start_latency[ue] = np.min(ue_times)
             bs_latency_group = np.ediff1d(ue_times)
-            bs_latency_group = np.array(bs_latency_group)
+            # bs_latency_group = np.array(bs_latency_group)
+            bs_latency_group = np.append(start_latency[ue], bs_latency_group)
             avg_latency[ue] = bs_latency_group.sum()/ue_times.shape[0]
             if bs_latency_group.shape[0] != 0:
                 min_latency[ue] = bs_latency_group.min()
@@ -273,11 +278,11 @@ class Metrics:
         # and plot some data
         # this dictionary is divided in simple pre-calculated metrics and raw metrics
         # there are two separated functions for downlink and uplink
-        if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
-            val_snr_line = np.nansum(self.dwn_snr, axis=1) != 0
-            mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[val_snr_line, :], axis=1))
-        else:
-            mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[active_ue], axis=1))
+        # if scheduler_typ == 'BCQI' or scheduler_typ == 'PF':  # todo ver aqui essa parada
+        val_snr_line = np.nansum(self.dwn_snr, axis=1) != 0
+        mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[val_snr_line, :], axis=1))
+        # else:
+        #     mean_snr = 10 * np.log10(np.nanmean(self.dwn_snr[active_ue], axis=1))
         cap_sum = np.nansum(self.dwn_cap[active_ue], axis=1)  # ME ARRUMA !!!
         mean_act_beams = np.nanmean(self.dwn_act_beams_nmb, axis=1)
         mean_user_bs = np.nanmean(self.dwn_user_per_bs, axis=1)

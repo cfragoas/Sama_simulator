@@ -239,6 +239,8 @@ def start_simmulation(conf_file):
     batch_size = global_parameters['exec_param']['batch_size']
     ue_dist_typ = global_parameters['macel_param']['ue_dist_typ']
     center_dist_typ = global_parameters['macel_param']['center_distribution']
+    hypothesis_test = global_parameters['exec_param']['hypothesis_test']
+    hypothesis_test_var = global_parameters['exec_param']['hypothesis_test_var']
 
     if center_dist_typ == 'uniform':
         random_centers = True
@@ -298,8 +300,8 @@ def start_simmulation(conf_file):
             process_pool.terminate()  # to avoid memory overflow when processing the plots
 
             data = temp_data_load()
-            if data:
-                end_sim = compare_dist(data, data + data_)
+            if data and hypothesis_test:
+                end_sim = compare_dist(data, data + data_, hypothesis_test_var)
 
             data = data + data_
             temp_data_save(batch_file={'data': data, 'index': i})  # this will store temporary files on disk and avoid memory consumption
@@ -328,11 +330,6 @@ def start_simmulation(conf_file):
 
         # updating the parameters to be write on the exec_stats file
         global_parameters = update_sim_param(parameter=global_parameters, n_cells=n_cells, n_samples=n_samples, initial_time=initial_time)
-
-        # global_parameters['exec_param']['executed_n_bs'].append(n_cells)
-        # global_parameters['exec_param']['executed_n_ue'].append(n_samples)
-        # global_parameters['exec_param']['simulation_time'].append(
-        #     np.round((time.time() - initial_time) / 60, decimals=2))  # simulation time (in minutes)
 
         write_conf(folder=folder, parameters=global_parameters)
 
