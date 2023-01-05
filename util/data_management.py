@@ -148,7 +148,10 @@ def save_data(path = None, data_dict = None):
             path = path.replace('\\', '/')
             folder = folder.replace('\\', '/')
         print(folder)
-        os.mkdir(folder)
+        if os.path.exists(folder):
+            os.mkdir(folder)
+        else:
+            os.makedirs(folder)
 
         return path, folder, name_file
 
