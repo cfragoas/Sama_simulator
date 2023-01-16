@@ -31,7 +31,7 @@ Sama uses different open source python libraries, such as:
 
 ### Installation
 
-Sama is currently tested only in Python 3, using [miniforge].
+Sama is currently tested only in Python 3.9.
 Install Python, copy all folders and files to any directory and make sure all packages are installed.
 To install the packages, run the following commands:
 
