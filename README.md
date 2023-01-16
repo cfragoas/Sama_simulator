@@ -1,6 +1,6 @@
-# Sama*
+# Sama Simulator
 
-Sama is a open-source, Python based simulator for 5G Radio Access Networks (RANs) that supports both downlink and uplink communications between spatially distributed User Equipments (UEs) and arbitrary Base Station (BS) arrangements, and considers the intrinsic variability of the wireless channel between UEs and BSs.
+Sama* is a open-source, Python based simulator for 5G Radio Access Networks (RANs) that supports both downlink and uplink communications between spatially distributed User Equipments (UEs) and arbitrary Base Station (BS) arrangements, and considers the intrinsic variability of the wireless channel between UEs and BSs.
 
 As a tool, it is capable of emulating diverse RAN scenarios, since it encompasses the necessary minutiae to conduct simulations under different systemic configurations and equipment characteristics with little user input. Sama can evaluate each simulation scenario and assess the requirements of the different use-cases, based on the Channel State Information (CSI, or, equivalently, the Channel Quality Indicator, CQI) between UEs and BSs.
 
