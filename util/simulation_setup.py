@@ -111,7 +111,7 @@ def create_enviroment(parameters, param_path):
 
     # instantiating a macrocelular network
     macel = Macel(grid=grid,
-                  prop_model='free space',
+                  prop_model=parameters['macel_param']['prop_model'],
                   criteria=parameters['downlink_scheduler']['criteria'],
                   cell_size=cell_size,  # todo - ARRUMAR ISSO AQUI (passar para o grid)!!!
                   base_station=base_station,

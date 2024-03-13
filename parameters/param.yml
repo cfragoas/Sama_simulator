@@ -50,7 +50,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 25  # maximum number of BSs to be simulated
+  max_bs: 2  # maximum number of BSs to be simulated
   bs_step: 1  # the step to iterate between min_bs and max_bs -> leave with empty or 0 to not iterate (will use the minium vale)
   # ===================================================================================================================
 
@@ -59,6 +59,10 @@ macel_param:
   uplink: True  # if True: simulates downlink comm.
   downlink: True  # if True: simulates uplink comm.
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
+
+  # ==================================== Propagation Models ==========================================================
+  prop_model: '3GPP UMA' # Available path loss models for simulation : free space, 3GPP UMA
+  # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side
   criteria:   # Mbps - if empty, does not use the capacity criteria
@@ -84,8 +88,8 @@ antenna_param:  # -- refer to ITU 2101 --
   sla_v: 30
   # antenna array parameters
   frequency: 10  # not used
-  n_rows: 8
-  n_columns: 8
+  n_rows: 4
+  n_columns: 4
   horizontal_spacing: 0.5
   vertical_spacing: 0.5
 

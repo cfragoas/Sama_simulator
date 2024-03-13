@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 from util.util_funcs import azimuth_angle_clockwise
 from numba import jit  # some functions uses numba to improve performance (some functions are not used anymore)
 
@@ -184,6 +185,8 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
         else:
             path_loss_map = fs_path_loss(dist_map / 1000, frequency)
 
+    elif prop_model == '3GPP UMA':
+            path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency,multipath=False)
     else:
         print('wrong path loss model !!! please see the available ones in: .....')
 
@@ -371,6 +374,65 @@ def fs_path_loss(d, f, var=6):  # simple free space path loss function with logn
 
     return pl
 
+# Calculate probability of LOS/NLOS Path for 3GPP UMA Path loss model
+def calculate_los_prob(d2d, hut, multipath=False):
+    """
+    Calcula a probabilidade de um percurso ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 338.901 v 17.1.0.\n
+    d2d - Distância no eixo horizontal entre a BS e a UE (m) / no cenário outdoor-outdoor apenas!\n
+    hut - Altura do UE (m)
+    """
+    #for i,d in enumerate(d2d):
+    if hut > 23:
+        raise Exception("Altura do UE deve ser menor que 23 m")
+    if d2d < 18:
+        problos = 1
+    if d2d > 18:
+        if hut <= 13:
+            c = 0
+        else:
+            c = np.power((hut - 13) / 10, 1.5)
+        problos = ((18 / d2d) + np.exp(-d2d / 63) * (1 - 18 / d2d)) * (
+                    1 + c * 5 / 4 * np.power(d2d / 100, 3) * np.exp(-d2d / 150))
+
+    return problos
+
+#Create the UMA 3GPP Path Loss based on TR 38.901
+def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
+    """
+    Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n
+    fc - frequência em GHz \n
+    hut -  Altura da UE (m) \n
+    hbs - Altura da BS (m) \n
+    d2d e d3d são as distâncias em (m)!
+    """
+    c = 3*10**8 # Velocidade da luz (m/s)
+
+    Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
+
+    with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
+        for a,b,pl in iter:
+           # if a > 5000 or a < 10:
+           #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
+
+            problos = calculate_los_prob(a,hut,multipath)
+
+            prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
+            dbp = 4*(hbs-1)*(hut-1)*fc*10**12/c
+
+            #Calcula o PL1 e o PL2 (usado tanto em casos de LOS como NLOS
+            if a < dbp:
+                PLOS = 28+22*np.log10(b)+20*np.log10(fc) #PL1
+            else:
+                PLOS = 28+40*np.log10(b)+20*np.log10(fc) \
+                       -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2)) #PL2
+            if prop == "LOS":
+                Pathloss = PLOS
+            else:
+                PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)
+                Pathloss = np.max((PLOS,PNLOS))
+            pl[...] = Pathloss
+    return Ploss
+
 @jit()
 def calc_snr(coord_map, noise_power, rx_power_map, max_pw, map, noise_interf):
     for line in coord_map:
@@ -382,3 +444,4 @@ def calc_snr(coord_map, noise_power, rx_power_map, max_pw, map, noise_interf):
                                           coord[0], coord[1]] - 10 * np.log10(noise_interf[coord[0], coord[1]])
 
     return map
+
