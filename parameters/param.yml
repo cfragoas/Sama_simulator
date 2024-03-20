@@ -1,5 +1,5 @@
 exec_param:
-  threads: 0 # if 0 - uses the maximum number of threads - 1
+  threads: 6 # if 0 - uses the maximum number of threads - 1
   max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   hypothesis_test: True  # True if you want to use Mann_Whitney U test to evaluate the distribution and stop the simulation
@@ -17,8 +17,8 @@ roi_param:
   # ==================================================== grid param ====================================================
 
   grid: True
-  grid_lines: 1000
-  grid_columns: 1000
+  grid_lines: 500
+  grid_columns: 500
   cel_size: 30
 
   # ================================================= end grid param  =================================================
@@ -50,7 +50,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 2  # maximum number of BSs to be simulated
+  max_bs: 1  # maximum number of BSs to be simulated
   bs_step: 1  # the step to iterate between min_bs and max_bs -> leave with empty or 0 to not iterate (will use the minium vale)
   # ===================================================================================================================
 

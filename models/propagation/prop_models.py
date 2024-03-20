@@ -168,7 +168,6 @@ def generate_gain_map(antenna, elevation_map, azimuth_map, sectors_hor_pattern=N
 
     return gain_map
 
-
 def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx, hrx, samples=None, plot=False, **kwargs):
 
     # converting the euclidean distance to actual distance between Tx and Rx and using the actual distance for a cell size
@@ -417,7 +416,7 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
             problos = calculate_los_prob(a,hut,multipath)
 
             prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
-            dbp = 4*(hbs-1)*(hut-1)*fc*10**12/c
+            dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
 
             #Calcula o PL1 e o PL2 (usado tanto em casos de LOS como NLOS
             if a < dbp:
