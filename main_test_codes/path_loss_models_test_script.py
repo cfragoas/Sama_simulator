@@ -53,14 +53,14 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
 
             #Calcula o PL1 e o PL2 (usado tanto em casos de LOS como NLOS
             if a < dbp:
-                PLOS = 28+22*np.log10(b)+20*np.log10(fc) #PL1
+                PLOS = 28+22*np.log10(b)+20*np.log10(fc)+shadow_fading(0,4) #PL1
             else:
                 PLOS = 28+40*np.log10(b)+20*np.log10(fc) \
-                       -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2)) #PL2
+                       -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2))+shadow_fading(0,4) #PL2
             if prop[0] == "LOS":
                 Pathloss = PLOS
             else:
-                PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)
+                PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)+shadow_fading(0,6)
                 #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
                 Pathloss = np.max((PLOS,PNLOS))
             pl[...] = Pathloss
@@ -101,15 +101,15 @@ def generate_win2_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
 
             #Calcula o PL1 e o PL2 
             if a < dbp:
-                PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0) #PL1
+                PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
             else:
                 PLOS = 13.47+40*np.log10(b)+6*np.log10(fc/5.0) \
-                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1) #PL2
+                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6) #PL2
             if prop[0] == "LOS":
                 Pathloss = PLOS
             else:
                 PNLOS = (44.9-6.55*np.log10(hbs))*np.log10(b)+31.46 \
-                        + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)
+                        + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(0,8)
                 #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
                 Pathloss = PNLOS
             pl[...] = Pathloss   
@@ -137,8 +137,53 @@ def fs_path_loss(d, f, var=6):  # simple free space path loss function with logn
     pl = 40 * np.log10(d) + 20 * np.log10(f) + 92.45 #+ log_n  # f in GHz and d in km
     return pl
 
+# Sombreamento:
+def shadow_fading(m,std):
+    """
+    Função para calcular o efeito de perda por sombreamento em, baseada numa distribuição lognormal.Sendo:
+    m: Média
+    std: Desvio padrão
+    """
+    sf = np.random.lognormal(mean=m, sigma=std)
+    return sf
 
-    
+# Funções para efeito doppler:
+def get_velocity(scenario = None):
+#Gera uma velocidade aleatória baseada nos cenários de cada modelo de perda de propagação:
+    if "3GPP UMA": #3GPP UMA 
+        vel = random.uniform(0,3)
+    elif "WINNER2 C2": #Cenário C2 WINNER: Urban Macrocell
+        vel = random.uniform(0,120)
+    elif "WINNER2 D2": #Cenário D2 WINNER: Moving Networks
+        vel = random.uniform(0,350)
+    else:
+        print("Cenario nao definido.Desconsiderando o efeito de deslocamento doppler")
+        vel = 0
+    return vel
+def doppler_shift(v,f):
+    """
+    Calcula o desvio doppler de frequência. Considera-se que a chance de ocorrer um desvio para cima é a mesma que para baixo.\n
+    f: frequência em Mhz\n
+    c: velocidade em km/h 
+    """
+    c = 3*10**8
+    fd = random.choices([f*(1-v/(c*3.6)),f*(1+v/(c*3.6))],weights = [0.5,0.5]) #Velocidade convertida para m/s
+    return fd[0]
+
+#Funções para penetração O2I
+
+def indoor_loss(los_model = None):
+    """Gera uma penetração O2I baseado no item 7.4.3 da TR 38.901. V.17.1.0"""
+    d2in = random.uniform(0,25) #Distância indoor. Deve ser entre 0-25 m
+    hl = #Cenário de alta perda de penetração
+    ll = #Cenário de baixa perda de penetração
+    d2in = random.uniform(0,25)
+    if None:
+
+    return 0 
+
+
+
 # Código teste abaixo:
 
 
@@ -243,3 +288,16 @@ bar_colors = ['r', 'b', 'g', 'k']
 #ax.set_title('Ocurrence of LOS and NLOS propagation for different models tested')
 #ax.legend(title='Propagation')
 #plt.show()
+
+
+def doppler_shift(v,f):
+    """
+    Calcula o desvio doppler de frequência. Considera-se que a chance de ocorrer um desvio para cima é a mesma que para baixo.\n
+    f: frequência em Mhz\n
+    c: velocidade em km/h 
+    """
+    c = 3*10**8
+    fd = random.choices([f*(1-v/(c*3.6)),f*(1+v/(c*3.6))],weights = [0.5,0.5]) #Velocidade convertida para m/s
+    return fd[0]
+
+#def get_ue_velocity(prop_model):

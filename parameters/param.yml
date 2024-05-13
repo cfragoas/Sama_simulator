@@ -61,7 +61,7 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  prop_model: '3GPP UMA' # Available path loss models for simulation : free space, 3GPP UMA
+  prop_model: 'free space' # Available path loss models for simulation : free space, 3GPP UMA, WINNER2 C2, WINNER2 D2
   # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side
