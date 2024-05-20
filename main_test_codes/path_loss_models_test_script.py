@@ -173,16 +173,22 @@ def doppler_shift(v,f):
 #Funções para penetração O2I
 
 def indoor_loss(los_model = None):
-    """Gera uma penetração O2I baseado no item 7.4.3 da TR 38.901. V.17.1.0"""
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0"""
     d2in = random.uniform(0,25) #Distância indoor. Deve ser entre 0-25 m
-    hl = #Cenário de alta perda de penetração
-    ll = #Cenário de baixa perda de penetração
-    d2in = random.uniform(0,25)
-    if None:
+    #if None:
+    return 0.5*d2in
 
-    return 0 
+def high_loss_building_o2i_pen_loss(d2in,f):
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0. A frequência f em GHz."""
+    return 5-10*np.log10(0.7*np.power(10,-(23+0.3*f)/10)+0.3*np.power(10,-(5+4*f)/10))+indoor_loss()+np.random.normal(0,6.5)
 
+def low_loss_building_o2i_pen_loss(d2in,f):
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0. A frequência f em GHz."""
+    return 5-10*np.log10(0.3*np.power(10,-(2+0.2*f)/10)+0.7*np.power(10,-(5+4*f)/10))+indoor_loss()+np.random.normal(0,4.4)
 
+def car_o2i_pen_loss():
+    """Gera uma penetração O2I baseado no item 7.4.3.2 da TR 38.901. V.17.1.0"""
+    return np.random.normal(9,5)
 
 # Código teste abaixo:
 
