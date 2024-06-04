@@ -85,7 +85,7 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc, multipath=False):
 
             problos = calculate_los_prob_uma(a,hut,multipath)
 
-            pen_loss = o2i_pen_loss(f)
+            pen_loss = o2i_pen_loss(fc)
 
             prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
             #prop = "LOS"
@@ -303,42 +303,42 @@ em = np.random.uniform(10,1000,(1,1000))
 dm = generate_distance_map(em,csize,htx,hrx,False)
 
 
-uma = generate_uma_path_loss(em,dm,hrx,htx,fc,multipath = False)
-
-fs = fs_path_loss(dm/100,fc)
-
-win2 = generate_win2_path_loss_c4(em,dm,hrx,htx,fc,multipath = False)
-
-print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
-
-print(f"Resultados FS:\n min: {np.min(fs)}\n max: {np.max(fs)}\n mean: {np.mean(fs)}\n std: {np.std(fs)}")
-
-print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
-
-print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
-print(f"fs at {dm[0,500]}m {fs[0,500]}")
-print(f"uma at {dm[0,500]}m {uma[0,500]}")
-print(f"win2 at {dm[0,500]}m {win2[0,500]}")
-
-fig,ax = plt.subplots(figsize = (10,6))
-ax.plot(np.sort(dm[0,:]),np.sort(uma[0,:]),'r',np.sort(dm[0,:]),np.sort(fs[0,:]),'b',np.sort(dm[0,:]),np.sort(win2[0,:]),'g')
-plt.title("Path Loss for different approaches")
-plt.xlabel("Distance (m)")
-plt.ylabel("Path Loss (db)")
-plt.legend(['UMA','FS','WIN2'])
-plt.grid()
-cursor = Cursor(ax,horizOn= True,vertOn=True)
-plt.show()
-
-dbp = 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)
-
-PL1 = 39+26*np.log10(dm)+20*np.log10(fc/5.0) #PL1 win2
-
-PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log10(hrx-1) #PL2 win2
-
-PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
-
-PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
+#uma = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc,multipath = False)
+#
+#fs = fs_path_loss(dm/100,fc)
+#
+#win2 = generate_win2_path_loss_c4(em,dm,hrx,htx,fc,multipath = False)
+#
+#print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
+#
+#print(f"Resultados FS:\n min: {np.min(fs)}\n max: {np.max(fs)}\n mean: {np.mean(fs)}\n std: {np.std(fs)}")
+#
+#print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
+#
+#print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
+#print(f"fs at {dm[0,500]}m {fs[0,500]}")
+#print(f"uma at {dm[0,500]}m {uma[0,500]}")
+#print(f"win2 at {dm[0,500]}m {win2[0,500]}")
+#
+#fig,ax = plt.subplots(figsize = (10,6))
+#ax.plot(np.sort(dm[0,:]),np.sort(uma[0,:]),'r',np.sort(dm[0,:]),np.sort(fs[0,:]),'b',np.sort(dm[0,:]),np.sort(win2[0,:]),'g')
+#plt.title("Path Loss for different approaches")
+#plt.xlabel("Distance (m)")
+#plt.ylabel("Path Loss (db)")
+#plt.legend(['UMA','FS','WIN2'])
+#plt.grid()
+#cursor = Cursor(ax,horizOn= True,vertOn=True)
+#plt.show()
+#
+#dbp = 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)
+#
+#PL1 = 39+26*np.log10(dm)+20*np.log10(fc/5.0) #PL1 win2
+#
+#PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log10(hrx-1) #PL2 win2
+#
+#PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
+#
+#PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
 
 #fig,ax = plt.subplots(figsize = (10,6))
 #ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
@@ -394,3 +394,29 @@ PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(ht
 #ax.legend(title='Propagation')
 #plt.show()
 
+
+# Parâmetros
+media = 0
+desvio_padrao = 4
+num_pontos = 1000
+
+# Gerar valores de perda por sombreamento
+valores_sombreamento = np.random.lognormal(media,desvio_padrao,num_pontos)
+
+# Plotar histograma com escala logarítmica
+plt.figure(figsize=(10, 6))
+plt.hist(valores_sombreamento, bins=100, log=True)
+plt.xlabel('Valor da perda por sombreamento')
+plt.ylabel('Frequência (escala logarítmica)')
+plt.title('Histograma da perda por sombreamento (lognormal)')
+plt.show()
+
+# Exibir estatísticas básicas
+print(f'Media: {np.mean(valores_sombreamento)}')
+print(f'Mediana: {np.median(valores_sombreamento)}')
+print(f'Desvio Padrao: {np.std(valores_sombreamento)}')
+print(f'Valor Minimo: {np.min(valores_sombreamento)}')
+print(f'Valor Maximo: {np.max(valores_sombreamento)}')
+
+#Conclusão: Pela distribuição log normal existem casos em que o fading fica muito alto.
+#Provavelmente no escopo da TR do 3GPP, esses seriam usuários no qual o sinal não chega ao receptor, devido a perdas muitos altas.
