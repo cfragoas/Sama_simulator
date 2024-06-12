@@ -383,7 +383,7 @@ def calculate_los_prob(d2d, hut, multipath=False):
     #for i,d in enumerate(d2d):
     if hut > 23:
         raise Exception("Altura do UE deve ser menor que 23 m")
-    if d2d < 18:
+    if d2d <= 18:
         problos = 1
     if d2d > 18:
         if hut <= 13:
