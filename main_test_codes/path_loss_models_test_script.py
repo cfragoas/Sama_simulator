@@ -66,7 +66,7 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
             pl[...] = Pathloss
     return Ploss
 
-def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc, multipath=False):
+def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
     """
     Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n
     fc - frequência em GHz \n
@@ -79,7 +79,7 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc, multipath=False):
     Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
 
     with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
-        for a,b,pl in iter:
+        for a,b,pl in iter: # a = d2d
            # if a > 5000 or a < 10:
            #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
 
@@ -274,7 +274,7 @@ def car_o2i_pen_loss():
     return np.random.normal(9,5)
 
 def o2i_pen_loss(f):
-    o2i = random.choices(["High","Low"],weights = [0.2,0.8]) # Define o se a perda por pennetração é alta ou baixa
+    o2i = random.choices(["High","Low"],weights = [0.2,0.8]) # Define o se a perda por penetração é alta ou baixa
     if o2i[0] == "High":
         pen_loss = high_loss_building_o2i_pen_loss(f)
     else:
