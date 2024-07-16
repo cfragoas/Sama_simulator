@@ -77,7 +77,7 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
            # if a > 5000 or a < 10:
            #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
 
-            problos = calculate_los_prob_uma(a,hut,multipath)
+            problos = calculate_los_prob_uma(a,hut)
 
             prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
             #prop = "LOS"
@@ -177,7 +177,7 @@ def calculate_los_prob_win2(d2d):
 
     return problos
 
-def generate_win2_path_loss_c2(d2d, d3d, hut, hbs, fc, multipath=False):
+def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
     """
     Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n
     fc - frequência em GHz \n
@@ -185,36 +185,59 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs, fc, multipath=False):
     hbs - Altura da BS (m) \n
     d2d e d3d são as distâncias em (m)!
     """
+    rng = np.random.default_rng(seed=42)
     c = 3*10**8 # Velocidade da luz (m/s)
     dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
-    Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
+    PLOSS = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
+
+    problos = calculate_los_prob_win2(d2d)
+    
+    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+
+    less_dbp = d2d < dbp
+
+    # criando uma matrix booleana que indica quando d2d<dbp
+
+    PLOSS[less_dbp] = 39+26*np.log10(d3d[less_dbp])+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
+
+    # agora quando d2d >= dbp (usando np.invert())
+    PLOSS[np.invert(less_dbp)] = 13.47+40*np.log10(d3d[np.invert(less_dbp)])+6*np.log10(fc/5.0) \
+                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6)  #PL2
+
+    # verifico quando prop não é PLOS
+    not_los = prop != "LOS"
+
+    PLOSS[not_los] = np.maximum(PLOSS[not_los],
+                              13.54 + 39.08 * np.log10(d2d[not_los]) +
+                              20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(0,6)
+
+    return PLOSS
    
-    with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
-        for a,b,pl in iter:
-           # if a > 5000 or a < 10:
-           #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
-
-            problos = calculate_los_prob_win2(a)
-
-            prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
-            #prop = "LOS"
-            #prop = "NLOS"
-
-            #Calcula o PL1 e o PL2 
-            if a < dbp:
-                PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
-            else:
-                PLOS = 13.47+40*np.log10(b)+6*np.log10(fc/5.0) \
-                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6) #PL2
-            if prop[0] == "LOS":
-                Pathloss = PLOS
-            else:
-                PNLOS = (44.9-6.55*np.log10(hbs))*np.log10(b)+31.46 \
-                        + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(0,8)
-                #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
-                Pathloss = PNLOS
-            pl[...] = Pathloss   
-    return Ploss
+   # with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
+   #     for a,b,pl in iter:
+   #        # if a > 5000 or a < 10:
+   #        #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
+#
+   #         problos = calculate_los_prob_win2(a)
+#
+   #         prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
+   #         #prop = "LOS"
+   #         #prop = "NLOS"
+#
+   #         #Calcula o PL1 e o PL2 
+   #         if a < dbp:
+   #             PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
+   #         else:
+   #             PLOS = 13.47+40*np.log10(b)+6*np.log10(fc/5.0) \
+   #                    -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6) #PL2
+   #         if prop[0] == "LOS":
+   #             Pathloss = PLOS
+   #         else:
+   #             PNLOS = (44.9-6.55*np.log10(hbs))*np.log10(b)+31.46 \
+   #                     + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(0,8)
+   #             #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
+   #             Pathloss = PNLOS
+   #         pl[...] = Pathloss   
 
 
 def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc, multipath=False):
@@ -364,22 +387,22 @@ em = np.random.uniform(10,1000,(1,1000))
 dm = generate_distance_map(em,csize,htx,hrx,False)
 
 
-uma = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
+uma = generate_uma_path_loss(em,dm,hrx,htx,fc)
 
 #fs = fs_path_loss(dm/100,fc)
 
-#win2 = generate_win2_path_loss_c4(em,dm,hrx,htx,fc,multipath = False)
+win2 = generate_win2_path_loss_c2(em,dm,hrx,htx,fc)
 
-print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
+#print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
 
 #print(f"Resultados FS:\n min: {np.min(fs)}\n max: {np.max(fs)}\n mean: {np.mean(fs)}\n std: {np.std(fs)}")
 
-#print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
+print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
 
 print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
-print(f"fs at {dm[0,500]}m {fs[0,500]}")
+#print(f"fs at {dm[0,500]}m {fs[0,500]}")
 #print(f"uma at {dm[0,500]}m {uma[0,500]}")
-#print(f"win2 at {dm[0,500]}m {win2[0,500]}")
+print(f"win2 at {dm[0,500]}m {win2[0,500]}")
 
 #fig,ax = plt.subplots(figsize = (10,6))
 #ax.plot(np.sort(dm[0,:]),np.sort(uma[0,:]),'r',np.sort(dm[0,:]),np.sort(fs[0,:]),'b',np.sort(dm[0,:]),np.sort(win2[0,:]),'g')

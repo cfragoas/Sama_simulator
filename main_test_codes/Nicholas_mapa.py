@@ -9,7 +9,7 @@ from make_grid import Grid
 
 
  #JUNTAR com o creating raster para mandar um raster output e depois ler ele ( Ver com Christian se dá pra por no PKL e jogar junto com os outputs de cada run do SAMA
-raster_location = 'output/testepy.tif'
+#raster_location = 'output/testepy.tif'
 pixel_size = 0.000325872
 xmin, xmax, ymin, ymax = src_layer.GetExtent() # Boundar
 

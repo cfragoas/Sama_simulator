@@ -311,7 +311,7 @@ class Metrics:
                 max_latency[ue] = np.nan
 
         # simple stats data
-        mean_mean_snr = np.mean(mean_snr)
+        mean_mean_snr = np.mean(mean_snr) 
         std_snr = np.std(mean_snr)
         mean_cap = np.mean(cap_sum)
         std_cap = np.std(cap_sum)
