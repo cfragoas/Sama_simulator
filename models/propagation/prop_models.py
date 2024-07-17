@@ -184,9 +184,13 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
         else:
             path_loss_map = fs_path_loss(dist_map / 1000, frequency)
     elif prop_model == '3GPP UMA':
-            path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)#,multipath=False)
+            path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)
+    elif prop_model == '3GPP UMA O2I':
+            path_loss_map = generate_uma_path_loss_o2i(eucli_dist_map,dist_map,hrx,htx,frequency)
     elif prop_model == 'WINNER2 C2':
             path_loss_map = generate_win2_path_loss_c2(eucli_dist_map,dist_map,hrx,htx,frequency)
+    elif prop_model == 'WINNER2 C4':
+            path_loss_map = generate_win2_path_loss_c4(eucli_dist_map,dist_map,hrx,htx,frequency)
     else:
         print('wrong path loss model !!! please see the available ones in: .....')
 
@@ -374,27 +378,7 @@ def fs_path_loss(d, f, var=6):  # simple free space path loss function with logn
 
     return pl
 
-# Calculate probability of LOS/NLOS Path for 3GPP UMA Path loss model
-#def calculate_los_prob_uma(d2d, hut, multipath=False): versão antiga
-#    """
-#    Calcula a probabilidade de um percurso ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 338.901 v 17.1.0.\n
-#    d2d - Distância no eixo horizontal entre a BS e a UE (m) / no cenário outdoor-outdoor apenas!\n
-#    hut - Altura do UE (m)
-#    """
-#    #for i,d in enumerate(d2d):
-#    if hut > 23:
-#        raise Exception("Altura do UE deve ser menor que 23 m")
-#    if d2d <= 18:
-#        problos = 1
-#    if d2d > 18:
-#        if hut <= 13:
-#            c = 0
-#        else:
-#            c = np.power((hut - 13) / 10, 1.5)
-#        problos = ((18 / d2d) + np.exp(-d2d / 63) * (1 - 18 / d2d)) * (
-#                    1 + c * 5 / 4 * np.power(d2d / 100, 3) * np.exp(-d2d / 150))
-#
-#    return problos
+#################################### 3GPP CENÁRIOS UMA e 3GPP UMA O2I ###################################################
 
 def calculate_los_prob_uma(d2d, hut):
     """
@@ -456,8 +440,8 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc):
     PLOSS[less_dbp] = 28 + 22 * np.log10(d3d[less_dbp]) + 20 * np.log10(fc)+shadow_fading(d2d[less_dbp],0,4) #PL1
 
     # agora quando d2d >= dbp (usando np.invert())
-    PLOSS[np.invert(less_dbp)]= 28 + 40 * np.log10(d3d[np.invert(less_dbp)]) + 20 * np.log10(fc) \
-                       -9*np.log10(np.power(dbp, 2)+np.power(hbs-hut,2))+shadow_fading(d2d[np.invert(less_dbp)],0,4) #PL2
+    PLOSS[~less_dbp]= 28 + 40 * np.log10(d3d[~less_dbp]) + 20 * np.log10(fc) \
+                       -9*np.log10(np.power(dbp, 2)+np.power(hbs-hut,2))+shadow_fading(d2d[~less_dbp],0,4) #PL2
 
     # verifico quando prop não é PLOS, irá atualizar o  código utilizando o máximo entre o Pl1/PL2 ou PNLOS para todos os elementos do array que essa condição for TRUE
     not_los = prop != "LOS"
@@ -467,48 +451,101 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc):
                               20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
     
     return PLOSS 
- # c = 3*10**8 # Velocidade da luz (m/s)
- # dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
- # Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
-#
- # with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
- #     for a,b,pl in iter:
- #        # if a > 5000 or a < 10:
- #        #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
-#
- #         problos = calculate_los_prob_uma(a,hut)
-#
- #         prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
- #         #prop = "LOS"
- #         #prop = "NLOS"
-#
- #         #Calcula o PL1 e o PL2 (usado tanto em casos de LOS como NLOS
- #         if a < dbp:
- #             PLOS = 28+22*np.log10(b)+20*np.log10(fc)+shadow_fading(0,4) #PL1
- #         else:
- #             PLOS = 28+40*np.log10(b)+20*np.log10(fc) \
- #                    -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2))+shadow_fading(0,4) #PL2
- #         if prop[0] == "LOS":
- #             Pathloss = PLOS
- #         else:
- #             PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)+shadow_fading(0,6)
- #             #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
- #             Pathloss = np.max((PLOS,PNLOS))
- #         pl[...] = Pathloss
- # return Ploss
+ 
+def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
+    """
+    Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n
+    fc - frequência em GHz \n
+    hut -  Altura da UE (m) \n
+    hbs - Altura da BS (m) \n
+    d2d e d3d são as distâncias em (m)!
+    AQUI, A MAIORIA DAS VARIÁVEIS TEM NOMES CONFUSOS OU NÃO ESTÃO ESPECIFICADAS! VOCÊ PREVISA REVER OS NOMES DE VARIÁVEIS PARA QUE
+    ELES FAÇAM REFERÊNCIA A RECOMENDAÇÃO QUE ESTÁ UTILIZANDO!!!!
+    """
+    rng = np.random.default_rng(seed=42)
+    c = 3*10**8 # Velocidade da luz (m/s)
+    dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
+    # Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
+
+    # o código abaixo só funciona se d2d e d3d foram ndarray
+    problos = calculate_los_prob_uma(d2d, hut)
+    pen_loss = o2i_pen_loss(d2d,fc)
+    PLOSS = np.zeros_like(d2d)
+
+    #o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
+    # eu acredito que para essa linha não seja possível fazer vetorizado
+    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    # prop = random.choices(["LOS", "NLOS"], weights=[problos, 1 - problos], k=d2d.shape[0])  # Simula se a propagação será LOS ou NLOS
+
+    # criando uma matrix booleana que indica quando d2d<dbp
+    less_dbp = d2d < dbp
+
+    PLOSS[less_dbp] = 28 + 22 * np.log10(d3d[less_dbp]) + 20 * np.log10(fc)+shadow_fading(d2d[less_dbp],0,4) #PL1
+
+    # agora quando d2d >= dbp (usando np.invert())
+    PLOSS[~less_dbp]= 28 + 40 * np.log10(d3d[~less_dbp]) + 20 * np.log10(fc) \
+                       -9*np.log10(np.power(dbp, 2)+np.power(hbs-hut,2))+shadow_fading(d2d[~less_dbp],0,4) #PL2
+
+    # verifico quando prop não é PLOS, irá atualizar o  código utilizando o máximo entre o Pl1/PL2 ou PNLOS para todos os elementos do array que essa condição for TRUE
+    not_los = prop != "LOS"
+
+    PLOSS[not_los] = np.maximum(PLOSS[not_los],
+                              13.54 + 39.08 * np.log10(d2d[not_los]) +
+                              20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
+    PLOSS += pen_loss
+    return PLOSS
 
 ######################## FADING e O2I LOSSES ###################################
-def shadow_fading(d2d,m,std):
+
+def shadow_fading(dim,m,std):
     """
     Função para calcular o efeito de perda por sombreamento em, baseada numa distribuição lognormal.Sendo:
     m: Média
     std: Desvio padrão
     """
-    sf = np.random.lognormal(mean=m, sigma=std,size = d2d.shape)
+    sf = np.random.lognormal(mean=m, sigma=std,size = dim.shape)
     sf = np.nan_to_num(sf, nan=0)
     return sf
 
-########################## WINNER 2 ############################################
+def indoor_loss(dim):
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0"""
+    d2in = np.random.uniform(low=0,high=25,size=dim.shape) #Distância indoor. Deve ser entre 0-25 m
+    #if None:
+    return 0.5*d2in
+def high_loss_building_o2i_pen_loss(dim,f):
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0. A frequência f em GHz."""
+    return 5-10*np.log10(0.7*np.power(10,-(23+0.3*f)/10)+0.3*np.power(10,-(5+4*f)/10))+ np.random.uniform(low=0,high=25,size=dim.shape)+np.random.normal(0,6.5,size=dim.shape)
+
+def low_loss_building_o2i_pen_loss(dim,f):
+    """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0. A frequência f em GHz."""
+    return 5-10*np.log10(0.3*np.power(10,-(2+0.2*f)/10)+0.7*np.power(10,-(5+4*f)/10))+ np.random.uniform(low=0,high=25,size=dim.shape)+np.random.normal(0,4.4,size=dim.shape)
+
+#Não usado
+#def car_o2i_pen_loss(dim):
+    """Gera uma penetração O2I baseado no item 7.4.3.2 da TR 38.901. V.17.1.0"""
+    #return np.random.normal(9,5,size=dim.shape)
+
+def o2i_pen_loss(dim,f):
+    rng = np.random.default_rng(seed=42)
+
+    o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
+
+    
+    pen_loss = np.zeros_like(dim)
+
+    is_high = o2i == "High"
+
+    pen_loss[is_high] = (5-10*np.log10(0.7*np.power(10,-(23+0.3*f)/10)+0.3*np.power(10,-(5+4*f)/10))+ 
+    np.random.uniform(low=0,high=25,size=dim[is_high].shape)+np.random.normal(0,6.5,size=dim[is_high].shape))
+
+    #~ é equivalente a np.invert
+
+    pen_loss[~is_high] = (5-10*np.log10(0.3*np.power(10,-(2+0.2*f)/10)+0.7*np.power(10,-(5+4*f)/10))+ 
+    np.random.uniform(low=0,high=25,size=dim[~is_high].shape)+np.random.normal(0,4.4,size=dim[~is_high].shape))
+    return pen_loss  
+
+########################## WINNER 2 CENÁRIOS C2 E C4 ############################################
+
 #@jit()
 def calculate_los_prob_win2(d2d):
     """
@@ -535,60 +572,76 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
 
     problos = calculate_los_prob_win2(d2d)
     
+    #prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p],size = problos.shape[1]) for _ in problos]).reshape(problos.shape)
+
     prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
 
     less_dbp = d2d < dbp
 
     # criando uma matrix booleana que indica quando d2d<dbp
 
-    PLOSS[less_dbp] = 39+26*np.log10(d3d[less_dbp])+20*np.log10(fc/5.0)+shadow_fading(d2d,0,4) #PL1
+    PLOSS[less_dbp] = 39+26*np.log10(d3d[less_dbp])+20*np.log10(fc/5.0)+shadow_fading(d2d[less_dbp],0,4) #PL1
 
     # agora quando d2d >= dbp (usando np.invert())
-    PLOSS[np.invert(less_dbp)] = 13.47+40*np.log10(d3d[np.invert(less_dbp)])+6*np.log10(fc/5.0) \
-                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(d2d,0,6)  #PL2
+    PLOSS[~less_dbp] = 13.47+40*np.log10(d3d[~less_dbp])+6*np.log10(fc/5.0) \
+                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(d2d[~less_dbp],0,6)  #PL2
 
     # verifico quando prop não é PLOS
     not_los = prop != "LOS"
 
     PLOSS[not_los] = np.maximum(PLOSS[not_los],
                               13.54 + 39.08 * np.log10(d2d[not_los]) +
-                              20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d,0,6)
+                              20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
 
     return PLOSS
    
-   # with np.nditer([d2d, d3d, Ploss], op_flags=[['readonly'], ['readonly'], ['writeonly']]) as iter:
-   #     for a,b,pl in iter:
-   #        # if a > 5000 or a < 10:
-   #        #     raise Exception("Distância entre BS e UE deve estar entre 10 m e 5 km")
-#
-   #         problos = calculate_los_prob_win2(a)
-#
-   #         prop = random.choices(["LOS","NLOS"],weights = [problos,1-problos]) #Simula se a propagação será LOS ou NLOS
-   #         #prop = "LOS"
-   #         #prop = "NLOS"
-#
-   #         #Calcula o PL1 e o PL2 
-   #         if a < dbp:
-   #             PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
-   #         else:
-   #             PLOS = 13.47+40*np.log10(b)+6*np.log10(fc/5.0) \
-   #                    -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6) #PL2
-   #         if prop[0] == "LOS":
-   #             Pathloss = PLOS
-   #         else:
-   #             PNLOS = (44.9-6.55*np.log10(hbs))*np.log10(b)+31.46 \
-   #                     + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(0,8)
-   #             #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
-   #             Pathloss = PNLOS
-   #         pl[...] = Pathloss   
+def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
+    """
+    Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n
+    fc - frequência em GHz \n
+    hut -  Altura da UE (m) \n
+    hbs - Altura da BS (m) \n
+    d2d e d3d são as distâncias em (m)!
+    """
+    rng = np.random.default_rng(seed=42)
+    din = np.random.uniform(0,25,size=d2d.shape)
+    d = d2d+din #array
+    nrfi = np.random.uniform(1,5,size=d2d.shape)
+    hms = 3*nrfi+hut #array
+    c = 3*10**8 # Velocidade da luz (m/s)
+    dbp = 4*(hbs-1)*(hms-1)*fc*10**9/c
+    PLOSS = np.zeros_like(d2d) # Cria array de vazio para preencher com os PLOS
+
+    problos = calculate_los_prob_win2(d2d)
+
+    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+
+    less_dbp = d2d < dbp
+
+    # criando uma matrix booleana que indica quando d2d<dbp
+
+    PLOSS[less_dbp] = 39+26*np.log10(d3d[less_dbp])+20*np.log10(fc/5.0)+shadow_fading(d2d[less_dbp],0,4) #PL1
+
+    # agora quando d2d >= dbp (usando np.invert())
+    PLOSS[~less_dbp] = 13.47+40*np.log10(d3d[~less_dbp])+6*np.log10(fc/5.0) \
+                        -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(d2d[~less_dbp],0,6)  #PL2
+
+    # verifico quando prop não é PLOS
+    not_los = prop != "LOS"
+
+    PLOSS[not_los] = np.maximum(PLOSS[not_los],
+                              (44.9-6.55*np.log10(hbs))*np.log10(d3d[not_los])+31.46 \
+                         + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(d2d[not_los],0,8))
+
+    PLOSS += 17.4 + 0.5*din -0.8*hms
+
+    return PLOSS
 
 
 
 
 
-
-
-
+######################
 @jit()
 def calc_snr(coord_map, noise_power, rx_power_map, max_pw, map, noise_interf):
     for line in coord_map:
