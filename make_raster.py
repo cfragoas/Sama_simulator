@@ -4,9 +4,10 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from osgeo import gdal,ogr,osr
 import rasterio
-import shapely
+from make_grid import Grid
+import pickle
 
-class Raster:
+class Raster():
     def __init__(self):
         self.pixel_size = 0.00000325872 #0.000325872
         self.src_layer = None
@@ -42,6 +43,7 @@ class Raster:
     
     def open_rasterfile(self,output_raster_path):     
         with rasterio.open(output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
-            raster = raster_file.read()
-            raster = raster.squeeze()
-        return raster
+            self.raster = raster_file.read()
+            self.raster = raster.squeeze()
+        return self.raster
+

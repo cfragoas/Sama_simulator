@@ -7,52 +7,12 @@ import math
 from random import randint, gauss, gammavariate
 import sys
 import matplotlib.pyplot as plt
-
-
-class Raster:
-    def __init__(self):
-        self.pixel_size = 0.00000325872 #0.000325872
-        self.src_layer = None
-        self.xmin = None
-        self.xmax = None
-        self.x_res = None
-        self.ymin = None
-        self.ymax = None
-        self.y_res = None
-
-    def rasterize_shapefile(self,input_shapefile_path,output_raster_path):
-
-        shp = ogr.Open(input_shapefile_path) #Get_shapefile_attributes():r'RiodeJaneiro_shp\RJ_shape\buildings.shp'
-        self.src_layer = shp.GetLayer()
-
-        
-        self.xmin, self.xmax, self.ymin, self.ymax = self.src_layer.GetExtent() # Boundaries
-
-        self.x_res = int(round((self.xmax-self.xmin)/self.pixel_size)) #Resolução X
-        self.y_res = int(round((self.ymax-self.ymin)/self.pixel_size)) #Resolução Y
-
-        target_ds = gdal.GetDriverByName('GTiff').Create(output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
-        target_ds.SetGeoTransform((self.xmin,self.pixel_size,0.0,self.ymax,0.0,-self.pixel_size))
-        srse = osr.SpatialReference()
-        projection = 'EPSG:4326'
-        srse.SetWellKnownGeogCS(projection)
-        target_ds.SetProjection(srse.ExportToWkt()) 
-        band = target_ds.GetRasterBand(1)
-        target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
-        band.Fill(0) #-9999
-        gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE=osm_id'])
-        target_ds = None
-    
-    def open_rasterfile(self,output_raster_path):     
-        with rasterio.open(output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
-            raster = raster_file.read()
-            raster = raster.squeeze()
-        return raster
+#from make_grid import Grid
 
 def highestPowerOf2(n):
     return (np.log2(n & (~(n - 1))))
 
-
+#################################################
 class Grid:
     def __init__(self):
         self.lines = None
@@ -155,6 +115,61 @@ class Grid:
                     map[coord[0], coord[1]] = math.dist((coordinates[i][0], coordinates[i][1]), (coord[0], coord[1]))
                     self.dist_mtx[i] = map
 
+################################################
+class Raster(Grid):
+    def __init__(self):
+        super().__init__()
+        self.pixel_size = 0.00000325872 #0.000325872
+        self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
+        self.src_layer = None
+        self.xmin = None
+        self.xmax = None
+        self.x_res = None
+        self.ymin = None
+        self.ymax = None
+        self.y_res = None
+        
+        
+
+    def rasterize_shapefile(self,input_shapefile_path,output_raster_path):
+
+        shp = ogr.Open(input_shapefile_path) #Get_shapefile_attributes():r'RiodeJaneiro_shp\RJ_shape\buildings.shp'
+        self.src_layer = shp.GetLayer()
+
+        
+        self.xmin, self.xmax, self.ymin, self.ymax = self.src_layer.GetExtent() # Boundaries
+
+        self.x_res = int(round((self.xmax-self.xmin)/self.pixel_size)) #Resolução X
+        self.y_res = int(round((self.ymax-self.ymin)/self.pixel_size)) #Resolução Y
+
+        target_ds = gdal.GetDriverByName('GTiff').Create(output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
+        target_ds.SetGeoTransform((self.xmin,self.pixel_size,0.0,self.ymax,0.0,-self.pixel_size))
+        srse = osr.SpatialReference()
+        projection = 'EPSG:4326'
+        srse.SetWellKnownGeogCS(projection)
+        target_ds.SetProjection(srse.ExportToWkt()) 
+        band = target_ds.GetRasterBand(1)
+        target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
+        band.Fill(0) #-9999
+        gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE=osm_id'])
+        target_ds = None
+    
+    def open_rasterfile(self,output_raster_path):     
+        with rasterio.open(output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
+            self.raster = raster_file.read()
+            self.raster = self.raster.squeeze()
+        return self.raster
+
+    def save_raster(self,raster):
+        np.save(self.temp_raster_array_path,raster)
+    
+    def load_raster(self):
+        loaded_raster = np.load(self.temp_raster_array_path)
+        return loaded_raster
+    
+    def delete_raster_npy_file(self):
+        os.remove(self.temp_raster_array_path)
+
 
 
 
@@ -213,27 +228,50 @@ input = 'rasters/shapefiles/londres/teste_londres.shp'
 output = 'rasters/testepy_londres_debug3.tif'
 
 raster = Raster()
+
 raster.rasterize_shapefile(input_shapefile_path=input,output_raster_path=output)
+
 final_raster = raster.open_rasterfile(output_raster_path=output)
+
 print(final_raster.shape)
 
-grid = Grid()
+raster.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
 
-grid.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
+raster.make_points(dist_type='uniform', samples=100000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
 
-# verificando se é  indoor ou outdoor (2 maneiras)
-#is_indoor = final_raster[grid.grid!=0] # 0 = outdoor e 1 = indoor  
+#grid = Grid()
 
-is_indoor = final_raster != 0 
+raster.save_raster(final_raster[raster.grid!=0])
 
-unique,count = np.unique(final_raster,return_counts=True)
+in_out_user = raster.load_raster()
 
+print(type(in_out_user))
+
+print('\n Quantidade de usuarios indoor (1) e outdoor (0): ')
+unique,count = np.unique(in_out_user,return_counts=True)
 print(np.asarray((unique,count)).T)
 
-print(is_indoor)
 
-#print(outdoor)
+raster.delete_raster_npy_file()
 
-grid.make_points(dist_type='uniform', samples=100000, n_centers=0,plot=True) # isso aqui precisa vir do arquivo de parâmetros
+
+
+#grid.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
+
+#grid.make_points(dist_type='uniform', samples=100000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
+
+# verificando se é  indoor ou outdoor (2 maneiras)
+#in_out_user = final_raster[raster.grid!=0] # 0 = outdoor e 1 = indoor  
+
+
+
+##########
+
+
+# aqui, eu acho que você não precisa,mas são duas maneiras de você obter as coordenadas dos pontos
+#point_coordinates = np.nonzero(grid.grid) # coordenada em duas dimensões # 1
+#point_coordinates2 = np.flatnonzero(grid.grid)  # coordenada em uma dimensão 2 
+
+print('\nFoi!')
 
 
