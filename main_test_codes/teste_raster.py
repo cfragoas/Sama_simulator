@@ -117,7 +117,7 @@ class Grid:
 
 ################################################
 class Raster(Grid):
-    def __init__(self):
+    def __init__(self,input_shapefile,output_raster,projection,burner_value):
         super().__init__()
         self.pixel_size = 0.00000325872 #0.000325872
         self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
@@ -128,13 +128,18 @@ class Raster(Grid):
         self.ymin = None
         self.ymax = None
         self.y_res = None
-        
+        self.point_condition = None
+        self.raster = None
+        self.input_shapefile_path = input_shapefile
+        self.output_raster_path = output_raster
+        self.projection = projection
+        self.burner_value = burner_value
         
 
-    def rasterize_shapefile(self,input_shapefile_path,output_raster_path):
+    def rasterize_shapefile(self):
 
-        if os.path.isfile(input_shapefile_path): #Conferindo se o shapefile selecionado existe
-            shp = ogr.Open(input_shapefile_path) #Get_shapefile_attributes():r'RiodeJaneiro_shp\RJ_shape\buildings.shp'
+        if os.path.isfile(self.input_shapefile_path): #Conferindo se o shapefile selecionado existe
+            shp = ogr.Open(self.input_shapefile_path) #Get_shapefile_attributes():r'RiodeJaneiro_shp\RJ_shape\buildings.shp'
         else:
             raise Exception('Shapefile selecionado nao encontrado. Verifique novamente!')
         self.src_layer = shp.GetLayer()
@@ -145,28 +150,33 @@ class Raster(Grid):
         self.x_res = int(round((self.xmax-self.xmin)/self.pixel_size)) #Resolução X
         self.y_res = int(round((self.ymax-self.ymin)/self.pixel_size)) #Resolução Y
 
-        if os.path.isfile(output_raster_path): # Conferindo se o raster que será criado já existe 
+        if os.path.isfile(self.output_raster_path): # Conferindo se o raster que será criado já existe 
             print('Raster desejado ja existe com esse nome! Pulando a rasterizacao ...')
             pass
         
         else:
-            target_ds = gdal.GetDriverByName('GTiff').Create(output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
+            target_ds = gdal.GetDriverByName('GTiff').Create(self.output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
             target_ds.SetGeoTransform((self.xmin,self.pixel_size,0.0,self.ymax,0.0,-self.pixel_size))
             srse = osr.SpatialReference()
-            projection = 'EPSG:4326'
+            projection = self.projection
             srse.SetWellKnownGeogCS(projection)
             target_ds.SetProjection(srse.ExportToWkt()) 
             band = target_ds.GetRasterBand(1)
             target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
             band.Fill(0) #-9999
-            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE=osm_id'])
+            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE='+self.burner_value])
             target_ds = None
+            self.src_layer = None # Need to be set to nome, else cannot dump swigpy object with pickle!
     
-    def open_rasterfile(self,output_raster_path):     
-        with rasterio.open(output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
+    def make_grid(self,output_raster_path):     
+        with rasterio.open(self.output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
             self.raster = raster_file.read()
             self.raster = self.raster.squeeze()
-        return self.raster
+            super().make_grid(self.raster.shape[0],self.raster.shape[1])
+        
+    def make_points(self,dist_type, samples, n_centers, random_centers=True, plot=False):
+        super().make_points(dist_type, samples, n_centers, random_centers, plot)
+        self.point_condition = np.asarray(self.raster[self.grid != 0])
 
     def save_raster(self,raster):
         np.save(self.temp_raster_array_path,raster)
@@ -178,8 +188,18 @@ class Raster(Grid):
     def delete_raster_npy_file(self):
         os.remove(self.temp_raster_array_path)
 
+    def set_point_condition(self,point_condition):
+        self.point_condition = point_condition
+
+    def set_raster_transform_paths(self,input_shapefile,output_raster):
+        self.input_shapefile_path = input_shapefile
+        self.output_raster_path = output_raster
+
+    def delete_tif_file(self):
+        os.remove(self.output_raster_path)
 
 
+# sobrescrever o make_point para setar as conditions também
 
 ###################################
 
@@ -189,96 +209,46 @@ import matplotlib.pyplot as plt
 from osgeo import gdal,ogr,osr
 import rasterio 
 
-#Daqui para baixo transformar em funções para por no sama
-#def Rasterize(input_shapefile_path,output_raster_path):
-#    shp = ogr.Open(f'{input_shapefile_path}') #Get_shapefile_attributes():r'RiodeJaneiro_shp\RJ_shape\buildings.shp'
-#    src_layer = shp.GetLayer()
-#
-#    raster_location = f'{output_raster_path}'
-#    pixel_size = 0.00000325872
-#    xmin, xmax, ymin, ymax = src_layer.GetExtent() # Boundaries
-#
-#    x_res = int(round((xmax-xmin)/pixel_size)) #Resolução X
-#    y_res = int(round((ymax-ymin)/pixel_size)) #Resolução Y
-#
-#    target_ds = gdal.GetDriverByName('GTiff').Create(raster_location,x_res,y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
-#    target_ds.SetGeoTransform((xmin,pixel_size,0.0,ymax,0.0,-pixel_size))
-#    srse = osr.SpatialReference()
-#    projection = 'EPSG:4326'
-#    srse.SetWellKnownGeogCS(projection)
-#    target_ds.SetProjection(srse.ExportToWkt()) 
-#    band = target_ds.GetRasterBand(1)
-#    target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
-#    band.Fill(0) #-9999
-#    gdal.RasterizeLayer(target_ds,[1],src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE=osm_id'])
-#    target_ds = None
-#    
-#
-#    with rasterio.open(raster_location) as ra: # Abrindo o raster -> Open_Raster():
-#        raster = ra.read()
-#        bounds = ra.bounds
-#        transform = ra.transform
-#        raster = raster.squeeze()
-#        num_bands = ra.count
-#        print(f'Dimensões (x,y): {raster.shape}') #Width,Height
-#        print(f'num de bandas: {num_bands}')
-#        plt.figure(figsize=(8, 6))
-#        plt.imshow(raster, cmap='binary')  # Adjust the colormap as needed
-#        plt.colorbar(label='Indoor/Outdoor')  # Add colorbar with label
-#        plt.title('Raster Data')
-#        plt.xlabel('Column/Width#')
-#        plt.ylabel('Row/Height#')
-#        plt.show()
-#    return raster
-
 
 input = 'rasters/shapefiles/londres/teste_londres.shp'
 output = 'rasters/testepy_londres.tif'
+burner_value = 'osm_id'
+projection = 'EPSG:4326'
+raster = Raster(input_shapefile=input,output_raster=output,projection=projection,burner_value=burner_value)
 
-raster = Raster()
+#raster.set_raster_transform_paths(input_shapefile=input,output_raster=output)
 
-raster.rasterize_shapefile(input_shapefile_path=input,output_raster_path=output)
+raster.rasterize_shapefile() # Cria o raster
 
-final_raster = raster.open_rasterfile(output_raster_path=output)
+raster.make_grid(output_raster_path=output)
 
-print(final_raster.shape)
+raster.delete_tif_file()
 
-raster.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
+#final_raster = raster.open_rasterfile(output_raster_path=output) # Sai a matriz ndarray
 
-raster.make_points(dist_type='uniform', samples=100000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
+#print(final_raster.shape,)
+
+#raster.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
+
+raster.make_points(dist_type='uniform', samples=100, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
 
 #grid = Grid()
 
-raster.save_raster(final_raster[raster.grid!=0])
+#raster.set_point_condition(raster.grid!=0)
 
-in_out_user = raster.load_raster()
+#raster.point_condition
+#raster.save_raster(final_raster[raster.grid!=0])
 
-print(type(in_out_user))
+#in_out_user = raster.load_raster()
+
+print(type(raster.point_condition))
 
 print('\n Quantidade de usuarios indoor (1) e outdoor (0): ')
-unique,count = np.unique(in_out_user,return_counts=True)
+unique,count = np.unique(raster.point_condition,return_counts=True)
 print(np.asarray((unique,count)).T)
 
-
-raster.delete_raster_npy_file()
-
-
-
-#grid.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
-
-#grid.make_points(dist_type='uniform', samples=100000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
-
-# verificando se é  indoor ou outdoor (2 maneiras)
-#in_out_user = final_raster[raster.grid!=0] # 0 = outdoor e 1 = indoor  
-
-
-
-##########
-
-
-# aqui, eu acho que você não precisa,mas são duas maneiras de você obter as coordenadas dos pontos
-#point_coordinates = np.nonzero(grid.grid) # coordenada em duas dimensões # 1
-#point_coordinates2 = np.flatnonzero(grid.grid)  # coordenada em uma dimensão 2 
+grid = Grid()
+#raster.delete_raster_npy_file()
 
 print('\nFoi!')
 

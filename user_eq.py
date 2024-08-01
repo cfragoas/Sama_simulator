@@ -7,9 +7,10 @@ import numpy as np
 # UEs can be turned off when its necessary if the flag -1 is used
 
 class User_eq:
-    def __init__(self, height=None, tx_power=None, positions=None):
+    def __init__(self, height=None, tx_power=None, positions=None): 
         self.positions = positions  # x, y of each UE located on the ROI
         self.height = height  # UE height (m)
+        self.user_condition = None # Tem que mexer
         self.bs_candidates = None
         self.gain_matrix = None
         self.tx_power = tx_power  # UE tx power in dBW
@@ -63,3 +64,21 @@ class User_eq:
             self.dw_ue_bs[ue_index, 0:3] = -1
         if uplink:
             self.up_ue_bs[ue_index, 0:3] = -1
+
+    # Get info if the user is indoor or outdoor based on the raster 
+    def obtain_user_condition(self,centers,samples,raster_grid):
+        if samples is not None:
+
+            ucond = np.ndarray(shape=(centers.shape[0], samples.shape[0]))
+            in_out_user = np.ndarray(shape=(centers.shape[0], 2))
+
+            for i, user in enumerate(samples):
+                in_out_user = raster_grid[user[0].astype(int),user[1].astype(int)]
+                ucond[:,i] = in_out_user
+                #print('teste')
+
+            self.user_condition = ucond
+        
+        else:
+            raise Exception('For obtaining user conditions samples must be different than None!')
+         

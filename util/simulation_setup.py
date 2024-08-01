@@ -26,7 +26,11 @@ def simulate_macel(args):  # todo - fix the and check all the options here
     else:
         macel.grid.make_points(dist_type=ue_dist_type, samples=n_samples, n_centers=n_centers, random_centers=random_centers,
                                plot=False)  # distributing points around centers in the grid
+    #print('Parada obrigatoria de teste!')
     macel.set_ue()
+    # FALTA TESTAR! CASO SEJA RASTER, grid.point_condition n vai ser none, caso contrário será
+    #macel.set_ue(user_condition = macel.grid.point_condition) # FALTA TESTAR! CASO SEJA RASTER grid.point_condition n vai ser none
+    
     # snr_cap_stats, raw_data = macel.place_and_configure_bs(n_centers=n_bs, output_typ='complete', clustering=True)
     output = macel.place_and_configure_bs(n_centers=n_bs)
     # snr_cap_stats = macel.place_and_configure_bs(n_centers=n_bs, output_typ='simple', clustering=False)
@@ -40,7 +44,8 @@ def create_enviroment(parameters, param_path):
     from antennas.beamforming import Beamforming_Antenna
     from base_station import BaseStation
     from macel import Macel
-
+    from make_raster import Raster
+  
     map_ = None  # defining a empty variable to recieve a map class that also can be checked inside the pool
     if parameters['roi_param']['grid']:  # the function checks first if a grid is defined
         print('FOI O GRID')
@@ -48,6 +53,20 @@ def create_enviroment(parameters, param_path):
         grid.make_grid(lines=parameters['roi_param']['grid_lines'],
                        columns=parameters['roi_param']['grid_columns'])
         cell_size = parameters['roi_param']['cel_size']
+
+    elif parameters['roi_param']['raster']: #Check if raster type is selected
+        grid = Raster(input_shapefile = parameters['roi_param']['input_shapefile'],
+        output_raster = parameters['roi_param']['output_raster'],
+        projection = parameters['roi_param']['projection'],
+        burner_value = parameters['roi_param']['burner_value'])
+
+        print('Rasterizando o shapefile ...')
+        grid.rasterize_shapefile()
+        grid.make_grid()
+        grid.delete_tif_file()
+        cell_size = parameters['roi_param']['cel_size']
+        print('... feito!')
+        
     elif parameters['roi_param']['map']:  # if a grid is not used, it checks if a map is selected
         print('FOI O MAPA')
         folder = 'map_data'
@@ -68,7 +87,7 @@ def create_enviroment(parameters, param_path):
         cell_size = map_.resolution
         grid = None
     else:  # if neither map nor grid is used, raise an exception
-        raise NameError('To start a simulation, need to use a GRID or MAP in parameter file')
+        raise NameError('To start a simulation, need to use a GRID, RASTER or MAP in parameter file')
 
     # instantiating an antenna element
     element = Element_ITU2101(max_gain=parameters['antenna_param']['max_element_gain'],

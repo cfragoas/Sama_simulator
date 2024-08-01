@@ -6,6 +6,7 @@ import copy, warnings
 from util.data_management import load_data, create_subfolder, extract_parameter_from_raw, group_ue, ue_relative_index
 from make_grid import Grid
 from matplotlib import cm
+from make_raster import Raster
 
 
 # The function in this file are used to plot and store the plots for the data on the metrics dictionary
@@ -255,10 +256,21 @@ def plot_surfaces(name_file, global_parameters, list_typ, n_index=None):
 
     path = create_subfolder(name_file=name_file, n_index=n_index, dict_name=iter_dict_name)
 
-    grid = Grid()
-    grid.make_grid(lines=global_parameters['roi_param']['grid_lines'],
+#Created by Nicholas the if condition bellow:
+    if global_parameters['roi_param']['grid']:
+        grid = Grid()
+        grid.make_grid(lines=global_parameters['roi_param']['grid_lines'],
                    columns=global_parameters['roi_param']['grid_columns'])
+    elif global_parameters['roi_param']['raster']:
+        grid = Raster(input_shapefile = global_parameters['roi_param']['input_shapefile'],
+        output_raster = global_parameters['roi_param']['output_raster'],
+        projection = global_parameters['roi_param']['projection'],
+        burner_value = global_parameters['roi_param']['burner_value'])
 
+        grid.rasterize_shapefile()
+        grid.make_grid()
+        grid.delete_tif_file()
+        
     # data coordinates - its is the same for downlink and uplink
     if data_dict['downlink_data']['BSs']:
         bs_coordinates = extract_parameter_from_raw(raw_data=data_dict['downlink_data']['raw_data'],

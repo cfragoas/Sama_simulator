@@ -12,7 +12,6 @@ from numba import jit  # some functions uses numba to improve performance (some 
 # Alternatively, the functions can calculate sample points if his positions are available in the samples variable -
 # or just arrange the functions in a format that the vectorized functions will work
 
-
 def generate_azimuth_map(lines, columns, centroids, samples=None, plot=False):
     # returns a centroids x lines x columns matrix with per pixel azimuth information from a centroid
 
@@ -36,11 +35,10 @@ def generate_azimuth_map(lines, columns, centroids, samples=None, plot=False):
     return az_map
 
 
-def generate_euclidian_distance(lines, columns, centers, samples=None, plot=False):
+def generate_euclidian_distance(lines, columns, centers, samples=None,plot=False): 
     if samples is not None:
         dist_mtx = np.ndarray(shape=(centers.shape[0], samples.shape[0]))
-
-        a_b = np.ndarray(shape=(centers.shape[0], 2))
+        a_b = np.ndarray(shape=(centers.shape[0], 2)) 
 
         for i, coord in enumerate(samples):
             a_b[:, 0] = centers[:, 0] - coord[0]
@@ -101,6 +99,7 @@ def generate_distance_map(eucli_dist_map, cell_size, htx, hrx, plot=False):
         plot_func(dist_map, 1,  dist_map.shape[0], title)
 
     return np.where(dist_map == 0, 1, dist_map)
+
 
 def generate_bf_gain(elevation_map, azimuth_map, base_station_list=None, sector_index = None):
 
@@ -165,35 +164,51 @@ def generate_gain_map(antenna, elevation_map, azimuth_map, sectors_hor_pattern=N
     ver_gain = np.where(ver_gain == 0, 0.000001, ver_gain)
 
     gain_map = antenna.gain + 10*np.log10(hor_gain*ver_gain)
-
     return gain_map
 
-def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx, hrx, samples=None, plot=False, **kwargs):
+def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx, hrx, samples=None, plot=False,user_condition=None, **kwargs):
 
     # converting the euclidean distance to actual distance between Tx and Rx and using the actual distance for a cell size
     if samples is not None:
         eucli_dist_map = eucli_dist_map[:, samples[:, 0], samples[:, 1]]
 
     dist_map = generate_distance_map(eucli_dist_map, cell_size, htx, hrx)
-
-    # calculating the prop model for each centroid for each cell of the grid
-    if prop_model == 'free space':
-        if 'var' in kwargs:
-            var = kwargs['var']
-            path_loss_map = fs_path_loss(dist_map/1000, frequency, var=var)
+    path_loss_map = np.zeros_like(dist_map)
+    if user_condition is None:
+        # calculating the prop model for each centroid for each cell of the grid
+        if prop_model == 'free space':
+            if 'var' in kwargs:
+                var = kwargs['var']
+                path_loss_map = fs_path_loss(dist_map/1000, frequency, var=var)
+            else:
+                path_loss_map = fs_path_loss(dist_map / 1000, frequency)
+        elif prop_model == '3GPP UMA':
+                path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)
+        elif prop_model == '3GPP UMA O2I':
+                path_loss_map = generate_uma_path_loss_o2i(eucli_dist_map,dist_map,hrx,htx,frequency)
+        elif prop_model == 'WINNER2 C2':
+                path_loss_map = generate_win2_path_loss_c2(eucli_dist_map,dist_map,hrx,htx,frequency)
+        elif prop_model == 'WINNER2 C4':
+                path_loss_map = generate_win2_path_loss_c4(eucli_dist_map,dist_map,hrx,htx,frequency)
         else:
-            path_loss_map = fs_path_loss(dist_map / 1000, frequency)
-    elif prop_model == '3GPP UMA':
-            path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)
-    elif prop_model == '3GPP UMA O2I':
-            path_loss_map = generate_uma_path_loss_o2i(eucli_dist_map,dist_map,hrx,htx,frequency)
-    elif prop_model == 'WINNER2 C2':
-            path_loss_map = generate_win2_path_loss_c2(eucli_dist_map,dist_map,hrx,htx,frequency)
-    elif prop_model == 'WINNER2 C4':
-            path_loss_map = generate_win2_path_loss_c4(eucli_dist_map,dist_map,hrx,htx,frequency)
+            raise Exception('wrong path loss model !!! please see the available ones in: Param.yaml')
     else:
-        print('wrong path loss model !!! please see the available ones in: .....')
-
+        outdoor = user_condition == 0 # Mask for outdoor users
+        if prop_model == '3GPP UMA dynamic':
+            path_loss_map = np.copy(path_loss_map)
+            #Outdoor
+            path_loss_map[outdoor] = generate_uma_path_loss(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
+            #Indoor
+            path_loss_map[~outdoor] = generate_uma_path_loss_o2i(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency)
+        elif prop_model == 'WINNER2 dynamic':
+            path_loss_map = np.copy(path_loss_map) 
+            #Outdoor
+            path_loss_map[outdoor] = generate_win2_path_loss_c2(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
+            #Indoor
+            path_loss_map[~outdoor] = generate_win2_path_loss_c4(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency) 
+        else:
+            raise Exception('wrong path loss model !!! For raster files with user_condition only 3GPP UMA dynamic and WINNER2 dynamic are available')
+    
     if plot:
         n_centroids = eucli_dist_map.shape[0]
         title = 'path loss map using' + prop_model
@@ -421,7 +436,7 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc):
     d2d e d3d são as distâncias em (m)!
     """
 
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
     c = 3*10**8 # Velocidade da luz (m/s)
     dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
     # Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
@@ -431,7 +446,10 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc):
     PLOSS = np.zeros_like(d2d)
 
     # eu acredito que para essa linha não seja possível fazer vetorizado
-    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    if problos.ndim != 1:
+        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    else:
+        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
     # prop = random.choices(["LOS", "NLOS"], weights=[problos, 1 - problos], k=d2d.shape[0])  # Simula se a propagação será LOS ou NLOS
 
     # criando uma matrix booleana que indica quando d2d<dbp
@@ -462,7 +480,7 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
     AQUI, A MAIORIA DAS VARIÁVEIS TEM NOMES CONFUSOS OU NÃO ESTÃO ESPECIFICADAS! VOCÊ PREVISA REVER OS NOMES DE VARIÁVEIS PARA QUE
     ELES FAÇAM REFERÊNCIA A RECOMENDAÇÃO QUE ESTÁ UTILIZANDO!!!!
     """
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
     c = 3*10**8 # Velocidade da luz (m/s)
     dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
     # Ploss = np.empty_like(d2d) # Cria array de vazio para preencher com os PLOS
@@ -474,14 +492,18 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
 
     #o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
     # eu acredito que para essa linha não seja possível fazer vetorizado
-    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    if problos.ndim != 1:
+        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    else:
+        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
     # prop = random.choices(["LOS", "NLOS"], weights=[problos, 1 - problos], k=d2d.shape[0])  # Simula se a propagação será LOS ou NLOS
 
     # criando uma matrix booleana que indica quando d2d<dbp
     less_dbp = d2d < dbp
 
-    PLOSS[less_dbp] = 28 + 22 * np.log10(d3d[less_dbp]) + 20 * np.log10(fc)+shadow_fading(d2d[less_dbp],0,4) #PL1
-
+    # O d2d no shadow fading é apenas para dar uma dimensão de shape para a distribuição lognormal
+    PLOSS[less_dbp] = 28 + 22 * np.log10(d3d[less_dbp]) + 20 * np.log10(fc)+shadow_fading(d2d[less_dbp],0,4) #PL1 
+   
     # agora quando d2d >= dbp (usando np.invert())
     PLOSS[~less_dbp]= 28 + 40 * np.log10(d3d[~less_dbp]) + 20 * np.log10(fc) \
                        -9*np.log10(np.power(dbp, 2)+np.power(hbs-hut,2))+shadow_fading(d2d[~less_dbp],0,4) #PL2
@@ -522,13 +544,16 @@ def low_loss_building_o2i_pen_loss(dim,f):
 
 #Não usado
 #def car_o2i_pen_loss(dim):
-    """Gera uma penetração O2I baseado no item 7.4.3.2 da TR 38.901. V.17.1.0"""
+   # """Gera uma penetração O2I baseado no item 7.4.3.2 da TR 38.901. V.17.1.0"""
     #return np.random.normal(9,5,size=dim.shape)
 
 def o2i_pen_loss(dim,f):
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
 
-    o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
+    if dim.ndim != 1:
+        o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
+    else:
+        o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8]) for _ in dim]).T
 
     
     pen_loss = np.zeros_like(dim)
@@ -565,7 +590,7 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
     hbs - Altura da BS (m) \n
     d2d e d3d são as distâncias em (m)!
     """
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
     c = 3*10**8 # Velocidade da luz (m/s)
     dbp = 4*(hbs-1)*(hut-1)*fc*10**9/c
     PLOSS = np.zeros_like(d2d) # Cria array de vazio para preencher com os PLOS
@@ -573,8 +598,10 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
     problos = calculate_los_prob_win2(d2d)
     
     #prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p],size = problos.shape[1]) for _ in problos]).reshape(problos.shape)
-
-    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    if problos.ndim != 1:
+        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    else:
+        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
 
     less_dbp = d2d < dbp
 
@@ -603,7 +630,7 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
     hbs - Altura da BS (m) \n
     d2d e d3d são as distâncias em (m)!
     """
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
     din = np.random.uniform(0,25,size=d2d.shape)
     d = d2d+din #array
     nrfi = np.random.uniform(1,5,size=d2d.shape)
@@ -614,7 +641,10 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
 
     problos = calculate_los_prob_win2(d2d)
 
-    prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    if problos.ndim != 1:
+        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
+    else:
+        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
 
     less_dbp = d2d < dbp
 

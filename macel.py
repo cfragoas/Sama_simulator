@@ -13,7 +13,7 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
+    def __init__(self, grid,prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
                  t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, downlink_specs=None,
                  uplink_specs=None, output_type="complete", tdd_up_time=0):
 
@@ -96,7 +96,7 @@ class Macel:
             #                         simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
             #                         bw_slot=self.bw_slot)
 
-    def set_ue(self, hrx=None, tx_power=None):
+    def set_ue(self, hrx=None, tx_power=None): #,user_condition=None)
         # if self.ue is not None:
         #     self.ue.positions = self.grid.grid
         # else:
@@ -105,6 +105,8 @@ class Macel:
             self.ue = User_eq()
         if self.grid is not None:
             self.ue.positions = self.grid.grid
+        #if user_condition is not None:
+            #self.ue.condition =user_condition #TERMINAR NICHOLAS! (FALTA TESTAR/ACREDITO QUE VÁ FUNCIONAR)
         if hrx is not None:
             self.ue.height = hrx
         if tx_power is not None:
@@ -112,17 +114,20 @@ class Macel:
 
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
+        #if hasattr(self.grid,'raster'): fazer esse teste para ver se é da a classe do self.grid é make_grid ou make_raster
+        # Tacar uma função depois para pegar os user_conditions de cada usuário 
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
         # ue[:] = np.nan
         ue = np.empty(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams))
         self.ch_gain_map = np.zeros(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams + 1)) - 10000
         self.sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
-        # path loss attenuation to sum with the beam gain
+        # path loss attenuation to sum with the beam gain (FALTA ADICIONAR A USER CONDITION COMO UM PARAMETRO DESTA FUNÇÃO!)
         att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
                                          frequency=self.base_station_list[0].frequency,  # todo
-                                         htx=self.default_base_station.tx_height, hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!!
-
+                                         htx=self.default_base_station.tx_height, hrx=1.5,
+                                         user_condition=self.ue.user_condition) # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!! 
+                                                                           # Adicionar a user_condition aqui (NICHOLAS)
         for bs_index, base_station in enumerate(self.base_station_list):
             lower_bound = 0
             for sector_index, higher_bound in enumerate(base_station.sectors_phi_range):
@@ -215,6 +220,15 @@ class Macel:
         #     self.cluster.from_file(name_file=self.bs_allocation_typ)
         else:
             raise NameError('bs_allocation_typ must be random, cluster or file - please check the param file')
+        
+        #Checking if imported grid is from Raster class:
+        if hasattr(self.grid,'raster'):
+            # If yes, get if each user in the raster is outdoor or indoor:
+             self.ue.obtain_user_condition(centers = self.cluster.centroids,samples = self.cluster.features,
+                                        raster_grid = self.grid.raster)
+        else:
+            self.ue.user_condition = None
+
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,

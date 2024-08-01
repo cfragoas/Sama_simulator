@@ -1,5 +1,5 @@
 exec_param:
-  threads: 8 # if 0 - uses the maximum number of threads - 1
+  threads: 4 # if 0 - uses the maximum number of threads - 1
   max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   hypothesis_test: True  # True if you want to use Mann_Whitney U test to evaluate the distribution and stop the simulation
@@ -9,17 +9,17 @@ exec_param:
   plot_hist: True
   backup_data: True
   output_type: 'complete'  # complete or simple or raw
-
+#Estava usando complete
 
 
 roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
 
-  grid: True
+  grid: False
   grid_lines: 500
   grid_columns: 500
-  cel_size: 30
+  cel_size: 1
 
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
@@ -30,6 +30,14 @@ roi_param:
   filter_name: 'Tijuca'
 
   # ==================================================================================================================
+
+  # ==================================================== raster param ================================================
+  raster: True
+  input_shapefile: 'rasters/shapefiles/londres/teste_londres.shp' # Path containing the input shapefile (string type)
+  output_raster: 'rasters/testepy_londres.tif' # Path for the output rasterfile to be placed (string type)
+  projection: 'EPSG:4326' # Projection to be used (string type)
+  burner_value: 'osm_id' # Name of the column used to generate the raster file (string type)
+  # ====================================================end raster param =============================================
 
   # WARNING - below, you can only iterate for a range of samples or a range of BS number
   # if you want to iterate over one, leave the other with the step equals 0 to use only the minimum number !!!
@@ -61,7 +69,9 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  prop_model: 'WINNER2 C2' # Available path loss models for simulation : free space, 3GPP UMA, 3GPP UMA O2I, WINNER2 C2, WINNER2 C4
+  prop_model: '3GPP UMA dynamic' 
+  # Available path loss models for simulation using grid : free space, 3GPP UMA, 3GPP UMA O2I, WINNER2 C2, WINNER2 C4
+  # Available path loss models for simulation using raster : 3GPP UMA dynamic, WINNER2 dynamic
   # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side
