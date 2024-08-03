@@ -8,22 +8,24 @@ from make_grid import Grid
 import pickle
 
 class Raster(Grid):
-    def __init__(self,input_shapefile,output_raster,projection,burner_value):
+    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size):
         super().__init__()
-        self.pixel_size = 0.00000325872 #0.000325872
+        self.pixel_size = pixel_size # Fator de escala (graus por pixel)
         self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
         self.src_layer = None
         self.xmin = None
         self.xmax = None
-        self.x_res = None
+        self.x_res = None # Número de pixels na direção x
+        self.x_scale = None # Fator de escala no eixo x em metros por pixel
         self.ymin = None
         self.ymax = None
-        self.y_res = None
+        self.y_res = None # Número de pixels na direção y
+        self.y_scale = None # Fator de escala no eixo y em metros por pixel
         self.raster = None
         self.input_shapefile_path = input_shapefile
         self.output_raster_path = output_raster
-        self.projection = projection
-        self.burner_value = burner_value
+        self.projection = projection # Proejeção do shapefile
+        self.burner_value = burner_value # Atributo usado para rasterizar o shapefile. Ele irá representar a escala da layer
         
     def rasterize_shapefile(self):
 
@@ -69,23 +71,38 @@ class Raster(Grid):
         super().make_points(dist_type, samples, n_centers, random_centers, plot)
        # self.point_condition = self.raster[self.grid != 0]
 
-    def save_raster(self,raster):
-        np.save(self.temp_raster_array_path,raster)
-    
-    def load_raster(self):
-        loaded_raster = np.load(self.temp_raster_array_path)
-        return loaded_raster
-    
-    def delete_raster_npy_file(self):
-        os.remove(self.temp_raster_array_path)
-
-    def set_point_condition(self,point_condition):
-        self.point_condition = point_condition
-
-    def set_raster_transform_paths(self,input_shapefile,output_raster):
-        self.input_shapefile_path = input_shapefile
-        self.output_raster_path = output_raster
+    #def save_raster(self,raster):
+    #    np.save(self.temp_raster_array_path,raster)
+    #
+    #def load_raster(self):
+    #    loaded_raster = np.load(self.temp_raster_array_path)
+    #    return loaded_raster
+    #
+    #def delete_raster_npy_file(self):
+    #    os.remove(self.temp_raster_array_path)
+#
+    #def set_point_condition(self,point_condition):
+    #    self.point_condition = point_condition
+#
+    #def set_raster_transform_paths(self,input_shapefile,output_raster):
+    #    self.input_shapefile_path = input_shapefile
+    #    self.output_raster_path = output_raster
 
     def delete_tif_file(self):
         os.remove(self.output_raster_path)
 
+    def define_scaling_factor(self):
+    
+        centroid_lat = self.ymax+self.ymin/2 # Valor central
+    
+        earth_radius = 6378137  # Raio da terra em metros
+    
+    
+        meters_per_degree_lat = (2 * np.pi * earth_radius) / 360 # Fator de escala metros por grau latitude
+    
+    
+        meters_per_degree_long = meters_per_degree_lat * np.cos(np.radians(centroid_lat)) # Fator de escala metros por grau longitude
+
+        # Calcula o fator de escala, resultado em metros por pixel 
+        self.y_scale = meters_per_degree_lat * self.pixel_size
+        self.x_scale = meters_per_degree_long * self.pixel_size

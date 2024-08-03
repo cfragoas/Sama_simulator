@@ -234,7 +234,7 @@ class Macel:
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
                                       samples=self.cluster.features)
         self.dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
-                                               samples=self.cluster.features, plot=False)
+                                               grid_obj=self.grid, samples=self.cluster.features, plot=False)
         elev_map = generate_elevation_map(htx=self.default_base_station.tx_height, hrx=self.ue.height,
                                           d_euclid=self.dist_map, cell_size=self.cell_size, samples=None)
         self.default_base_station.beam_configuration(

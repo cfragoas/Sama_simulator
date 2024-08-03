@@ -265,7 +265,8 @@ def plot_surfaces(name_file, global_parameters, list_typ, n_index=None):
         grid = Raster(input_shapefile = global_parameters['roi_param']['input_shapefile'],
         output_raster = global_parameters['roi_param']['output_raster'],
         projection = global_parameters['roi_param']['projection'],
-        burner_value = global_parameters['roi_param']['burner_value'])
+        burner_value = global_parameters['roi_param']['burner_value'],
+        pixel_size = global_parameters['roi_param']['pixel_size'])
 
         grid.rasterize_shapefile()
         grid.make_grid()

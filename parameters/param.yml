@@ -1,5 +1,5 @@
 exec_param:
-  threads: 4 # if 0 - uses the maximum number of threads - 1
+  threads: 8 # if 0 - uses the maximum number of threads - 1
   max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   hypothesis_test: True  # True if you want to use Mann_Whitney U test to evaluate the distribution and stop the simulation
@@ -19,7 +19,7 @@ roi_param:
   grid: False
   grid_lines: 500
   grid_columns: 500
-  cel_size: 1
+  cel_size: 42
 
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
@@ -35,8 +35,9 @@ roi_param:
   raster: True
   input_shapefile: 'rasters/shapefiles/londres/teste_londres.shp' # Path containing the input shapefile (string type)
   output_raster: 'rasters/testepy_londres.tif' # Path for the output rasterfile to be placed (string type)
-  projection: 'EPSG:4326' # Projection to be used (string type)
+  projection: 'EPSG:4326' # Projection to be used (string type) / 'EPSG:4326' is a commom one
   burner_value: 'osm_id' # Name of the column used to generate the raster file (string type)
+  pixel_size: 0.000325872 # Pixel size (float type) / 0.000325872 is a commom value
   # ====================================================end raster param =============================================
 
   # WARNING - below, you can only iterate for a range of samples or a range of BS number
@@ -69,7 +70,7 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  prop_model: '3GPP UMA dynamic' 
+  prop_model: 'WINNER2 dynamic' 
   # Available path loss models for simulation using grid : free space, 3GPP UMA, 3GPP UMA O2I, WINNER2 C2, WINNER2 C4
   # Available path loss models for simulation using raster : 3GPP UMA dynamic, WINNER2 dynamic
   # =================================================================================================================

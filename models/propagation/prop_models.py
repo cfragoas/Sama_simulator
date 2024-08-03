@@ -35,14 +35,21 @@ def generate_azimuth_map(lines, columns, centroids, samples=None, plot=False):
     return az_map
 
 
-def generate_euclidian_distance(lines, columns, centers, samples=None,plot=False): 
+def generate_euclidian_distance(lines, columns, centers, grid_obj, samples=None,plot=False): 
+    if hasattr(grid_obj,'raster'): # If grid comes from raster, calculate scaling factors based on raster
+        grid_obj.define_scaling_factor()
+        x_scaling_factor = grid_obj.x_scale
+        y_scaling_factor = grid_obj.y_scale
+    else: # If grid doesn't como from raster file, set scaling factor to unit (one) so it doesn' effect the distances
+        x_scaling_factor = 1
+        y_scaling_factor = 1
     if samples is not None:
         dist_mtx = np.ndarray(shape=(centers.shape[0], samples.shape[0]))
         a_b = np.ndarray(shape=(centers.shape[0], 2)) 
 
         for i, coord in enumerate(samples):
-            a_b[:, 0] = centers[:, 0] - coord[0]
-            a_b[:, 1] = centers[:, 1] - coord[1]
+            a_b[:, 0] = (centers[:, 0] - coord[0])*x_scaling_factor
+            a_b[:, 1] = (centers[:, 1] - coord[1])*y_scaling_factor
 
             dist_mtx[:, i] = np.linalg.norm(a_b, axis=1)  # euclidean distance using L2 norm
 
@@ -54,8 +61,8 @@ def generate_euclidian_distance(lines, columns, centers, samples=None,plot=False
         a_b = np.ndarray(shape=(centers.shape[0], 2))
         for line in coord_map:
             for coord in line:
-                a_b[:, 0] = centers[:, 0] - coord[0]
-                a_b[:, 1] = centers[:, 1] - coord[1]
+                a_b[:, 0] = (centers[:, 0] - coord[0])*x_scaling_factor
+                a_b[:, 1] = (centers[:, 1] - coord[1])*y_scaling_factor
 
                 dist_mtx[:, coord[0], coord[1]] = np.linalg.norm(a_b, axis=1)  # euclidean distance using L2 norm
 
@@ -563,7 +570,7 @@ def o2i_pen_loss(dim,f):
     pen_loss[is_high] = (5-10*np.log10(0.7*np.power(10,-(23+0.3*f)/10)+0.3*np.power(10,-(5+4*f)/10))+ 
     np.random.uniform(low=0,high=25,size=dim[is_high].shape)+np.random.normal(0,6.5,size=dim[is_high].shape))
 
-    #~ é equivalente a np.invert
+    
 
     pen_loss[~is_high] = (5-10*np.log10(0.3*np.power(10,-(2+0.2*f)/10)+0.7*np.power(10,-(5+4*f)/10))+ 
     np.random.uniform(low=0,high=25,size=dim[~is_high].shape)+np.random.normal(0,4.4,size=dim[~is_high].shape))

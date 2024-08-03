@@ -58,11 +58,13 @@ def create_enviroment(parameters, param_path):
         grid = Raster(input_shapefile = parameters['roi_param']['input_shapefile'],
         output_raster = parameters['roi_param']['output_raster'],
         projection = parameters['roi_param']['projection'],
-        burner_value = parameters['roi_param']['burner_value'])
+        burner_value = parameters['roi_param']['burner_value'],
+        pixel_size=parameters['roi_param']['pixel_size'])
 
         print('Rasterizando o shapefile ...')
         grid.rasterize_shapefile()
         grid.make_grid()
+        grid.define_scaling_factor()
         grid.delete_tif_file()
         cell_size = parameters['roi_param']['cel_size']
         print('... feito!')

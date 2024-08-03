@@ -134,6 +134,8 @@ class Raster(Grid):
         self.output_raster_path = output_raster
         self.projection = projection
         self.burner_value = burner_value
+        self.x_scale = None # Fator de escala no eixo x em metros por pixel
+        self.yscale = None # Fator de escala no eixo y em metros por pixel
         
 
     def rasterize_shapefile(self):
@@ -198,7 +200,23 @@ class Raster(Grid):
     def delete_tif_file(self):
         os.remove(self.output_raster_path)
 
+    def define_scaling_factor(self):
+    
+        centroid_lat = self.ymax+self.ymin/2 # Valor central
+    
+        earth_radius = 6378137  # Raio da terra em metros
+    
+    
+        meters_per_degree_lat = (2 * np.pi * earth_radius) / 360 # Fator de escala metros por grau latitude
+    
+    
+        meters_per_degree_long = meters_per_degree_lat * np.cos(np.radians(centroid_lat)) # Fator de escala metros por grau longitude
 
+        # Calculate latitude and longitude scaling factors
+        self.y_scale = meters_per_degree_lat * self.pixel_size
+        self.x_scale = meters_per_degree_long * self.pixel_size
+
+   
 # sobrescrever o make_point para setar as conditions também
 
 ###################################
@@ -246,6 +264,8 @@ print(type(raster.point_condition))
 print('\n Quantidade de usuarios indoor (1) e outdoor (0): ')
 unique,count = np.unique(raster.point_condition,return_counts=True)
 print(np.asarray((unique,count)).T)
+
+raster.define_scaling_factor()
 
 grid = Grid()
 #raster.delete_raster_npy_file()
