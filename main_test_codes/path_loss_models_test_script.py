@@ -165,6 +165,7 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
     #             #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
     #             Pathloss = np.max((PLOS,PNLOS))
     #         pl[...] = Pathloss+pen_loss
+    #return PLOS
     return PLOS
 
 
@@ -387,22 +388,22 @@ em = np.random.uniform(10,1000,(1,1000))
 dm = generate_distance_map(em,csize,htx,hrx,False)
 
 
-uma = generate_uma_path_loss(em,dm,hrx,htx,fc)
+uma,prop_scenario = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
 
 #fs = fs_path_loss(dm/100,fc)
 
-win2 = generate_win2_path_loss_c2(em,dm,hrx,htx,fc)
+#win2 = generate_win2_path_loss_c2(em,dm,hrx,htx,fc)
 
-#print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
+print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
 
 #print(f"Resultados FS:\n min: {np.min(fs)}\n max: {np.max(fs)}\n mean: {np.mean(fs)}\n std: {np.std(fs)}")
 
-print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
+#print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
 
 print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
 #print(f"fs at {dm[0,500]}m {fs[0,500]}")
-#print(f"uma at {dm[0,500]}m {uma[0,500]}")
-print(f"win2 at {dm[0,500]}m {win2[0,500]}")
+print(f"uma at {dm[0,500]}m {uma[0,500]}")
+#print(f"win2 at {dm[0,500]}m {win2[0,500]}")
 
 #fig,ax = plt.subplots(figsize = (10,6))
 #ax.plot(np.sort(dm[0,:]),np.sort(uma[0,:]),'r',np.sort(dm[0,:]),np.sort(fs[0,:]),'b',np.sort(dm[0,:]),np.sort(win2[0,:]),'g')

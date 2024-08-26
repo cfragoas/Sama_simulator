@@ -96,17 +96,11 @@ class Macel:
             #                         simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
             #                         bw_slot=self.bw_slot)
 
-    def set_ue(self, hrx=None, tx_power=None): #,user_condition=None)
-        # if self.ue is not None:
-        #     self.ue.positions = self.grid.grid
-        # else:
-        #     self.ue = User_eq(positions=self.grid.grid, height=None, tx_power=None)  # creating the user equipament object
+    def set_ue(self, hrx=None, tx_power=None): 
         if self.ue is None:
             self.ue = User_eq()
         if self.grid is not None:
             self.ue.positions = self.grid.grid
-        #if user_condition is not None:
-            #self.ue.condition =user_condition #TERMINAR NICHOLAS! (FALTA TESTAR/ACREDITO QUE VÁ FUNCIONAR)
         if hrx is not None:
             self.ue.height = hrx
         if tx_power is not None:
@@ -123,7 +117,8 @@ class Macel:
         self.sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
         # path loss attenuation to sum with the beam gain (FALTA ADICIONAR A USER CONDITION COMO UM PARAMETRO DESTA FUNÇÃO!)
-        att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
+        # Added a new output for getting the propagation scenario (NLOS/LOS) to generate_path_loss_map (Nicholas Aug/2024)
+        att_map,self.ue.prop_scenario = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
                                          frequency=self.base_station_list[0].frequency,  # todo
                                          htx=self.default_base_station.tx_height, hrx=1.5,
                                          user_condition=self.ue.user_condition) # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!! 
@@ -311,11 +306,12 @@ class Macel:
         # if the tdd not has downlink or uplink, it will return a correspondent empty dictionary
         return {'downlink_results': downlink_results, 'uplink_results': uplink_results}
 
-    def uplink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range, output_typ='complete'):
+    def uplink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range,output_typ='complete'):
         # For the time, the uplink interference is fundamentally different of the downlink because every active UE
         # transmits in a different frequency with a different bandwidth
         # To solve that, a transmitted power spectrum, interference power spectrum (interference + noise),
         # SNIR spectrum and capacity spectrum are constructed. For reference, a EU-mapping spectrum is also used.
+        # The user_prop_char (user propagation characteristics) correspond to all the possible characteristics of the user propagation path.
 
         # if self.dwn_rel_t_index is None:
         #     self.dwn_rel_t_index = 0
@@ -499,6 +495,8 @@ class Macel:
             return(self.metrics.create_uplink_metrics_dataframe(output_typ=output_typ, active_ue=self.ue.active_ue,
                                                                 cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                 ue_pos=self.cluster.features,
+                                                                ue_char = self.ue.user_condition,
+                                                                ue_prop_sce = self.ue.prop_scenario,
                                                                 ue_bs_table=self.ue_bs_table,
                                                                 dist_map=self.dist_map * self.cell_size,
                                                                 scheduler_typ=self.scheduler_typ))
@@ -593,6 +591,8 @@ class Macel:
             return(self.metrics.create_downlink_metrics_dataframe(output_typ='complete', active_ue=self.ue.active_ue,
                                                                   cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                   ue_pos=self.cluster.features,
+                                                                  ue_char = self.ue.user_condition,
+                                                                  ue_prop_sce = self.ue.prop_scenario,
                                                                   ue_bs_table=self.ue_bs_table,
                                                                   dist_map=self.dist_map * self.cell_size,
                                                                   scheduler_typ=self.scheduler_typ))

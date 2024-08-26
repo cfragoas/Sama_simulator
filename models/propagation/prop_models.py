@@ -174,13 +174,19 @@ def generate_gain_map(antenna, elevation_map, azimuth_map, sectors_hor_pattern=N
     return gain_map
 
 def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx, hrx, samples=None, plot=False,user_condition=None, **kwargs):
-
+        
     # converting the euclidean distance to actual distance between Tx and Rx and using the actual distance for a cell size
     if samples is not None:
         eucli_dist_map = eucli_dist_map[:, samples[:, 0], samples[:, 1]]
 
     dist_map = generate_distance_map(eucli_dist_map, cell_size, htx, hrx)
     path_loss_map = np.zeros_like(dist_map)
+    
+    # Initialization the propagation (NLOS/LOS) scenario variable. In case of free space is the chosen propagation, this variable stay as None.
+    if prop_model == 'free space':
+        prop_scenario = None
+    else:
+        prop_scenario = np.zeros_like(dist_map,dtype = object)
     if user_condition is None:
         # calculating the prop model for each centroid for each cell of the grid
         if prop_model == 'free space':
@@ -190,29 +196,31 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
             else:
                 path_loss_map = fs_path_loss(dist_map / 1000, frequency)
         elif prop_model == '3GPP UMA':
-                path_loss_map = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)
+                path_loss_map,prop_scenario = generate_uma_path_loss(eucli_dist_map,dist_map,hrx,htx,frequency)
         elif prop_model == '3GPP UMA O2I':
-                path_loss_map = generate_uma_path_loss_o2i(eucli_dist_map,dist_map,hrx,htx,frequency)
+                path_loss_map,prop_scenario = generate_uma_path_loss_o2i(eucli_dist_map,dist_map,hrx,htx,frequency)
         elif prop_model == 'WINNER2 C2':
-                path_loss_map = generate_win2_path_loss_c2(eucli_dist_map,dist_map,hrx,htx,frequency)
+                path_loss_map,prop_scenario = generate_win2_path_loss_c2(eucli_dist_map,dist_map,hrx,htx,frequency)
         elif prop_model == 'WINNER2 C4':
-                path_loss_map = generate_win2_path_loss_c4(eucli_dist_map,dist_map,hrx,htx,frequency)
+                path_loss_map,prop_scenario = generate_win2_path_loss_c4(eucli_dist_map,dist_map,hrx,htx,frequency)
         else:
             raise Exception('wrong path loss model !!! please see the available ones in: Param.yaml')
     else:
         outdoor = user_condition == 0 # Mask for outdoor users
         if prop_model == '3GPP UMA dynamic':
             path_loss_map = np.copy(path_loss_map)
+            prop_scenario = np.copy(prop_scenario)
             #Outdoor
-            path_loss_map[outdoor] = generate_uma_path_loss(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
+            path_loss_map[outdoor],prop_scenario[outdoor] = generate_uma_path_loss(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
             #Indoor
-            path_loss_map[~outdoor] = generate_uma_path_loss_o2i(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency)
+            path_loss_map[~outdoor],prop_scenario[~outdoor] = generate_uma_path_loss_o2i(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency)
         elif prop_model == 'WINNER2 dynamic':
             path_loss_map = np.copy(path_loss_map) 
+            prop_scenario = np.copy(prop_scenario)
             #Outdoor
-            path_loss_map[outdoor] = generate_win2_path_loss_c2(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
+            path_loss_map[outdoor],prop_scenario[outdoor] = generate_win2_path_loss_c2(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
             #Indoor
-            path_loss_map[~outdoor] = generate_win2_path_loss_c4(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency) 
+            path_loss_map[~outdoor],prop_scenario[~outdoor] = generate_win2_path_loss_c4(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency) 
         else:
             raise Exception('wrong path loss model !!! For raster files with user_condition only 3GPP UMA dynamic and WINNER2 dynamic are available')
     
@@ -221,7 +229,7 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
         title = 'path loss map using' + prop_model
         plot_func(path_loss_map, 1, n_centroids, title)
 
-    return path_loss_map
+    return path_loss_map,prop_scenario
 
 
 def generate_rx_power_map(path_loss_map, azimuth_map, elevation_map, base_station, gain_map=None):
@@ -475,7 +483,7 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc):
                               13.54 + 39.08 * np.log10(d2d[not_los]) +
                               20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
     
-    return PLOSS 
+    return PLOSS,prop
  
 def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
     """
@@ -522,7 +530,7 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
                               13.54 + 39.08 * np.log10(d2d[not_los]) +
                               20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
     PLOSS += pen_loss
-    return PLOSS
+    return PLOSS,prop
 
 ######################## FADING e O2I LOSSES ###################################
 
@@ -627,7 +635,7 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
                               13.54 + 39.08 * np.log10(d2d[not_los]) +
                               20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
 
-    return PLOSS
+    return PLOSS,prop
    
 def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
     """
@@ -672,7 +680,7 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
 
     PLOSS += 17.4 + 0.5*din -0.8*hms
 
-    return PLOSS
+    return PLOSS,prop
 
 
 
