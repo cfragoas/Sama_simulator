@@ -59,7 +59,9 @@ def create_enviroment(parameters, param_path):
         output_raster = parameters['roi_param']['output_raster'],
         projection = parameters['roi_param']['projection'],
         burner_value = parameters['roi_param']['burner_value'],
-        pixel_size=parameters['roi_param']['pixel_size'])
+        pixel_size=parameters['roi_param']['pixel_size'],
+        no_data_value=parameters['roi_param']['no_data_value']
+        )
 
         print('Rasterizando o shapefile ...')
         grid.rasterize_shapefile()
@@ -144,6 +146,7 @@ def create_enviroment(parameters, param_path):
                   bw_slot=parameters['downlink_scheduler']['bw_slot'],
                   tdd_up_time=parameters['macel_param']['mux_tdd_up_time'],
                   bs_allocation_typ=parameters['macel_param']['bs_allocation_typ'],
+                  dynamic_pl=parameters['macel_param']['dynamic_pathloss'],
                   downlink_specs=downlink_specs,
                   uplink_specs=uplink_specs)
     macel.set_ue(hrx=parameters['ue_param']['hrx'], tx_power=parameters['ue_param']['tx_power'])

@@ -8,7 +8,7 @@ from make_grid import Grid
 import pickle
 
 class Raster(Grid):
-    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size):
+    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size,no_data_value):
         super().__init__()
         self.pixel_size = pixel_size # Fator de escala (graus por pixel)
         self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
@@ -22,6 +22,7 @@ class Raster(Grid):
         self.y_res = None # Número de pixels na direção y
         self.y_scale = None # Fator de escala no eixo y em metros por pixel
         self.raster = None
+        self.no_data_value = no_data_value
         self.input_shapefile_path = input_shapefile
         self.output_raster_path = output_raster
         self.projection = projection # Proejeção do shapefile
@@ -54,7 +55,7 @@ class Raster(Grid):
             srse.SetWellKnownGeogCS(projection)
             target_ds.SetProjection(srse.ExportToWkt()) 
             band = target_ds.GetRasterBand(1)
-            target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
+            target_ds.GetRasterBand(1).SetNoDataValue(self.no_data_value) # era -9999
             band.Fill(0) #-9999
             gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE='+self.burner_value])
             target_ds = None

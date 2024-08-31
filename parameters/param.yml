@@ -38,6 +38,7 @@ roi_param:
   projection: 'EPSG:4326' # Projection to be used (string type) / 'EPSG:4326' is a commom one
   burner_value: 'osm_id' # Name of the column used to generate the raster file (string type)
   pixel_size: 0.000325872 # Pixel size (float type) / 0.000325872 is a commom value
+  no_data_value: 0 # Set default no value in case the raster pixel doesn't contain any information (Integer)
   # ====================================================end raster param =============================================
 
   # WARNING - below, you can only iterate for a range of samples or a range of BS number
@@ -70,9 +71,11 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  prop_model: 'WINNER2 dynamic' 
-  # Available path loss models for simulation using grid : free space, 3GPP UMA,3GPP UMA O2I, WINNER2 C2, WINNER2 C4
-  # Available path loss models for simulation using raster : 3GPP UMA dynamic, WINNER2 dynamic
+  dynamic_pathloss: True # Flag to if dynamic path loss decision. 
+  # Dynamic path loss will use the user condition to define what is the best path loss for situation.
+  prop_model: 'WINNER2' 
+  # Available path loss models for simulation with dynamic flag false: free space, 3GPP UMA,3GPP UMA O2I, WINNER2 C2, WINNER2 C4
+  # Available path loss models for simulation with dynamic flag true: 3GPP UMA, WINNER2 
   # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side

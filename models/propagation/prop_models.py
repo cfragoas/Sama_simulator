@@ -207,14 +207,14 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
             raise Exception('wrong path loss model !!! please see the available ones in: Param.yaml')
     else:
         outdoor = user_condition == 0 # Mask for outdoor users
-        if prop_model == '3GPP UMA dynamic':
+        if prop_model == '3GPP UMA':
             path_loss_map = np.copy(path_loss_map)
             prop_scenario = np.copy(prop_scenario)
             #Outdoor
             path_loss_map[outdoor],prop_scenario[outdoor] = generate_uma_path_loss(eucli_dist_map[outdoor],dist_map[outdoor],hrx,htx,frequency)
             #Indoor
             path_loss_map[~outdoor],prop_scenario[~outdoor] = generate_uma_path_loss_o2i(eucli_dist_map[~outdoor],dist_map[~outdoor],hrx,htx,frequency)
-        elif prop_model == 'WINNER2 dynamic':
+        elif prop_model == 'WINNER2':
             path_loss_map = np.copy(path_loss_map) 
             prop_scenario = np.copy(prop_scenario)
             #Outdoor

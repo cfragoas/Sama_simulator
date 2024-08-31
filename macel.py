@@ -14,13 +14,14 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 class Macel:
     def __init__(self, grid,prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
-                 t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, downlink_specs=None,
-                 uplink_specs=None, output_type="complete", tdd_up_time=0):
+                 dynamic_pl,t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, 
+                 downlink_specs=None,uplink_specs=None, output_type="complete", tdd_up_time=0):
 
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
-        self.prop_model = prop_model  # string - name of prop model to be used in prop_models
+        self.prop_model = prop_model  # string - name of propagation model to be used in path loss models
+        self.dynamic_pathloss = dynamic_pl # Boolean. Dynamic flag used for path loss models
         self.criteria = criteria  # for now, received power
         self.cell_size = cell_size  # size of one side of a cell, in meters
         self.log = log  # if true, prints information about the ongoing process
@@ -217,7 +218,7 @@ class Macel:
             raise NameError('bs_allocation_typ must be random, cluster or file - please check the param file')
         
         #Checking if imported grid is from Raster class:
-        if hasattr(self.grid,'raster'):
+        if self.dynamic_pathloss:
             # If yes, get if each user in the raster is outdoor or indoor:
              self.ue.obtain_user_condition(centers = self.cluster.centroids,samples = self.cluster.features,
                                         raster_grid = self.grid.raster)
