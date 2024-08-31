@@ -359,7 +359,7 @@ class Metrics:
                              'norm_deficit': norm_deficit, 'meet_criteria': self.dwn_cnt_satisfied_ue,
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
                              'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
-                             'user_condition':ue_char,'user_propagation_scenario':ue_prop_sce}
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce}
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
                              'snr': mean_snr, 'cap': cap_sum,
@@ -367,7 +367,7 @@ class Metrics:
                              'user_time': user_time, 'user_bw': np.nanmean(self.dwn_user_bw, axis=1),
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
                              'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
-                             'user_condition':ue_char,'user_propagation_scenario':ue_prop_sce}
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce}
 
         if output_typ == 'simple':
             return {'snr_cap_stats': snr_cap_stats}
