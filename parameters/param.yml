@@ -75,7 +75,7 @@ macel_param:
   # Dynamic path loss will use the user condition to define what is the best path loss for situation.
   prop_model: 'WINNER2' 
   # Available path loss models for simulation with dynamic flag false: free space, 3GPP UMA,3GPP UMA O2I, WINNER2 C2, WINNER2 C4
-  # Available path loss models for simulation with dynamic flag true: 3GPP UMA, WINNER2 
+  # Available path loss models for simulation with dynamic flag true: 3GPP SCM, WINNER2 
   # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side

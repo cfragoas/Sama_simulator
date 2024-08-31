@@ -207,7 +207,7 @@ def generate_path_loss_map(eucli_dist_map, cell_size, prop_model, frequency, htx
             raise Exception('wrong path loss model !!! please see the available ones in: Param.yaml')
     else:
         outdoor = user_condition == 0 # Mask for outdoor users
-        if prop_model == '3GPP UMA':
+        if prop_model == '3GPP SCM':
             path_loss_map = np.copy(path_loss_map)
             prop_scenario = np.copy(prop_scenario)
             #Outdoor
