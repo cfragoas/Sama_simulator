@@ -15,7 +15,7 @@ class User_eq:
         self.gain_matrix = None
         self.tx_power = tx_power  # UE tx power in dBW
         self.prop_scenario = None # Propagation scenario of certain user (LOS or NLOS)
-
+        
         self.sector_map = None
 
         # calculated variables

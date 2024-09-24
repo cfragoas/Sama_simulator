@@ -136,7 +136,7 @@ class Macel:
                 self.sector_map[bs_index][ue_in_range] = sector_index
                 self.ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
                 lower_bound = higher_bound
-
+        self.path_loss_map = att_map # Retornando os path_loss de cada UE(Adicionado por Nicholas)
         return self.ch_gain_map, self.sector_map
 
     def send_ue_to_bs(self, t_index=0, cap_defict=None, t_min=None, bs_2b_updt=None, updated_beams=None,
@@ -499,6 +499,7 @@ class Macel:
                                                                 ue_char = self.ue.user_condition,
                                                                 ue_prop_sce = self.ue.prop_scenario,
                                                                 ue_bs_table=self.ue_bs_table,
+                                                                ue_path_loss = self.path_loss_map,
                                                                 dist_map=self.dist_map * self.cell_size,
                                                                 scheduler_typ=self.scheduler_typ))
 
@@ -594,6 +595,7 @@ class Macel:
                                                                   ue_pos=self.cluster.features,
                                                                   ue_char = self.ue.user_condition,
                                                                   ue_prop_sce = self.ue.prop_scenario,
+                                                                  ue_path_loss = self.path_loss_map,
                                                                   ue_bs_table=self.ue_bs_table,
                                                                   dist_map=self.dist_map * self.cell_size,
                                                                   scheduler_typ=self.scheduler_typ))

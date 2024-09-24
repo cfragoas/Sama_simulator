@@ -379,30 +379,30 @@ def user_characteristics(d2d):
 
 htx = 25
 hrx = 1.5
-csize = 1
+csize = 100
 fc = 3.6
 
 em = np.random.uniform(10,1000,(1,1000))
 
 
-dm = generate_distance_map(em,csize,htx,hrx,False)
+dm = generate_distance_map(em,1/100,htx,hrx,False)
 
 
-uma,prop_scenario = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
+#uma,prop_scenario = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
 
 #fs = fs_path_loss(dm/100,fc)
 
 #win2 = generate_win2_path_loss_c2(em,dm,hrx,htx,fc)
 
-print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
+#print(f"Resultados UMA:\n min: {np.min(uma)}\n max: {np.max(uma)}\n mean: {np.mean(uma)}\n std: {np.std(uma)}")
 
 #print(f"Resultados FS:\n min: {np.min(fs)}\n max: {np.max(fs)}\n mean: {np.mean(fs)}\n std: {np.std(fs)}")
 
 #print(f"Resultados WIN2:\n min: {np.min(win2)}\n max: {np.max(win2)}\n mean: {np.mean(win2)}\n std: {np.std(win2)}")
 
-print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
+#print(f"Breakpooint distance: { 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)} m.")
 #print(f"fs at {dm[0,500]}m {fs[0,500]}")
-print(f"uma at {dm[0,500]}m {uma[0,500]}")
+#print(f"uma at {dm[0,500]}m {uma[0,500]}")
 #print(f"win2 at {dm[0,500]}m {win2[0,500]}")
 
 #fig,ax = plt.subplots(figsize = (10,6))
@@ -415,24 +415,24 @@ print(f"uma at {dm[0,500]}m {uma[0,500]}")
 #cursor = Cursor(ax,horizOn= True,vertOn=True)
 #plt.show()
 #
-#dbp = 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)
+dbp = 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)
 #
-#PL1 = 39+26*np.log10(dm)+20*np.log10(fc/5.0) #PL1 win2
+PL1 = 39+26*np.log10(dm)+20*np.log10(fc/5.0) #PL1 win2
 #
-#PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log10(hrx-1) #PL2 win2
+PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log10(hrx-1) #PL2 win2
 #
-#PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
+PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
 #
-#PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
-#fig,ax = plt.subplots(figsize = (10,6))
-#ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
-#plt.title("WIN2 & UMA PL1 X PL2")
-#plt.xlabel("Distance (m)")
-#plt.ylabel("Path Loss (db)")
-#plt.legend(['PL1 WIN2','PL2 WIN2','PL1 UMA','PL2 UMA'])
-#plt.grid()
+PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
+fig,ax = plt.subplots(figsize = (10,6))
+ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
+plt.title("WIN2 & UMA PL1 X PL2")
+plt.xlabel("Distance (m)")
+plt.ylabel("Path Loss (db)")
+plt.legend(['PL1 WIN2','PL2 WIN2','PL1 UMA','PL2 UMA'])
+plt.grid()
 #cursor = Cursor(ax,horizOn= True,vertOn=True)
-#plt.show()
+plt.show()
 
 # Teste :  Obtendo quantos percussos foram LOS e quantos foram NLOS
 

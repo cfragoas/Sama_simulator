@@ -271,5 +271,3 @@ grid = Grid()
 #raster.delete_raster_npy_file()
 
 print('\nFoi!')
-
-
