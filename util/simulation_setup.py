@@ -68,7 +68,7 @@ def create_enviroment(parameters, param_path):
         grid.make_grid()
         grid.define_scaling_factor()
         grid.delete_tif_file()
-        cell_size = parameters['roi_param']['cel_size']
+        cell_size = parameters['roi_param']['raster_cell_size'] # Cell size used in case Raster = True
         print('... feito!')
         
     elif parameters['roi_param']['map']:  # if a grid is not used, it checks if a map is selected

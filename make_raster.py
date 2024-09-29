@@ -27,7 +27,7 @@ class Raster(Grid):
         self.output_raster_path = output_raster
         self.projection = projection # Proejeção do shapefile
         self.burner_value = burner_value # Atributo usado para rasterizar o shapefile. Ele irá representar a escala da layer
-        
+    
     def rasterize_shapefile(self):
 
         if os.path.isfile(self.input_shapefile_path): #Conferindo se o shapefile selecionado existe

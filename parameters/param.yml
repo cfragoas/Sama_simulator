@@ -3,7 +3,7 @@ exec_param:
   max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   hypothesis_test: True  # True if you want to use Mann_Whitney U test to evaluate the distribution and stop the simulation
-  hypothesis_test_var: avg_latency  # variable that will be used if hypothesis_test = True
+  hypothesis_test_var: 'cap'  # variable that will be used if hypothesis_test = True
   plot_curves: True
   plot_surf: True
   plot_hist: True
@@ -33,12 +33,14 @@ roi_param:
 
   # ==================================================== raster param ================================================
   raster: True
-  input_shapefile: 'rasters/shapefiles/londres/teste_londres.shp' # Path containing the input shapefile (string type)
-  output_raster: 'rasters/testepy_londres.tif' # Path for the output rasterfile to be placed (string type)
+  input_shapefile: 'rasters/shapefiles/bairros_tcc/botafogo.shp' # Path containing the input shapefile (string type)
+  output_raster: 'rasters/botafogo.tif' # Path for the output rasterfile to be placed (string type)
   projection: 'EPSG:4326' # Projection to be used (string type) / 'EPSG:4326' is a commom one
   burner_value: 'osm_id' # Name of the column used to generate the raster file (string type)
-  pixel_size: 0.000325872 # Pixel size (float type) / 0.000325872 is a commom value
+  pixel_size: 0.00000325872 # Pixel size (float type) / 0.00000325872 is a commom value
   no_data_value: 0 # Set default no value in case the raster pixel doesn't contain any information (Integer)
+ #==================================================== Raster grid param =============================================
+  raster_cell_size: 1 # Cell size used for grid distance computation (Always use 1)
   # ====================================================end raster param =============================================
 
   # WARNING - below, you can only iterate for a range of samples or a range of BS number
@@ -47,9 +49,9 @@ roi_param:
 macel_param:
   # ================================================ UE Distribution ================================================
   ue_dist_typ: 'uniform'  # options: 'gaussian' or 'uniform' sampling - if map is selected, only uniform dist can be used
-  samples_min: 100 # minimum number of samples per distribution
-  samples_max: 1000  # maximum number of samples per distribution
-  samples_step: 0  # the step to iterate between samples_min and samples_max -> leave with 0 or empty to not iterate (will use the minium vale)
+  samples_min: 10000 # minimum number of samples per distribution
+  samples_max: 20000  # maximum number of samples per distribution
+  samples_step: 0 # the step to iterate between samples_min and samples_max -> leave with 0 or empty to not iterate (will use the minium vale)
   # ==================================== if the distribution sampling is GAUSSIAN ====================================
   n_centers: 4  # number of distributions to be summed (gaussian/etc) --> samples per dist = n_samples * n_centers
   center_distribution: 'cluster' # 'uniform' or 'cluster' for the  centers distribution
@@ -60,7 +62,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 5  # maximum number of BSs to be simulated
+  max_bs: 1  # maximum number of BSs to be simulated
   bs_step: 1  # the step to iterate between min_bs and max_bs -> leave with empty or 0 to not iterate (will use the minium vale)
   # ===================================================================================================================
 
@@ -71,22 +73,22 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  dynamic_pathloss: True # Flag to if dynamic path loss decision. 
+  dynamic_pathloss: False # Flag to if dynamic path loss decision. 
   # Dynamic path loss will use the user condition to define what is the best path loss for situation.
-  prop_model: 'WINNER2' 
+  prop_model: 'WINNER2 C4' 
   # Available path loss models for simulation with dynamic flag false: free space, 3GPP UMA,3GPP UMA O2I, WINNER2 C2, WINNER2 C4
   # Available path loss models for simulation with dynamic flag true: 3GPP SCM, WINNER2 
   # =================================================================================================================
 
 downlink_scheduler:  # scheduler specifications for the downlink side
   criteria:   # Mbps - if empty, does not use the capacity criteria
-  scheduler_typ: 'PF'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
+  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (p roposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 1  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
 uplink_scheduler:  # scheduler specifications for the uplink side
   criteria:   # Mbps - if empty, does not use the capacity criteria
-  scheduler_typ: 'PF'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
+  scheduler_typ: 'BCQI'  # RR (round-robin), prop-cmp (proposed complete), prop-smp (proposed simplified) or BCQI (Best Channel Quality Indicator)
   bw_slot: 1  # slot fixed bandwidth for scheduler with a queue (RR)
   t_min: 10  # minimum allocated time for an execution time = time_slots
 
