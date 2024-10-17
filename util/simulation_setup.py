@@ -60,7 +60,8 @@ def create_enviroment(parameters, param_path):
         projection = parameters['roi_param']['projection'],
         burner_value = parameters['roi_param']['burner_value'],
         pixel_size=parameters['roi_param']['pixel_size'],
-        no_data_value=parameters['roi_param']['no_data_value']
+        no_data_value=parameters['roi_param']['no_data_value'],
+        raster_cell_value=parameters['roi_param']['raster_cell_value']
         )
 
         print('Rasterizando o shapefile ...')

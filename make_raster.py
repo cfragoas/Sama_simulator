@@ -8,7 +8,7 @@ from make_grid import Grid
 import pickle
 
 class Raster(Grid):
-    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size,no_data_value):
+    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size,no_data_value,raster_cell_value):
         super().__init__()
         self.pixel_size = pixel_size # Fator de escala (graus por pixel)
         self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
@@ -27,6 +27,7 @@ class Raster(Grid):
         self.output_raster_path = output_raster
         self.projection = projection # Proejeção do shapefile
         self.burner_value = burner_value # Atributo usado para rasterizar o shapefile. Ele irá representar a escala da layer
+        self.raster_cell_value = raster_cell_value # Define o tipo se a célula será preenchida com int ou float
     
     def rasterize_shapefile(self):
 
@@ -47,8 +48,20 @@ class Raster(Grid):
             pass
         
         else:
+            if self.raster_cell_value == 'int32':
+                bit_type = gdal.GDT_Int32
+            elif self.raster_cell_value == 'float32':
+                bit_type = gdal.GDT_Float32
+            elif self.raster_cell_value == 'int16':
+                bit_type = gdal.GDT_Int16
+            elif self.raster_cell_value == 'float64':
+                bit_type = gdal.GDT_Float_64
+            elif self.raster_cell_value == 'int64':
+                bit_type = gdal.GDT_Int64
+            else:
+                raise Exception('Valor de celula nao definido! Por favor defina se sera usado int ou float no arquivo yaml!')
             #print('Rasterizando o shapefile ...')
-            target_ds = gdal.GetDriverByName('GTiff').Create(self.output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
+            target_ds = gdal.GetDriverByName('GTiff').Create(self.output_raster_path,self.x_res,self.y_res,1,bit_type,['COMPRESS=LZW']) # 1 = numbandas 
             target_ds.SetGeoTransform((self.xmin,self.pixel_size,0.0,self.ymax,0.0,-self.pixel_size))
             srse = osr.SpatialReference()
             projection = self.projection
@@ -61,6 +74,7 @@ class Raster(Grid):
             target_ds = None
             self.src_layer = None # Need to be set to nome, else cannot dump swigpy object with pickle!
             #print('... feito!')
+
 
     def make_grid(self):     
         with rasterio.open(self.output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():

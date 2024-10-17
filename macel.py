@@ -217,13 +217,16 @@ class Macel:
         else:
             raise NameError('bs_allocation_typ must be random, cluster or file - please check the param file')
         
-        #Checking if imported grid is from Raster class:
-        if self.dynamic_pathloss:
-            # If yes, get if each user in the raster is outdoor or indoor:
-             self.ue.obtain_user_condition(centers = self.cluster.centroids,samples = self.cluster.features,
-                                        raster_grid = self.grid.raster)
+        #Checking if imported grid is from Raster class/Or if dynamic path loss is select:
+        if hasattr(self.grid,'raster'):
+            if self.dynamic_pathloss:
+                # If yes, get if each user in the raster is outdoor or indoor:
+                 self.ue.obtain_user_condition(centers = self.cluster.centroids,samples = self.cluster.features,
+                                            raster_grid = self.grid.raster)
+            else:
+                self.ue.user_condition = None
         else:
-            self.ue.user_condition = None
+                self.ue.user_condition = None
 
         lines = self.grid.lines
         columns = self.grid.columns

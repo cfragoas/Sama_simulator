@@ -540,15 +540,15 @@ def shadow_fading(dim,m,std):
     m: Média
     std: Desvio padrão
     """
-    sf = np.random.lognormal(mean=m, sigma=std,size = dim.shape)
+    sf = np.random.normal(m,std,size = dim.shape) # mu,sigma
     sf = np.nan_to_num(sf, nan=0)
     return sf
 
 def indoor_loss(dim):
     """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0"""
     d2in = np.random.uniform(low=0,high=25,size=dim.shape) #Distância indoor. Deve ser entre 0-25 m
-    #if None:
     return 0.5*d2in
+    
 def high_loss_building_o2i_pen_loss(dim,f):
     """Gera uma penetração O2I baseado no item 7.4.3.1 da TR 38.901. V.17.1.0. A frequência f em GHz."""
     return 5-10*np.log10(0.7*np.power(10,-(23+0.3*f)/10)+0.3*np.power(10,-(5+4*f)/10))+ np.random.uniform(low=0,high=25,size=dim.shape)+np.random.normal(0,6.5,size=dim.shape)
@@ -596,7 +596,7 @@ def calculate_los_prob_win2(d2d):
 
     return problos
 
-#@jit() O SHADOW FADING TÁ ZUADO
+#@jit() 
 def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
     """
     Calcula um percurso, considerado ele ser Line of Sight (LOS) ou No Line of Sight (NLOS). Baseado na TR 38.901 v 17.1.0.\n

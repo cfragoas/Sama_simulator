@@ -385,7 +385,7 @@ fc = 3.6
 em = np.random.uniform(10,1000,(1,1000))
 
 
-dm = generate_distance_map(em,1/100,htx,hrx,False)
+dm = generate_distance_map(em,1,htx,hrx,False)
 
 
 #uma,prop_scenario = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
@@ -424,13 +424,13 @@ PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log
 PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
 #
 PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
-fig,ax = plt.subplots(figsize = (10,6))
-ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
-plt.title("WIN2 & UMA PL1 X PL2")
-plt.xlabel("Distance (m)")
-plt.ylabel("Path Loss (db)")
-plt.legend(['PL1 WIN2','PL2 WIN2','PL1 UMA','PL2 UMA'])
-plt.grid()
+#fig,ax = plt.subplots(figsize = (10,6))
+#ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
+#plt.title("WIN2 & UMA PL1 X PL2")
+#plt.xlabel("Distance (m)")
+#plt.ylabel("Path Loss (db)")
+#plt.legend(['PL1 WIN2','PL2 WIN2','PL1 UMA','PL2 UMA'])
+#plt.grid()
 #cursor = Cursor(ax,horizOn= True,vertOn=True)
 plt.show()
 
@@ -479,25 +479,25 @@ plt.show()
 #plt.show()
 
 
-#media = 0
-#desvio_padrao = 4
-#num_pontos = 100000
-#
+media = 0
+desvio_padrao = 6
+num_pontos = 10000
+
 #valores_sombreamento = np.random.lognormal(media,desvio_padrao,num_pontos)
-#
-## Plotar histograma com escala logarítmica
-#plt.figure(figsize=(10, 6))
-#plt.hist(valores_sombreamento, bins=100, log=True)
-#plt.xlabel('Valor da perda por sombreamento')
-#plt.ylabel('Frequência (escala logarítmica)')
-#plt.title('Histograma da perda por sombreamento (lognormal)')
-#plt.show()
-#
-#print(f'Media: {np.mean(valores_sombreamento)}')
-#print(f'Mediana: {np.median(valores_sombreamento)}')
-#print(f'Desvio Padrao: {np.std(valores_sombreamento)}')
-#print(f'Valor Minimo: {np.min(valores_sombreamento)}')
-#print(f'Valor Maximo: {np.max(valores_sombreamento)}')
+valores_sombreamento = np.random.normal(media,desvio_padrao,num_pontos)
+# Plotar histograma com escala logarítmica
+plt.figure(figsize=(10, 6))
+plt.hist(valores_sombreamento, bins=100, log=True)
+plt.xlabel('Valor da perda por sombreamento')
+plt.ylabel('Frequência (escala logarítmica)')
+plt.title('Histograma da perda por sombreamento (lognormal)')
+plt.show()
+
+print(f'Media: {np.mean(valores_sombreamento)}')
+print(f'Mediana: {np.median(valores_sombreamento)}')
+print(f'Desvio Padrao: {np.std(valores_sombreamento)}')
+print(f'Valor Minimo: {np.min(valores_sombreamento)}')
+print(f'Valor Maximo: {np.max(valores_sombreamento)}')
 
 #Conclusão: Pela distribuição log normal existem casos em que o fading fica muito alto.
 #Provavelmente no escopo da TR do 3GPP, esses seriam usuários no qual o sinal não chega ao receptor, devido a perdas muitos altas.

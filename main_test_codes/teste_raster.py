@@ -117,27 +117,27 @@ class Grid:
 
 ################################################
 class Raster(Grid):
-    def __init__(self,input_shapefile,output_raster,projection,burner_value):
+    def __init__(self,input_shapefile,output_raster,projection,burner_value,pixel_size,no_data_value,raster_cell_value):
         super().__init__()
-        self.pixel_size = 0.00000325872 #0.000325872
+        self.pixel_size = pixel_size # Fator de escala (graus por pixel)
         self.temp_raster_array_path = 'rasters/temp/temp_raster_array.npy' # NÃO MEXER!
         self.src_layer = None
         self.xmin = None
         self.xmax = None
-        self.x_res = None
+        self.x_res = None # Número de pixels na direção x
+        self.x_scale = None # Fator de escala no eixo x em metros por pixel
         self.ymin = None
         self.ymax = None
-        self.y_res = None
-        self.point_condition = None
+        self.y_res = None # Número de pixels na direção y
+        self.y_scale = None # Fator de escala no eixo y em metros por pixel
         self.raster = None
+        self.no_data_value = no_data_value
         self.input_shapefile_path = input_shapefile
         self.output_raster_path = output_raster
-        self.projection = projection
-        self.burner_value = burner_value
-        self.x_scale = None # Fator de escala no eixo x em metros por pixel
-        self.yscale = None # Fator de escala no eixo y em metros por pixel
-        
-
+        self.projection = projection # Proejeção do shapefile
+        self.burner_value = burner_value # Atributo usado para rasterizar o shapefile. Ele irá representar a escala da layer
+        self.raster_cell_value = raster_cell_value # Define o tipo se a célula será preenchida com int ou float
+    
     def rasterize_shapefile(self):
 
         if os.path.isfile(self.input_shapefile_path): #Conferindo se o shapefile selecionado existe
@@ -157,20 +157,34 @@ class Raster(Grid):
             pass
         
         else:
-            target_ds = gdal.GetDriverByName('GTiff').Create(self.output_raster_path,self.x_res,self.y_res,1,gdal.GDT_Float32,['COMPRESS=LZW']) # 1 = numbandas 
+            if self.raster_cell_value == 'int32':
+                bit_type = gdal.GDT_Int32
+            elif self.raster_cell_value == 'float32':
+                bit_type = gdal.GDT_Float32
+            elif self.raster_cell_value == 'int16':
+                bit_type = gdal.GDT_Int16
+            elif self.raster_cell_value == 'float64':
+                bit_type = gdal.GDT_Float_64
+            elif self.raster_cell_value == 'int64':
+                bit_type = gdal.GDT_Int64
+            else:
+                raise Exception('Valor de celula nao definido! Por favor defina se sera usado int ou float no arquivo yaml!')
+            #print('Rasterizando o shapefile ...')
+            target_ds = gdal.GetDriverByName('GTiff').Create(self.output_raster_path,self.x_res,self.y_res,1,bit_type,['COMPRESS=LZW']) # 1 = numbandas 
             target_ds.SetGeoTransform((self.xmin,self.pixel_size,0.0,self.ymax,0.0,-self.pixel_size))
             srse = osr.SpatialReference()
             projection = self.projection
             srse.SetWellKnownGeogCS(projection)
             target_ds.SetProjection(srse.ExportToWkt()) 
             band = target_ds.GetRasterBand(1)
-            target_ds.GetRasterBand(1).SetNoDataValue(0) # era -9999
+            target_ds.GetRasterBand(1).SetNoDataValue(self.no_data_value) # era -9999
             band.Fill(0) #-9999
             gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE='+self.burner_value])
             target_ds = None
             self.src_layer = None # Need to be set to nome, else cannot dump swigpy object with pickle!
-    
-    def make_grid(self,output_raster_path):     
+            #print('... feito!')
+
+    def make_grid(self):     
         with rasterio.open(self.output_raster_path) as raster_file: # Abrindo o raster -> Open_Raster():
             self.raster = raster_file.read()
             self.raster = self.raster.squeeze()
@@ -178,26 +192,26 @@ class Raster(Grid):
         
     def make_points(self,dist_type, samples, n_centers, random_centers=True, plot=False):
         super().make_points(dist_type, samples, n_centers, random_centers, plot)
-        self.point_condition = np.asarray(self.raster[self.grid != 0])
+       # self.point_condition = self.raster[self.grid != 0]
 
-    def save_raster(self,raster):
-        np.save(self.temp_raster_array_path,raster)
-    
-    def load_raster(self):
-        loaded_raster = np.load(self.temp_raster_array_path)
-        return loaded_raster
-    
-    def delete_raster_npy_file(self):
-        os.remove(self.temp_raster_array_path)
+    #def save_raster(self,raster):
+    #    np.save(self.temp_raster_array_path,raster)
+    #
+    #def load_raster(self):
+    #    loaded_raster = np.load(self.temp_raster_array_path)
+    #    return loaded_raster
+    #
+    #def delete_raster_npy_file(self):
+    #    os.remove(self.temp_raster_array_path)
+#
+    #def set_point_condition(self,point_condition):
+    #    self.point_condition = point_condition
+#
+    #def set_raster_transform_paths(self,input_shapefile,output_raster):
+    #    self.input_shapefile_path = input_shapefile
+    #    self.output_raster_path = output_raster
 
-    def set_point_condition(self,point_condition):
-        self.point_condition = point_condition
-
-    def set_raster_transform_paths(self,input_shapefile,output_raster):
-        self.input_shapefile_path = input_shapefile
-        self.output_raster_path = output_raster
-
-    def delete_tif_file(self):
+    def delete_tif_file(self): # Used to remove the tif file.
         os.remove(self.output_raster_path)
 
     def define_scaling_factor(self):
@@ -212,10 +226,9 @@ class Raster(Grid):
     
         meters_per_degree_long = meters_per_degree_lat * np.cos(np.radians(centroid_lat)) # Fator de escala metros por grau longitude
 
-        # Calculate latitude and longitude scaling factors
+        # Calcula o fator de escala, resultado em metros por pixel 
         self.y_scale = meters_per_degree_lat * self.pixel_size
         self.x_scale = meters_per_degree_long * self.pixel_size
-
    
 # sobrescrever o make_point para setar as conditions também
 
@@ -228,17 +241,17 @@ from osgeo import gdal,ogr,osr
 import rasterio 
 
 
-input = 'rasters/shapefiles/londres/teste_londres.shp'
+input = 'C:/Users/Usuário/Documents/TCC/Sama_simulator/rasters/shapefiles/bairros_tcc/botafogo.shp'
 output = 'rasters/testepy_londres.tif'
 burner_value = 'osm_id'
 projection = 'EPSG:4326'
-raster = Raster(input_shapefile=input,output_raster=output,projection=projection,burner_value=burner_value)
+raster = Raster(input_shapefile=input,output_raster=output,projection=projection,burner_value=burner_value,pixel_size=0.00000325872,no_data_value=0,raster_cell_value='float64')
 
 #raster.set_raster_transform_paths(input_shapefile=input,output_raster=output)
 
 raster.rasterize_shapefile() # Cria o raster
 
-raster.make_grid(output_raster_path=output)
+raster.make_grid()
 
 raster.delete_tif_file()
 
@@ -248,7 +261,7 @@ raster.delete_tif_file()
 
 #raster.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
 
-raster.make_points(dist_type='uniform', samples=100, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
+raster.make_points(dist_type='uniform', samples=10000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
 
 #grid = Grid()
 
@@ -259,15 +272,15 @@ raster.make_points(dist_type='uniform', samples=100, n_centers=0,plot=False) # i
 
 #in_out_user = raster.load_raster()
 
-print(type(raster.point_condition))
+#print(type(raster.point_condition))
 
-print('\n Quantidade de usuarios indoor (1) e outdoor (0): ')
-unique,count = np.unique(raster.point_condition,return_counts=True)
-print(np.asarray((unique,count)).T)
+#print('\n Quantidade de usuarios indoor (1) e outdoor (0): ')
+#unique,count = np.unique(raster.point_condition,return_counts=True)
+#print(np.asarray((unique,count)).T)
 
-raster.define_scaling_factor()
+#raster.define_scaling_factor()
 
-grid = Grid()
+#grid = Grid()
 #raster.delete_raster_npy_file()
-
+print(raster.grid.shape)
 print('\nFoi!')
