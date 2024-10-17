@@ -539,6 +539,7 @@ def shadow_fading(dim,m,std):
     Função para calcular o efeito de perda por sombreamento em, baseada numa distribuição lognormal.Sendo:
     m: Média
     std: Desvio padrão
+    Em db a distribuição lognormal é uma distribuição normal de média 0.
     """
     sf = np.random.normal(m,std,size = dim.shape) # mu,sigma
     sf = np.nan_to_num(sf, nan=0)
