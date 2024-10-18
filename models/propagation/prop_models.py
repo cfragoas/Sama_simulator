@@ -507,10 +507,9 @@ def generate_uma_path_loss_o2i(d2d, d3d, hut, hbs, fc):
 
     #o2i = np.array([rng.choice(["High", "Low"], p=[0.2, 0.8], size=dim.shape[1]) for _ in dim]).reshape(dim.shape)
     # eu acredito que para essa linha não seja possível fazer vetorizado
-    if problos.ndim != 1:
-        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
-    else:
-        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
+
+    prop = np.full(d2d.shape, 'NLOS')
+
     # prop = random.choices(["LOS", "NLOS"], weights=[problos, 1 - problos], k=d2d.shape[0])  # Simula se a propagação será LOS ou NLOS
 
     # criando uma matrix booleana que indica quando d2d<dbp
@@ -655,12 +654,7 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
     dbp = 4*(hbs-1)*(hms-1)*fc*10**9/c
     PLOSS = np.zeros_like(d2d) # Cria array de vazio para preencher com os PLOS
 
-    problos = calculate_los_prob_win2(d2d)
-
-    if problos.ndim != 1:
-        prop = np.array([[rng.choice(['LOS', 'NLOS'], p=[p, 1 - p]) for p in bs] for bs in problos.T]).T
-    else:
-        prop = np.array([rng.choice(['LOS', 'NLOS'], p=[p, 1 - p])for p in problos]).T
+    prop = np.full(d2d.shape, 'NLOS')
 
     less_dbp = d2d < dbp
 
