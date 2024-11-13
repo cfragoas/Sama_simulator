@@ -85,14 +85,14 @@ def generate_uma_path_loss(d2d, d3d, hut, hbs, fc, multipath=False):
 
             #Calcula o PL1 e o PL2 (usado tanto em casos de LOS como NLOS
             if a < dbp:
-                PLOS = 28+22*np.log10(b)+20*np.log10(fc)+shadow_fading(0,4) #PL1
+                PLOS = 28+22*np.log10(b)+20*np.log10(fc)#+shadow_fading(0,4) #PL1
             else:
                 PLOS = 28+40*np.log10(b)+20*np.log10(fc) \
-                       -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2))+shadow_fading(0,4) #PL2
+                       -9*np.log10(np.power(dbp,2)+np.power(hbs-hut,2))#+shadow_fading(0,4) #PL2
             if prop[0] == "LOS":
                 Pathloss = PLOS
             else:
-                PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)+shadow_fading(0,6)
+                PNLOS = 13.54+39.08*np.log10(b)+20*np.log10(fc)-0.6*(hut-1.5)#+shadow_fading(0,6)
                 #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
                 Pathloss = np.max((PLOS,PNLOS))
             pl[...] = Pathloss
@@ -269,15 +269,15 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc, multipath=False):
 
             #Calcula o PL1 e o PL2 
             if a < dbp:
-                PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)#+shadow_fading(0,4) #PL1
+                PLOS = 39+26*np.log10(b)+20*np.log10(fc/5.0)+shadow_fading(0,4) #PL1
             else:
                 PLOS = 13.47+40*np.log10(b)+6*np.log10(fc/5.0) \
-                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)#+shadow_fading(0,6) #PL2
+                       -14.0*np.log10(hbs-1)- 14.0*np.log10(hut-1)+shadow_fading(0,6) #PL2
             if prop[0] == "LOS":
                 Pathloss = PLOS
             else:
                 PNLOS = (44.9-6.55*np.log10(hbs))*np.log10(b)+31.46 \
-                        + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)#+shadow_fading(0,8)
+                        + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(0,8)
                 #PNLOS = 32.4 + 20*np.log10(fc)+30*np.log10(b)
                 Pathloss = PNLOS
             pl[...] = Pathloss + 17.4 + 0.5*d -0.8*c 
@@ -379,13 +379,13 @@ def user_characteristics(d2d):
 
 htx = 25
 hrx = 1.5
-csize = 100
-fc = 3.6
+csize = 1
+fc = 3.5
 
 em = np.random.uniform(10,1000,(1,1000))
 
 
-dm = generate_distance_map(em,1,htx,hrx,False)
+#dm = generate_distance_map(em,1,htx,hrx,False)
 
 
 #uma,prop_scenario = generate_uma_path_loss_o2i(em,dm,hrx,htx,fc)
@@ -414,8 +414,10 @@ dm = generate_distance_map(em,1,htx,hrx,False)
 #plt.grid()
 #cursor = Cursor(ax,horizOn= True,vertOn=True)
 #plt.show()
+
+dm = np.random.uniform(0,1000,(1,1000))
 #
-dbp = 4*(htx-1)*(hrx-1)*fc*10**9/(3*10**8)
+dbp = 4*(htx-1)*(hrx-1)*(fc*10**9/(3*10**8))
 #
 PL1 = 39+26*np.log10(dm)+20*np.log10(fc/5.0) #PL1 win2
 #
@@ -424,16 +426,23 @@ PL2 = 13.47+40*np.log10(dm)+6*np.log10(fc/5.0)-14.0*np.log10(htx-1)- 14.0*np.log
 PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
 #
 PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
-#fig,ax = plt.subplots(figsize = (10,6))
-#ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',np.sort(dm[0,:]),np.sort(PL4[0,:]),'y')
-#plt.title("WIN2 & UMA PL1 X PL2")
-#plt.xlabel("Distance (m)")
-#plt.ylabel("Path Loss (db)")
-#plt.legend(['PL1 WIN2','PL2 WIN2','PL1 UMA','PL2 UMA'])
-#plt.grid()
-#cursor = Cursor(ax,horizOn= True,vertOn=True)
+
+fig, ax = plt.subplots(figsize=(10,6))
+ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',label='WINNERII PL1') #winner
+ax.plot(np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',label='WINNERII PL2') #winner
+ax.plot(np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',label='3GPP PL1') #Uma
+ax.plot(np.sort(dm[0,:]),np.sort(PL4[0,:]),'y',label='3GPP PL2') #Uma
+plt.title("Comparação entre a PL1 e a PL2 do modelo do 3GPP e WINNERII")
+ax.set_xlabel("Distância entre transmissor e receptor (m)")
+ax.set_ylabel("Perda de propagação (dB)")
+ax.set_ylim([None, None])  # Ajusta o limite mínimo do eixo y
+ax.set_xlim([0, 1000]) # Ajusta o limite mínimo do eixo x
+ax.legend()
+ax.grid()
+# cursor = Cursor(ax,horizOn= True,vertOn=True)
 plt.show()
 
+#print(f'dbp: {dbp}m')
 # Teste :  Obtendo quantos percussos foram LOS e quantos foram NLOS
 
 #uma = []
@@ -479,25 +488,25 @@ plt.show()
 #plt.show()
 
 
-media = 0
-desvio_padrao = 6
-num_pontos = 10000
+#media = 0
+#desvio_padrao = 6
+#num_pontos = 10000
+#
+##valores_sombreamento = np.random.lognormal(media,desvio_padrao,num_pontos)
+#valores_sombreamento = np.random.normal(media,desvio_padrao,num_pontos)
+## Plotar histograma com escala logarítmica
+#plt.figure(figsize=(10, 6))
+#plt.hist(valores_sombreamento, bins=100, log=True)
+#plt.xlabel('Valor da perda por sombreamento')
+#plt.ylabel('Frequência (escala logarítmica)')
+#plt.title('Histograma da perda por sombreamento (lognormal)')
+#plt.show()
 
-#valores_sombreamento = np.random.lognormal(media,desvio_padrao,num_pontos)
-valores_sombreamento = np.random.normal(media,desvio_padrao,num_pontos)
-# Plotar histograma com escala logarítmica
-plt.figure(figsize=(10, 6))
-plt.hist(valores_sombreamento, bins=100, log=True)
-plt.xlabel('Valor da perda por sombreamento')
-plt.ylabel('Frequência (escala logarítmica)')
-plt.title('Histograma da perda por sombreamento (lognormal)')
-plt.show()
-
-print(f'Media: {np.mean(valores_sombreamento)}')
-print(f'Mediana: {np.median(valores_sombreamento)}')
-print(f'Desvio Padrao: {np.std(valores_sombreamento)}')
-print(f'Valor Minimo: {np.min(valores_sombreamento)}')
-print(f'Valor Maximo: {np.max(valores_sombreamento)}')
+#print(f'Media: {np.mean(valores_sombreamento)}')
+#print(f'Mediana: {np.median(valores_sombreamento)}')
+#print(f'Desvio Padrao: {np.std(valores_sombreamento)}')
+#print(f'Valor Minimo: {np.min(valores_sombreamento)}')
+#print(f'Valor Maximo: {np.max(valores_sombreamento)}')
 
 #Conclusão: Pela distribuição log normal existem casos em que o fading fica muito alto.
 #Provavelmente no escopo da TR do 3GPP, esses seriam usuários no qual o sinal não chega ao receptor, devido a perdas muitos altas.

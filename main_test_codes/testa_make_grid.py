@@ -94,7 +94,8 @@ class Grid:
 
         if plot:
             plt.matshow(self.grid, origin='lower')
-            plt.title('Grid with random points')
+           # plt.title('Grid with random points')
+            plt.title('Posicionamento de Usuários em um Região de Interesse')
             plt.colorbar()
             plt.show()
 
@@ -115,8 +116,8 @@ class Grid:
 
 minha_grid = Grid()
 
-minha_grid.make_grid(1000,1000)
+minha_grid.make_grid(200,200)
 
-minha_grid.make_points("uniform",10000,4,random_centers=True,plot=True)
+minha_grid.make_points("uniform",1000,4,random_centers=False,plot=True)
 
 print("Rodou!")

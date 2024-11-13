@@ -632,8 +632,8 @@ def generate_win2_path_loss_c2(d2d, d3d, hut, hbs,fc):
     not_los = prop != "LOS"
 
     PLOSS[not_los] = np.maximum(PLOSS[not_los],
-                              13.54 + 39.08 * np.log10(d2d[not_los]) +
-                              20 * np.log10(fc) - 0.6 * (hut - 1.5))+shadow_fading(d2d[not_los],0,6)
+                              (44.9-6.55*np.log10(hbs))*np.log10(d3d[not_los])+34.46 \
+                         + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(d2d[not_los],0,8))
 
     return PLOSS,prop
    
@@ -670,7 +670,7 @@ def generate_win2_path_loss_c4(d2d, d3d, hut, hbs, fc):
     not_los = prop != "LOS"
 
     PLOSS[not_los] = np.maximum(PLOSS[not_los],
-                              (44.9-6.55*np.log10(hbs))*np.log10(d3d[not_los])+31.46 \
+                              (44.9-6.55*np.log10(hbs))*np.log10(d3d[not_los])+34.46 \
                          + 5.83*np.log10(hbs)+23*np.log10(fc/5.0)+shadow_fading(d2d[not_los],0,8))
 
     PLOSS += 17.4 + 0.5*din -0.8*hms
