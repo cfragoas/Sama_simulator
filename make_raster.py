@@ -70,7 +70,7 @@ class Raster(Grid):
             band = target_ds.GetRasterBand(1)
             target_ds.GetRasterBand(1).SetNoDataValue(self.no_data_value) # era -9999
             band.Fill(0) #-9999
-            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE='+self.burner_value])
+            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATTRIBUTE='+self.burner_value])
             target_ds = None
             self.src_layer = None # Need to be set to nome, else cannot dump swigpy object with pickle!
             #print('... feito!')

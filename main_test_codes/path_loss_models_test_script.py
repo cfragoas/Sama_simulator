@@ -427,21 +427,30 @@ PL3 = 28+22*np.log10(dm)+20*np.log10(fc) #PL1 UMA
 #
 PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(htx-hrx,2)) #PL2 UMA
 
-fig, ax = plt.subplots(figsize=(10,6))
-ax.plot(np.sort(dm[0,:]),np.sort(PL1[0,:]),'r',label='WINNERII PL1') #winner
-ax.plot(np.sort(dm[0,:]),np.sort(PL2[0,:]),'b',label='WINNERII PL2') #winner
-ax.plot(np.sort(dm[0,:]),np.sort(PL3[0,:]),'g',label='3GPP PL1') #Uma
-ax.plot(np.sort(dm[0,:]),np.sort(PL4[0,:]),'y',label='3GPP PL2') #Uma
-plt.title("Comparação entre a PL1 e a PL2 do modelo do 3GPP e WINNERII")
-ax.set_xlabel("Distância entre transmissor e receptor (m)")
-ax.set_ylabel("Perda de propagação (dB)")
-ax.set_ylim([None, None])  # Ajusta o limite mínimo do eixo y
-ax.set_xlim([0, 1000]) # Ajusta o limite mínimo do eixo x
-ax.legend()
-ax.grid()
-# cursor = Cursor(ax,horizOn= True,vertOn=True)
-plt.show()
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(np.sort(dm[0, :]), np.sort(PL1[0, :]), 'r', label='WINNERII PL1')  # WINNER
+ax.plot(np.sort(dm[0, :]), np.sort(PL2[0, :]), 'b', label='WINNERII PL2')  # WINNER
+#ax.plot(np.sort(dm[0, :]), np.sort(PL3[0, :]), 'g', label='3GPP PL1')  # UMa
+#ax.plot(np.sort(dm[0, :]), np.sort(PL4[0, :]), 'y', label='3GPP PL2')  # UMa
 
+# Título e rótulos
+plt.title("Comparação entre a PL1 e a PL2 do Modelo WINNERII", fontsize=18)
+ax.set_xlabel("Distância entre Transmissor e Receptor (m)", fontsize=16)
+ax.set_ylabel("Perda de Percurso (dB)", fontsize=16)
+
+# Ajuste dos limites
+ax.set_ylim([None, None])  # Mantém os limites automáticos para o eixo Y
+ax.set_xlim([0, 1000])     # Limita o eixo X
+
+# Legenda fora do plot
+ax.legend(fontsize=14, loc='center left', bbox_to_anchor=(1, 0.5))
+
+# Grade
+ax.grid()
+
+# Mostrar gráfico
+plt.tight_layout()  # Ajusta o layout para evitar sobreposição
+plt.show()
 #print(f'dbp: {dbp}m')
 # Teste :  Obtendo quantos percussos foram LOS e quantos foram NLOS
 
