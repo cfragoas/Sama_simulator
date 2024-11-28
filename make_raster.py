@@ -108,7 +108,7 @@ class Raster(Grid):
 
     def define_scaling_factor(self):
     
-        centroid_lat = self.ymax+self.ymin/2 # Valor central
+        centroid_lat = (self.ymax+self.ymin)/2 # Valor central
     
         earth_radius = 6378137  # Raio da terra em metros
     
