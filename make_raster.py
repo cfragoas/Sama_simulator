@@ -55,7 +55,7 @@ class Raster(Grid):
             elif self.raster_cell_value == 'int16':
                 bit_type = gdal.GDT_Int16
             elif self.raster_cell_value == 'float64':
-                bit_type = gdal.GDT_Float_64
+                bit_type = gdal.GDT_Float64
             elif self.raster_cell_value == 'int64':
                 bit_type = gdal.GDT_Int64
             else:
