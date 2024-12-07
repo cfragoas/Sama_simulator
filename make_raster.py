@@ -104,7 +104,8 @@ class Raster(Grid):
     #    self.output_raster_path = output_raster
 
     def delete_tif_file(self): # Used to remove the tif file.
-        os.remove(self.output_raster_path)
+        if os.path.exists(self.output_raster_path):
+            os.remove(self.output_raster_path)
 
     def define_scaling_factor(self):
     
