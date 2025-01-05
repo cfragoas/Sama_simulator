@@ -430,13 +430,13 @@ PL4 = 28+40*np.log10(dm)+20*np.log10(fc) -9*np.log10(np.power(dbp,2)+np.power(ht
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.plot(np.sort(dm[0, :]), np.sort(PL1[0, :]), 'r', label='WINNERII PL1')  # WINNER
 ax.plot(np.sort(dm[0, :]), np.sort(PL2[0, :]), 'b', label='WINNERII PL2')  # WINNER
-#ax.plot(np.sort(dm[0, :]), np.sort(PL3[0, :]), 'g', label='3GPP PL1')  # UMa
-#ax.plot(np.sort(dm[0, :]), np.sort(PL4[0, :]), 'y', label='3GPP PL2')  # UMa
+ax.plot(np.sort(dm[0, :]), np.sort(PL3[0, :]), 'g', label='3GPP PL1')  # UMa
+ax.plot(np.sort(dm[0, :]), np.sort(PL4[0, :]), 'y', label='3GPP PL2')  # UMa
 
 # Título e rótulos
-plt.title("Comparação entre a PL1 e a PL2 do Modelo WINNERII", fontsize=18)
-ax.set_xlabel("Distância entre Transmissor e Receptor (m)", fontsize=16)
-ax.set_ylabel("Perda de Percurso (dB)", fontsize=16)
+plt.title("Comparação entre a PL1 e a PL2 do Modelo WINNERII e da TR 38.901", fontsize=20)
+ax.set_xlabel("Distância entre Transmissor e Receptor (m)", fontsize=18)
+ax.set_ylabel("Perda de Percurso (dB)", fontsize=18)
 
 # Ajuste dos limites
 ax.set_ylim([None, None])  # Mantém os limites automáticos para o eixo Y

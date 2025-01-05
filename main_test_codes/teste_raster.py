@@ -164,7 +164,7 @@ class Raster(Grid):
             elif self.raster_cell_value == 'int16':
                 bit_type = gdal.GDT_Int16
             elif self.raster_cell_value == 'float64':
-                bit_type = gdal.GDT_Float_64
+                bit_type = gdal.GDT_Float64
             elif self.raster_cell_value == 'int64':
                 bit_type = gdal.GDT_Int64
             else:
@@ -179,7 +179,7 @@ class Raster(Grid):
             band = target_ds.GetRasterBand(1)
             target_ds.GetRasterBand(1).SetNoDataValue(self.no_data_value) # era -9999
             band.Fill(0) #-9999
-            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATRIBUTE='+self.burner_value])
+            gdal.RasterizeLayer(target_ds,[1],self.src_layer,None,None,[1],options = ['ALL_TOUCHED=TRUE','ATTRIBUTE='+self.burner_value])
             target_ds = None
             self.src_layer = None # Need to be set to nome, else cannot dump swigpy object with pickle!
             #print('... feito!')
@@ -212,7 +212,8 @@ class Raster(Grid):
     #    self.output_raster_path = output_raster
 
     def delete_tif_file(self): # Used to remove the tif file.
-        os.remove(self.output_raster_path)
+        if os.path.exists(self.output_raster_path):
+            os.remove(self.output_raster_path)
 
     def define_scaling_factor(self):
     
@@ -234,34 +235,70 @@ class Raster(Grid):
 
 ###################################
 
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from osgeo import gdal,ogr,osr
-import rasterio 
 
-
-input = 'C:/Users/Usuário/Documents/TCC/Sama_simulator/rasters/shapefiles/bairros_tcc/botafogo.shp'
-output = 'rasters/testepy_londres.tif'
+input_file = "rasters/shapefiles/bairros_tcc/gragoata.shp"
+#"C:/Users/Usuário/Documents/TCC/resultados_tcc_nicholas/brasil_shp/Estados_Brasil.shp"
+output_file = 'rasters/testepy_DUMMY.tif'
 burner_value = 'osm_id'
 projection = 'EPSG:4326'
-raster = Raster(input_shapefile=input,output_raster=output,projection=projection,burner_value=burner_value,pixel_size=0.00000325872,no_data_value=0,raster_cell_value='float64')
-
+rast = Raster(input_shapefile=input_file,output_raster=output_file,projection=projection,burner_value=burner_value,
+pixel_size=0.000325872,no_data_value=0,raster_cell_value='int32')
+rast.delete_tif_file()
 #raster.set_raster_transform_paths(input_shapefile=input,output_raster=output)
 
-raster.rasterize_shapefile() # Cria o raster
+rast.rasterize_shapefile() # Cria o raster
+print('rasterizou!')
+#raster.make_grid()
+rast.define_scaling_factor()
 
-raster.make_grid()
 
-raster.delete_tif_file()
+with rasterio.open(f'{output_file}') as ra: # Abrindo o raster -> Open_Raster():
+    raster = ra.read()
+    bounds = ra.bounds
+    transform = ra.transform
+    raster = raster.squeeze()
+    num_bands = ra.count
+    dimension = raster.shape
 
-#final_raster = raster.open_rasterfile(output_raster_path=output) # Sai a matriz ndarray
 
+# Obtendo os valores únicos e suas contagens
+unique, counts = np.unique(raster, return_counts=True)
+
+# Criando um dicionário para mapear valores únicos às suas contagens
+value_counts = dict(zip(unique, counts))
+
+# Calculando o total de valores
+total_count = raster.size
+
+# Contando valores diferentes de 0
+non_zero_count = total_count - value_counts.get(0, 0)
+
+# Calculando a proporção
+non_zero_proportion = non_zero_count / total_count
+
+np.asarray([unique,counts],dtype=np.int32).T
+print(f'Dimensao em pixeis no eixo vertical: {dimension[0]} pixeis')
+print(f'Dimensao em pxeis no eixo horizontal: {dimension[1]} pixeis')
+print(f'Dimensao em metros no eixo vertical: {dimension[0]*rast.x_scale} metros')
+print(f'Dimensao em metros no eixo horizontal: {dimension[1]*rast.y_scale} metros')
+print(f"Total de valores: {total_count}")
+print(f"Valores diferentes de 0: {non_zero_count}")
+print(f"Proporcao de valores diferentes de 0: {non_zero_proportion:.2%}") # Para ver o quanto da área do raster corresponde a ambientes indoo;#final_raster = raster.open_rasterfile(output_raster_path=output) # Sai a matriz ndarray
+plt.figure(figsize=(10, 10))
+plt.imshow(raster, cmap='binary')  # Adjust the colormap as needed
+#plt.colorbar(label='Número mapeado para o estado + Distrito Federal')  # Add colorbar with label
+#plt.title('Resultado da rasterização do bairro Botafogo')
+plt.xlabel('Posição do pixel no eixo horizontal',fontsize=14)
+plt.ylabel('Posição do pixel no eixo vertical',fontsize=14)
+plt.tight_layout()
+#BAIRplt.savefig('tcc_teoricos/raster_estados_brasil.PNG')
+plt.show()
+#plt.savefig('output/raster_RJ.jpeg')
 #print(final_raster.shape,)
 
 #raster.make_grid(lines=final_raster.shape[0], columns=final_raster.shape[1])
 
-raster.make_points(dist_type='uniform', samples=10000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
+#raster.make_points(dist_type='uniform', samples=10000, n_centers=0,plot=False) # isso aqui precisa vir do arquivo de parâmetros
 
 #grid = Grid()
 
@@ -282,5 +319,5 @@ raster.make_points(dist_type='uniform', samples=10000, n_centers=0,plot=False) #
 
 #grid = Grid()
 #raster.delete_raster_npy_file()
-print(raster.grid.shape)
+#print(raster.grid.shape)
 print('\nFoi!')
