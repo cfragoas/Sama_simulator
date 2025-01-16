@@ -54,5 +54,3 @@ plt.colorbar()
 for point in raw_data['position'][0]:
     plt.scatter(point[1], point[0])
 plt.show()
-
-print('ui')

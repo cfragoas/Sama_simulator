@@ -3,11 +3,10 @@ import numpy as np
 import pickle
 from itertools import product
 import pandas as pd
-
 def convert_file_path_os(path):
     # this function simply converts the file path to correspond to the machine OS system
     import platform
-    if platform.system() == 'Darwin':
+    if platform.system() == 'Linux' or platform.system() == 'Darwin':
         path = path.replace('\\', '/')
     return path
 
@@ -99,9 +98,7 @@ def create_subfolder(name_file, n_index, dict_name):
     folder += '\\output\\' + name_file + '\\'
 
     # creating subfolder
-    folder = folder + '\\' + str(n_index) + ' ' + dict_name + '\\'
-    if platform.system() == 'Darwin':
-        folder = folder.replace('\\', '/')
+    folder = convert_file_path_os(folder + '\\' + str(n_index) + ' ' + dict_name + '\\')
     if not os.path.exists(folder):
         os.mkdir(folder)
 
@@ -114,8 +111,7 @@ def load_data(name_file, return_path=False):
     folder = '\\'.join(folder.split('\\')[:-1])
     folder += '\\output\\' + name_file + '\\'
 
-    if platform.system() == 'Darwin':
-        folder = folder.replace('\\', '/')
+    folder = convert_file_path_os(folder)
 
     path = folder
     folder += name_file + '.pkl'
@@ -144,9 +140,8 @@ def save_data(path = None, data_dict = None):
         folder += '\\output\\' + name_file + '\\'
         path = folder + name_file + '.pkl'
 
-        if platform.system() == 'Darwin':
-            path = path.replace('\\', '/')
-            folder = folder.replace('\\', '/')
+        path = convert_file_path_os(path)
+        folder = convert_file_path_os(folder)
         print(folder)
         if os.path.exists(folder):
             os.mkdir(folder)

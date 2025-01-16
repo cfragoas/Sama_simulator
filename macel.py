@@ -13,14 +13,15 @@ from demos_and_examples.kmeans_from_scratch import K_Means_XP
 
 
 class Macel:
-    def __init__(self, grid, prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
-                 t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, downlink_specs=None,
-                 uplink_specs=None, output_type="complete", tdd_up_time=0):
+    def __init__(self, grid,prop_model, cell_size, base_station, simulation_time, time_slot, bs_allocation_typ,
+                 dynamic_pl,t_min=None, bw_slot=None, criteria=None, scheduler_typ=None, log=False, 
+                 downlink_specs=None,uplink_specs=None, output_type="complete", tdd_up_time=0):
 
         self.grid = grid  # grid object - size, points, etc
         self.n_centers = None
         self.voronoi = None  # voronoi object - voronoi cells, distance matrix, voronoi maps, etc
-        self.prop_model = prop_model  # string - name of prop model to be used in prop_models
+        self.prop_model = prop_model  # string - name of propagation model to be used in path loss models
+        self.dynamic_pathloss = dynamic_pl # Boolean. Dynamic flag used for path loss models
         self.criteria = criteria  # for now, received power
         self.cell_size = cell_size  # size of one side of a cell, in meters
         self.log = log  # if true, prints information about the ongoing process
@@ -96,11 +97,7 @@ class Macel:
             #                         simulation_time=self.simulation_time, bs_index=bs_index, c_target=self.criteria,
             #                         bw_slot=self.bw_slot)
 
-    def set_ue(self, hrx=None, tx_power=None):
-        # if self.ue is not None:
-        #     self.ue.positions = self.grid.grid
-        # else:
-        #     self.ue = User_eq(positions=self.grid.grid, height=None, tx_power=None)  # creating the user equipament object
+    def set_ue(self, hrx=None, tx_power=None): 
         if self.ue is None:
             self.ue = User_eq()
         if self.grid is not None:
@@ -112,17 +109,21 @@ class Macel:
 
 
     def generate_bf_gain_maps(self, az_map, elev_map, dist_map):
+        #if hasattr(self.grid,'raster'): fazer esse teste para ver se é da a classe do self.grid é make_grid ou make_raster
+        # Tacar uma função depois para pegar os user_conditions de cada usuário 
         # ue = np.empty(shape=(self.n_centers, elev_map.shape[1], 100))  # ARRUMAR DEPOIS ESSA GAMBIARRA
         # ue[:] = np.nan
         ue = np.empty(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams))
         self.ch_gain_map = np.zeros(shape=(self.n_centers, elev_map.shape[1], self.base_station_list[0].antenna.beams + 1)) - 10000
         self.sector_map = np.ndarray(shape=(self.n_centers, elev_map.shape[1]))
 
-        # path loss attenuation to sum with the beam gain
-        att_map = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
+        # path loss attenuation to sum with the beam gain (FALTA ADICIONAR A USER CONDITION COMO UM PARAMETRO DESTA FUNÇÃO!)
+        # Added a new output for getting the propagation scenario (NLOS/LOS) to generate_path_loss_map (Nicholas Aug/2024)
+        att_map,self.ue.prop_scenario = generate_path_loss_map(eucli_dist_map=dist_map, cell_size=self.cell_size, prop_model=self.prop_model,
                                          frequency=self.base_station_list[0].frequency,  # todo
-                                         htx=self.default_base_station.tx_height, hrx=1.5)  # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!!
-
+                                         htx=self.default_base_station.tx_height, hrx=1.5,
+                                         user_condition=self.ue.user_condition) # LEMBRAR DE TORNAR O HRX EDITÁVEL AQUI!!! 
+                                                                           # Adicionar a user_condition aqui (NICHOLAS)
         for bs_index, base_station in enumerate(self.base_station_list):
             lower_bound = 0
             for sector_index, higher_bound in enumerate(base_station.sectors_phi_range):
@@ -135,7 +136,7 @@ class Macel:
                 self.sector_map[bs_index][ue_in_range] = sector_index
                 self.ch_gain_map[bs_index][ue_in_range, 0:sector_gain_map.shape[0]] = (sector_gain_map - att_map[bs_index][ue_in_range]).T
                 lower_bound = higher_bound
-
+        self.path_loss_map = att_map # Retornando os path_loss de cada UE(Adicionado por Nicholas)
         return self.ch_gain_map, self.sector_map
 
     def send_ue_to_bs(self, t_index=0, cap_defict=None, t_min=None, bs_2b_updt=None, updated_beams=None,
@@ -215,12 +216,24 @@ class Macel:
         #     self.cluster.from_file(name_file=self.bs_allocation_typ)
         else:
             raise NameError('bs_allocation_typ must be random, cluster or file - please check the param file')
+        
+        #Checking if imported grid is from Raster class/Or if dynamic path loss is select:
+        if hasattr(self.grid,'raster'):
+            if self.dynamic_pathloss:
+                # If yes, get if each user in the raster is outdoor or indoor:
+                 self.ue.obtain_user_condition(centers = self.cluster.centroids,samples = self.cluster.features,
+                                            raster_grid = self.grid.raster)
+            else:
+                self.ue.user_condition = None
+        else:
+                self.ue.user_condition = None
+
         lines = self.grid.lines
         columns = self.grid.columns
         az_map = generate_azimuth_map(lines=lines, columns=columns, centroids=self.cluster.centroids,
                                       samples=self.cluster.features)
         self.dist_map = generate_euclidian_distance(lines=lines, columns=columns, centers=self.cluster.centroids,
-                                               samples=self.cluster.features, plot=False)
+                                               grid_obj=self.grid, samples=self.cluster.features, plot=False)
         elev_map = generate_elevation_map(htx=self.default_base_station.tx_height, hrx=self.ue.height,
                                           d_euclid=self.dist_map, cell_size=self.cell_size, samples=None)
         self.default_base_station.beam_configuration(
@@ -297,11 +310,12 @@ class Macel:
         # if the tdd not has downlink or uplink, it will return a correspondent empty dictionary
         return {'downlink_results': downlink_results, 'uplink_results': uplink_results}
 
-    def uplink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range, output_typ='complete'):
+    def uplink_interference(self, ch_gain_map, tdd_scheduler_range, rel_schdl_range,output_typ='complete'):
         # For the time, the uplink interference is fundamentally different of the downlink because every active UE
         # transmits in a different frequency with a different bandwidth
         # To solve that, a transmitted power spectrum, interference power spectrum (interference + noise),
         # SNIR spectrum and capacity spectrum are constructed. For reference, a EU-mapping spectrum is also used.
+        # The user_prop_char (user propagation characteristics) correspond to all the possible characteristics of the user propagation path.
 
         # if self.dwn_rel_t_index is None:
         #     self.dwn_rel_t_index = 0
@@ -485,7 +499,10 @@ class Macel:
             return(self.metrics.create_uplink_metrics_dataframe(output_typ=output_typ, active_ue=self.ue.active_ue,
                                                                 cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                 ue_pos=self.cluster.features,
+                                                                ue_char = self.ue.user_condition,
+                                                                ue_prop_sce = self.ue.prop_scenario,
                                                                 ue_bs_table=self.ue_bs_table,
+                                                                ue_path_loss = self.path_loss_map,
                                                                 dist_map=self.dist_map * self.cell_size,
                                                                 scheduler_typ=self.scheduler_typ))
 
@@ -579,6 +596,9 @@ class Macel:
             return(self.metrics.create_downlink_metrics_dataframe(output_typ='complete', active_ue=self.ue.active_ue,
                                                                   cluster_centroids=[np.round(self.cluster.centroids).astype(int)],
                                                                   ue_pos=self.cluster.features,
+                                                                  ue_char = self.ue.user_condition,
+                                                                  ue_prop_sce = self.ue.prop_scenario,
+                                                                  ue_path_loss = self.path_loss_map,
                                                                   ue_bs_table=self.ue_bs_table,
                                                                   dist_map=self.dist_map * self.cell_size,
                                                                   scheduler_typ=self.scheduler_typ))

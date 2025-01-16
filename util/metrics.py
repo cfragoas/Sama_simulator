@@ -160,7 +160,7 @@ class Metrics:
         if criteria is not None:
             self.dwn_criteria = criteria
 
-    def create_uplink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos, ue_bs_table, dist_map,
+    def create_uplink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos,ue_char,ue_prop_sce,ue_path_loss, ue_bs_table, dist_map,
                                         scheduler_typ=None):
         # this function will format the metrics after the simulation has ended in a dictionary format to make a backup
         # and plot some data
@@ -252,7 +252,8 @@ class Metrics:
                              'user_bw': np.nanmean(self.up_user_bw[active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit, 'meet_criteria': self.up_cnt_satisfied_ue,
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
-                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce,'path_loss':ue_path_loss}
 
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
@@ -260,7 +261,8 @@ class Metrics:
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.up_user_bw, axis=1),
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
-                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce,'path_loss':ue_path_loss}
 
         if output_typ == 'simple':
             # return snr_cap_stats
@@ -272,7 +274,7 @@ class Metrics:
             # return raw_data_dict
             return {'raw_data_dict': raw_data_dict}
 
-    def create_downlink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos, ue_bs_table, dist_map,
+    def create_downlink_metrics_dataframe(self, output_typ, active_ue, cluster_centroids, ue_pos,ue_char,ue_prop_sce,ue_path_loss, ue_bs_table, dist_map,
                                           scheduler_typ=None):
         # this function will format the metrics after the simulation has ended in a dictionary format to make a backup
         # and plot some data
@@ -311,7 +313,7 @@ class Metrics:
                 max_latency[ue] = np.nan
 
         # simple stats data
-        mean_mean_snr = np.mean(mean_snr)
+        mean_mean_snr = np.mean(mean_snr) 
         std_snr = np.std(mean_snr)
         mean_cap = np.mean(cap_sum)
         std_cap = np.std(cap_sum)
@@ -356,14 +358,16 @@ class Metrics:
                              'user_bw': np.nanmean(self.dwn_user_bw[active_ue], axis=1), 'deficit': deficit,
                              'norm_deficit': norm_deficit, 'meet_criteria': self.dwn_cnt_satisfied_ue,
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
-                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce,'path_loss':ue_path_loss}
         else:
             raw_data_dict = {'bs_position': positions, 'ue_position': ue_pos, 'ue_bs_table': ue_bs_table,
                              'snr': mean_snr, 'cap': cap_sum,
                              'user_bs': mean_user_bs, 'act_beams': mean_act_beams,
                              'user_time': user_time, 'user_bw': np.nanmean(self.dwn_user_bw, axis=1),
                              'avg_latency': avg_latency, 'start_latency': start_latency, 'min_latency': min_latency,
-                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map}
+                             'max_latency': max_latency, 'ran_cap_per_time': ran_cap_per_time, 'dist_map': dist_map,
+                             'user_condition':ue_char,'beam_propagation_scenario':ue_prop_sce,'path_loss':ue_path_loss}
 
         if output_typ == 'simple':
             return {'snr_cap_stats': snr_cap_stats}
