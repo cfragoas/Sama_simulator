@@ -32,10 +32,12 @@ Sama uses different open source python libraries, such as:
 * [pandas] - Fast, powerful, flexible and easy to use open source data analysis and manipulation tool
 * [numpy] - The fundamental package for scientific computing with Python
 * [pyyaml] - Full-featured YAML framework for the Python programming language
+* [gdal] - Translator library for raster and vector geospatial data formats 
+* [rasterio] - Rasterio reads and writes GeoTIFF and provides a Python API based on Numpy N-dimensional arrays and GeoJSON
 
 ### Installation
 
-Sama is currently tested only in Python 3.9.
+Sama is currently works with Python 3.9 to 3.12.
 Install Python, copy all folders and files to any directory and make sure all packages are installed.
 To install the packages, run the following commands:
 
@@ -55,6 +57,8 @@ pip install seaborn==0.12.1
 pip install pyyaml==0.2.5
 pip install pickle-mixin==1.0.2
 ```
+
+**To use the map import feature, it is necessary to install the [gdal] and [rasterio] libraries. To install gdal, we recommend using Anaconda or Miniconda instead of standard Python.**
 
 Setup the parameter file **param.yml** in the folder **parameters/**, linked [here]. Alter according to the simulations you choose to execute, but you must not change the name nor location of the file. 
 
@@ -89,7 +93,8 @@ Contact: christianfragoas@gmail.com
 [scikit-learn]: <https://scikit-learn.org/>
 [seaborn]: <https://seaborn.pydata.org/>
 [pickle-mixin]: <https://pypi.org/project/pickle-mixin/>
-[pyyaml]: <https://pyyaml.org/>
+[gdal]: <https://gdal.org/>
+[rasterio]: <https://github.com/rasterio/rasterio>
 
 [here]: <https://github.com/cfragoas/CelDep_Optimizator/blob/main/parameters/param.yml>
 [1]: <http://dx.doi.org/10.14209/sbrt.2022.1570814168>
