@@ -1,5 +1,5 @@
 exec_param:
-  threads: 8 # if 0 - uses the maximum number of threads - 1
+  threads: 0 # if 0 - uses the maximum number of threads - 1
   max_iter: 200  # number of iterations (repetitions/batches) - must be more than batch_iter todo - fix this in outside code
   batch_size: 20 # number of iterations per batch - must be less than max_iter
   hypothesis_test: True  # True if you want to use Mann_Whitney U test to evaluate the distribution and stop the simulation
@@ -16,10 +16,10 @@ roi_param:
   # ============================ if grid and map == True, the applications will use grid ===============================
   # ==================================================== grid param ====================================================
 
-  grid: False
-  grid_lines: 500
-  grid_columns: 500
-  cel_size: 42
+  grid: True
+  grid_lines: 1000
+  grid_columns: 1000
+  cel_size: 30
 
   # ================================================= end grid param  =================================================
   # ==================================================================================================================
@@ -32,7 +32,7 @@ roi_param:
   # ==================================================================================================================
 
   # ==================================================== raster param ================================================
-  raster: True
+  raster: False
   input_shapefile: 'rasters/shapefiles/bairros_tcc/botafogo.shp' # Path containing the input shapefile (string type)
   output_raster: 'rasters/botafogo.tif' # Path for the output rasterfile to be placed (string type)
   projection: 'EPSG:4326' # Projection to be used (string type) / 'EPSG:4326' is a commom one
@@ -63,7 +63,7 @@ macel_param:
   bs_location_file_name: 'bs_coord.csv'  # only if bs_allocation_typ is 'file' - besides, can be left blank -- the file is located inside the input folder
   # ==================================== if bs_allocation_typ is RANDOM or CLUSTER ====================================
   min_bs: 1  # minimum number of BSs to be simulated
-  max_bs: 1  # maximum number of BSs to be simulated
+  max_bs: 10  # maximum number of BSs to be simulated
   bs_step: 1  # the step to iterate between min_bs and max_bs -> leave with empty or 0 to not iterate (will use the minium vale) 
   #bs_step zerado ou 0 n funciona rodar com min e max igual
   # ===================================================================================================================
@@ -75,9 +75,9 @@ macel_param:
   mux_tdd_up_time: 0.5  # percentage (between 0 and 1) of time used for the uplink when using TDD
 
   # ==================================== Propagation Models ==========================================================
-  dynamic_pathloss: True # Flag to if dynamic path loss decision. 
+  dynamic_pathloss: False # Flag to if dynamic path loss decision.
   # Dynamic path loss will use the user condition to define what is the best path loss for situation and only work with rasters.
-  prop_model: 'WINNER2' 
+  prop_model: 'free space'
   # Available path loss models for simulation with dynamic flag false: free space, 3GPP UMA,3GPP UMA O2I, WINNER2 C2, WINNER2 C4
   # Available path loss models for simulation with dynamic flag true: 3GPP SCM, WINNER2 
   # =================================================================================================================
